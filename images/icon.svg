@@ -1,0 +1,41 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#007ACC" stroke="#005A9E" stroke-width="4"/>
+  
+  <!-- Microchip icon -->
+  <rect x="38" y="38" width="52" height="52" rx="4" fill="#FFFFFF" opacity="0.9"/>
+  
+  <!-- Chip pins (left) -->
+  <rect x="28" y="44" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="28" y="52" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="28" y="60" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="28" y="68" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="28" y="76" width="10" height="3" fill="#FFFFFF"/>
+  
+  <!-- Chip pins (right) -->
+  <rect x="90" y="44" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="90" y="52" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="90" y="60" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="90" y="68" width="10" height="3" fill="#FFFFFF"/>
+  <rect x="90" y="76" width="10" height="3" fill="#FFFFFF"/>
+  
+  <!-- Chip pins (top) -->
+  <rect x="44" y="28" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="52" y="28" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="60" y="28" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="68" y="28" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="76" y="28" width="3" height="10" fill="#FFFFFF"/>
+  
+  <!-- Chip pins (bottom) -->
+  <rect x="44" y="90" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="52" y="90" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="60" y="90" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="68" y="90" width="3" height="10" fill="#FFFFFF"/>
+  <rect x="76" y="90" width="3" height="10" fill="#FFFFFF"/>
+  
+  <!-- Lightning bolt for bootloader/flash -->
+  <path d="M 70 45 L 58 60 L 66 60 L 56 78 L 68 63 L 60 63 Z" fill="#FFC107" stroke="#F57C00" stroke-width="2"/>
+  
+  <!-- PIC text -->
+  <text x="64" y="70" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#005A9E" text-anchor="middle">PIC</text>
+</svg>

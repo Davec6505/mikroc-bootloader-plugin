@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MikroC PIC32 Bootloader Icon</h1>
+    <canvas id="canvas" width="128" height="128"></canvas>
+    <br>
+    <button onclick="download()">Download as PNG</button>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Background circle
+        ctx.fillStyle = '#007ACC';
+        ctx.strokeStyle = '#005A9E';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(64, 64, 60, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Chip body
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(38, 38, 52, 52);
+        
+        // Chip pins (left)
+        ctx.fillStyle = '#FFFFFF';
+        [44, 52, 60, 68, 76].forEach(y => ctx.fillRect(28, y, 10, 3));
+        
+        // Chip pins (right)
+        [44, 52, 60, 68, 76].forEach(y => ctx.fillRect(90, y, 10, 3));
+        
+        // Chip pins (top)
+        [44, 52, 60, 68, 76].forEach(x => ctx.fillRect(x, 28, 3, 10));
+        
+        // Chip pins (bottom)
+        [44, 52, 60, 68, 76].forEach(x => ctx.fillRect(x, 90, 3, 10));
+        
+        // Lightning bolt
+        ctx.fillStyle = '#FFC107';
+        ctx.strokeStyle = '#F57C00';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(70, 45);
+        ctx.lineTo(58, 60);
+        ctx.lineTo(66, 60);
+        ctx.lineTo(56, 78);
+        ctx.lineTo(68, 63);
+        ctx.lineTo(60, 63);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // PIC text
+        ctx.fillStyle = '#005A9E';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('PIC', 64, 70);
+        
+        function download() {
+            const link = document.createElement('a');
+            link.download = 'icon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
