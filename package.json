@@ -1,12 +1,36 @@
 {
   "name": "mikroc-pic32-bootloader",
   "displayName": "MikroC PIC32 Bootloader",
-  "description": "Flash PIC32 devices using MikroC HID bootloader",
-  "version": "0.0.1",
+  "description": "Flash PIC32 microcontrollers using MikroC HID bootloader directly from VS Code",
+  "version": "1.0.0",
+  "publisher": "Davec6505",
+  "author": {
+    "name": "Dave C"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Davec6505/mikroc-bootloader-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/Davec6505/mikroc-bootloader-plugin/issues"
+  },
+  "homepage": "https://github.com/Davec6505/mikroc-bootloader-plugin#readme",
+  "keywords": [
+    "mikroc",
+    "pic32",
+    "bootloader",
+    "flash",
+    "microcontroller",
+    "embedded",
+    "hid",
+    "usb"
+  ],
   "engines": {
     "vscode": "^1.106.1"
   },
   "categories": [
+    "Programming Languages",
     "Other"
   ],
   "activationEvents": [],
@@ -23,8 +47,8 @@
       "properties": {
         "mikroc-pic32-bootloader.bootloaderPath": {
           "type": "string",
-          "default": "C:\\Users\\davec\\GIT\\MikroC_bootloader\\bins\\mikro_hb.exe",
-          "description": "Path to the mikro_hb.exe bootloader executable"
+          "default": "",
+          "description": "Path to the mikro_hb.exe bootloader executable (download from https://github.com/Davec6505/MikroC_bootloader)"
         },
         "mikroc-pic32-bootloader.hexFilePattern": {
           "type": "string",

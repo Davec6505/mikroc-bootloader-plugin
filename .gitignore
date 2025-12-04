@@ -1,5 +1,32 @@
+# Build outputs
 out
 dist
-node_modules
-.vscode-test/
 *.vsix
+
+# Dependencies
+node_modules
+
+# Testing
+.vscode-test/
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
