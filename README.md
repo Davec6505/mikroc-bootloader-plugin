@@ -20,9 +20,26 @@ Flash PIC32 microcontrollers using the MikroC HID bootloader directly from Visua
 ## Prerequisites
 
 ### Required
-- **MikroC HID Bootloader**: Download from [MikroC_bootloader](https://github.com/Davec6505/MikroC_bootloader)
-- **PIC32 Device**: With MikroC bootloader firmware installed
-- **USB Connection**: Or serial connection (depending on bootloader mode)
+
+#### 1. MikroC HID Bootloader
+Download and install the MikroC HID bootloader executable:
+
+**Repository:** [MikroC_bootloader](https://github.com/Davec6505/MikroC_bootloader)
+
+**Download Options:**
+- Clone the repository: `git clone https://github.com/Davec6505/MikroC_bootloader.git`
+- Download the [latest release](https://github.com/Davec6505/MikroC_bootloader/releases)
+- Direct download: `mikro_hb.exe` from the `bins/` folder
+
+Save `mikro_hb.exe` to a location on your computer (e.g., `C:\Tools\mikro_hb.exe`)
+
+#### 2. PIC32 Device Requirements
+- **PIC32 Device** with MikroC bootloader firmware already installed
+- **USB Connection** (or serial connection depending on bootloader mode)
+- Device must be in bootloader mode when flashing
+
+#### 3. Compiled Firmware
+- `.hex` file generated from your MikroC project
 
 ### Recommended
 - VS Code 1.106.1 or later
@@ -30,20 +47,31 @@ Flash PIC32 microcontrollers using the MikroC HID bootloader directly from Visua
 
 ## Installation
 
-### From VS Code Marketplace (Coming Soon)
+### Step 1: Install the Bootloader Tool
+
+Before using this extension, you need the MikroC HID bootloader:
+
+1. Go to [MikroC_bootloader releases](https://github.com/Davec6505/MikroC_bootloader/releases)
+2. Download the latest `mikro_hb.exe`
+3. Save it to a permanent location (e.g., `C:\Tools\mikro_hb.exe`)
+4. Note this path - you'll need it for VS Code configuration
+
+### Step 2: Install the VS Code Extension
+
+#### From VS Code Marketplace
 1. Open VS Code
 2. Press `Ctrl+Shift+X` to open Extensions
 3. Search for "MikroC PIC32 Bootloader"
 4. Click **Install**
 
-### From VSIX File
+#### From VSIX File
 1. Download the latest `.vsix` from [Releases](https://github.com/Davec6505/mikroc-bootloader-plugin/releases)
 2. Open VS Code
 3. Press `Ctrl+Shift+P`
 4. Type "Install from VSIX"
 5. Select the downloaded file
 
-### From Source
+#### From Source
 ```bash
 git clone https://github.com/Davec6505/mikroc-bootloader-plugin.git
 cd mikroc-bootloader-plugin
@@ -51,6 +79,21 @@ npm install
 npm run compile
 npx @vscode/vsce package
 code --install-extension mikroc-pic32-bootloader-1.0.0.vsix
+```
+
+### Step 3: Configure the Extension
+
+After installing, configure the bootloader path:
+
+1. Open VS Code Settings (`File > Preferences > Settings` or `Ctrl+,`)
+2. Search for "MikroC PIC32"
+3. Set **Bootloader Path** to where you saved `mikro_hb.exe`
+
+Example:
+```json
+{
+  "mikroc-pic32-bootloader.bootloaderPath": "C:\\Tools\\mikro_hb.exe"
+}
 ```
 
 ## Configuration
