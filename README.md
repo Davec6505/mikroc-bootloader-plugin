@@ -10,10 +10,12 @@ Flash PIC32 microcontrollers using the MikroC HID bootloader directly from Visua
 ## Features
 
 - 🚀 **One-Click Flashing**: Flash .hex files to PIC32 devices with a single command
+- ⚡ **Status Bar Button**: Quick access button in the status bar (click "⚡ Flash PIC32")
 - 🔍 **Auto-Discovery**: Automatically finds .hex files in your workspace
 - 📁 **Multiple Files**: Quick picker when multiple .hex files are found
 - 💻 **Terminal Integration**: See bootloader output in real-time
-- ⚡ **Error Handling**: Clear, actionable error messages
+- ⚙️ **Configurable**: Customize bootloader path, file patterns, and UI elements
+- 🛡️ **Error Handling**: Clear, actionable error messages
 
 ## Prerequisites
 
@@ -55,13 +57,17 @@ code --install-extension mikroc-pic32-bootloader-1.0.0.vsix
 
 1. Open VS Code Settings (`File > Preferences > Settings`)
 2. Search for "MikroC PIC32"
-3. Set **Bootloader Path** to your `mikro_hb.exe` location
+3. Configure:
+   - **Bootloader Path**: Path to your `mikro_hb.exe` location
+   - **Hex File Pattern**: Glob pattern for finding .hex files (default: `**/*.hex`)
+   - **Show Status Bar Button**: Show/hide the quick access button (default: enabled)
 
 **Example:**
 ```json
 {
   "mikroc-pic32-bootloader.bootloaderPath": "C:\\Tools\\mikro_hb.exe",
-  "mikroc-pic32-bootloader.hexFilePattern": "**/*.hex"
+  "mikroc-pic32-bootloader.hexFilePattern": "**/*.hex",
+  "mikroc-pic32-bootloader.showStatusBarButton": true
 }
 ```
 
@@ -69,6 +75,13 @@ code --install-extension mikroc-pic32-bootloader-1.0.0.vsix
 
 ### Basic Workflow
 
+**Method 1: Status Bar Button (Quickest)**
+1. **Connect Device**: Connect your PIC32 device and ensure it's in bootloader mode
+2. **Click Button**: Click the "⚡ Flash PIC32" button in the status bar (bottom-left)
+3. **Select File**: If multiple .hex files exist, select the one to flash
+4. **Monitor**: Watch the terminal output for flash progress
+
+**Method 2: Command Palette**
 1. **Connect Device**: Connect your PIC32 device and ensure it's in bootloader mode
 2. **Open Project**: Open your MikroC project workspace in VS Code
 3. **Flash**: Press `Ctrl+Shift+P` and type "MikroC PIC32: Flash Device"

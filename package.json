@@ -54,6 +54,11 @@
           "type": "string",
           "default": "**/*.hex",
           "description": "Glob pattern to find .hex files in workspace"
+        },
+        "mikroc-pic32-bootloader.showStatusBarButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Flash PIC32' button in the status bar for quick access"
         }
       }
     }

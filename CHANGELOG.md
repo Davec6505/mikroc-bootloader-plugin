@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial release of MikroC PIC32 Bootloader extension
+- **Status bar button** for quick one-click flashing (⚡ Flash PIC32)
 - One-click flashing of .hex files to PIC32 devices
 - Automatic .hex file discovery in workspace
 - Quick picker for selecting from multiple .hex files
 - Real-time terminal output during flashing
 - Configurable bootloader path and hex file pattern
+- **Configurable status bar button** visibility (show/hide)
 - Comprehensive error handling with actionable messages
 - Professional documentation (README, DEVELOPER_GUIDE, VIDEO_TUTORIALS)
 - MIT License
@@ -22,8 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 - Command: "MikroC PIC32: Flash Device"
+- Status bar button with lightning bolt icon
 - Configuration: Bootloader path setting
 - Configuration: Hex file pattern setting (glob)
+- Configuration: Status bar button visibility toggle
 - Terminal integration for live output
 - Error detection (exit codes, missing files, device not connected)
 

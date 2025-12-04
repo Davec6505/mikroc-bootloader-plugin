@@ -7,12 +7,16 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Status bar item for quick access
+let statusBarItem: vscode.StatusBarItem;
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
 	console.log('MikroC PIC32 Bootloader extension is now active!');
 
+	// Register flash command
 	const disposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.flash', async () => {
 		try {
 			await flashToDevice();
@@ -21,7 +25,36 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	context.subscriptions.push(disposable);
+	// Create status bar button
+	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+	statusBarItem.command = 'mikroc-pic32-bootloader.flash';
+	statusBarItem.text = '$(zap) Flash PIC32';
+	statusBarItem.tooltip = 'Flash .hex file to PIC32 device using MikroC bootloader';
+	
+	// Update status bar visibility based on settings
+	updateStatusBarVisibility();
+
+	// Watch for configuration changes
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration('mikroc-pic32-bootloader.showStatusBarButton')) {
+				updateStatusBarVisibility();
+			}
+		})
+	);
+
+	context.subscriptions.push(disposable, statusBarItem);
+}
+
+function updateStatusBarVisibility() {
+	const config = vscode.workspace.getConfiguration('mikroc-pic32-bootloader');
+	const showButton = config.get<boolean>('showStatusBarButton', true);
+	
+	if (showButton) {
+		statusBarItem.show();
+	} else {
+		statusBarItem.hide();
+	}
 }
 
 async function flashToDevice() {
