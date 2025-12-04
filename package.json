@@ -1,0 +1,55 @@
+{
+  "name": "mikroc-pic32-bootloader",
+  "displayName": "MikroC PIC32 Bootloader",
+  "description": "Flash PIC32 devices using MikroC HID bootloader",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.106.1"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mikroc-pic32-bootloader.flash",
+        "title": "MikroC PIC32: Flash Device"
+      }
+    ],
+    "configuration": {
+      "title": "MikroC PIC32 Bootloader",
+      "properties": {
+        "mikroc-pic32-bootloader.bootloaderPath": {
+          "type": "string",
+          "default": "C:\\Users\\davec\\GIT\\MikroC_bootloader\\bins\\mikro_hb.exe",
+          "description": "Path to the mikro_hb.exe bootloader executable"
+        },
+        "mikroc-pic32-bootloader.hexFilePattern": {
+          "type": "string",
+          "default": "**/*.hex",
+          "description": "Glob pattern to find .hex files in workspace"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.106.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.46.3",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
