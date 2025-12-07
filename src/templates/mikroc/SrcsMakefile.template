@@ -1,0 +1,47 @@
+# {{PROJECT_NAME}} - Source Makefile (MikroC PRO for PIC32)
+# Compiles sources using MikroC compiler
+# Called by root Makefile - all variables inherited
+
+SHELL := powershell.exe
+.SHELLFLAGS := -NoProfile -Command
+
+# MCP project file (required for MikroC linker)
+MCP_FILE := $(SRC_DIR)\$(MODULE).mcp32
+
+# Auto-discover all .c files in srcs/ directory
+SOURCES := $(wildcard *.c)
+
+# Required MikroC libraries (minimal set for basic functionality)
+LIBS := __Lib_CP0.emcl __Lib_Math.emcl __Lib_MathDouble_MZ_EF.emcl __Lib_System_MZ_EF.emcl __Lib_SoftResetDma.emcl __Lib_Delays.emcl
+
+# Build target
+.PHONY: build
+build:
+	@Write-Host "Compiling sources: $(SOURCES)"
+	@if (!(Test-Path "../$(OBJ_DIR)")) { New-Item -ItemType Directory -Path "../$(OBJ_DIR)" | Out-Null }
+	@if (!(Test-Path "../$(OTHER_DIR)")) { New-Item -ItemType Directory -Path "../$(OTHER_DIR)" | Out-Null }
+	@if (!(Test-Path "../$(BUILD_DIR)")) { New-Item -ItemType Directory -Path "../$(BUILD_DIR)" | Out-Null }
+	& "$(COMPILER_LOCATION)" $(CFLAGS) \
+		-N"$(MCP_FILE)" \
+		-SP"$(DEFS_DIR)\" \
+		-SP"$(USES_DIR)\" \
+		-SP"$(SRC_DIR)\" \
+		-IP"$(USES_DIR)\" \
+		-IP"$(SRC_DIR)\" \
+		$(SOURCES) $(LIBS)
+	@Write-Host "Moving build artifacts..."
+	@Get-ChildItem . -Filter *.hex | Move-Item -Destination "../$(BUILD_DIR)" -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.asm | Move-Item -Destination "../$(OTHER_DIR)" -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.lst | Move-Item -Destination "../$(OTHER_DIR)" -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.log | Move-Item -Destination "../$(OTHER_DIR)" -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.cp | Move-Item -Destination "../$(OTHER_DIR)" -Force -ErrorAction SilentlyContinue
+
+.PHONY: clean
+clean:
+	@Write-Host "Cleaning source directory..."
+	@Get-ChildItem . -Filter *.hex | Remove-Item -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.asm | Remove-Item -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.lst | Remove-Item -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.log | Remove-Item -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.cp | Remove-Item -Force -ErrorAction SilentlyContinue
+	@Get-ChildItem . -Filter *.emcl | Remove-Item -Force -ErrorAction SilentlyContinue

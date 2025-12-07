@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "MikroC",
+            "includePath": [
+                "${workspaceFolder}/srcs",
+                "C:/Users/Public/Documents/Mikroelektronika/mikroC PRO for PIC32/Uses",
+                "C:/Users/Public/Documents/Mikroelektronika/mikroC PRO for PIC32/Defs"
+            ],
+            "defines": [
+                "__PIC32MZ__",
+                "__{{DEVICE_PART}}__",
+                "MIKROC"
+            ],
+            "compilerPath": "C:/Users/Public/Documents/Mikroelektronika/mikroC PRO for PIC32/mikroCPIC32.exe",
+            "cStandard": "c99",
+            "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "C:/Users/Public/Documents/Mikroelektronika/mikroC PRO for PIC32/Uses",
+                    "C:/Users/Public/Documents/Mikroelektronika/mikroC PRO for PIC32/Defs"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}

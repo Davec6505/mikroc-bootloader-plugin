@@ -1,0 +1,54 @@
+/**
+ * {{PROJECT_NAME}} - Main Application
+ * Device: {{DEVICE_NAME}}
+ * Compiler: MikroC PRO for PIC32
+ * 
+ * Simple LED blink example to verify build and flash
+ */
+
+// Timer1 interrupt for LED blink
+static unsigned int ms_counter = 0;
+
+// Timer1 Initialization
+// Prescaler 1:8; PR1 = 12500; Interrupt Time = 1ms @ 100MHz PBCLK3
+void InitTimer1() {
+    T1CON = 0x8010;        // Enable Timer1, prescaler 1:8
+    T1IP0_bit = 1;         // Interrupt priority 7
+    T1IP1_bit = 1;
+    T1IP2_bit = 1;
+    T1IF_bit = 0;          // Clear interrupt flag
+    T1IE_bit = 1;          // Enable Timer1 interrupt
+    PR1 = 12500;           // Period for 1ms
+    TMR1 = 0;              // Clear timer register
+}
+
+// Timer1 ISR - Toggles LED every 500ms
+void Timer1Interrupt() iv IVT_TIMER_1 ilevel 7 ics ICS_SRS {
+    T1IF_bit = 0;          // Clear interrupt flag
+    ms_counter++;
+    
+    // Toggle LED every 500ms
+    if (ms_counter >= 500) {
+        LATB9_bit = !LATB9_bit;   // Toggle LED on RB9
+        ms_counter = 0;
+    }
+}
+
+void main() {
+    // Configure GPIO
+    ANSELB = 0;            // All PORTB pins digital
+    TRISB = 0;             // All PORTB pins output
+    LATB = 0x0000;         // Clear PORTB
+    
+    // Initialize Timer1 for LED blink
+    InitTimer1();
+    
+    // Enable interrupts
+    EnableInterrupts();
+    
+    // Main loop - blink second LED using delay
+    while(1) {
+        LATB10_bit = !LATB10_bit;   // Toggle LED on RB10
+        Delay_ms(1000);             // 1 second delay
+    }
+}
