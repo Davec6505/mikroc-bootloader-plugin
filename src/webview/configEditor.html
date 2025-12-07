@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIC32 Configuration Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 16px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .device-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            border-right: 1px solid var(--vscode-panel-border);
+        }
+
+        .right-panel {
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 16px;
+            background-color: var(--vscode-sideBar-background);
+        }
+
+        .category-section {
+            margin-bottom: 24px;
+        }
+
+        .category-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .setting-group {
+            margin-bottom: 16px;
+        }
+
+        .setting-label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .setting-select {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .setting-select:hover {
+            background-color: var(--vscode-input-background);
+            border-color: var(--vscode-inputOption-activeBorder);
+        }
+
+        .setting-select:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+            outline-offset: -1px;
+        }
+
+        .build-type {
+            margin-bottom: 16px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .radio-label input[type="radio"] {
+            cursor: pointer;
+        }
+
+        .register-preview {
+            margin-top: 16px;
+        }
+
+        .register-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .register-list {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            background-color: var(--vscode-editor-background);
+            padding: 12px;
+            border-radius: 3px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+
+        .register-line {
+            display: flex;
+            margin-bottom: 4px;
+            color: var(--vscode-editor-foreground);
+        }
+
+        .register-name {
+            width: 80px;
+            color: var(--vscode-symbolIcon-variableForeground);
+        }
+
+        .register-address {
+            width: 120px;
+            color: var(--vscode-symbolIcon-numberForeground);
+        }
+
+        .register-value {
+            color: var(--vscode-symbolIcon-constantForeground);
+        }
+
+        .footer {
+            padding: 12px 16px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border-top: 1px solid var(--vscode-panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 6px 14px;
+            font-size: 12px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-family: var(--vscode-font-family);
+        }
+
+        .btn-primary {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .btn-secondary {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .clock-display {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--vscode-charts-green);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--vscode-scrollbarSlider-background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-activeBackground);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Edit Project Configuration</h1>
+            <div class="device-info">
+                <div class="info-item">
+                    <span class="info-label">MCU Name</span>
+                    <span class="info-value" id="deviceName">P32MZ2048EFH100</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">MCU Clock Frequency [MHz]</span>
+                    <span class="info-value clock-display" id="clockFreq">200.000000</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Flash Size</span>
+                    <span class="info-value" id="flashSize">2048 KB</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Pin Count</span>
+                    <span class="info-value" id="pinCount">100</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel" id="settingsPanel">
+                <!-- Settings will be dynamically generated here -->
+            </div>
+
+            <div class="right-panel">
+                <div class="build-type">
+                    <label class="setting-label">Build Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="buildType" value="release" checked>
+                            Release
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="buildType" value="debug">
+                            ICD Debug
+                        </label>
+                    </div>
+                </div>
+
+                <div class="register-preview">
+                    <div class="register-title">Configuration Registers</div>
+                    <div class="register-list" id="registerList">
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG3</span>
+                            <span class="register-address">: $1FC0FFC0 :</span>
+                            <span class="register-value">0x43000000</span>
+                        </div>
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG2</span>
+                            <span class="register-address">: $1FC0FFC4 :</span>
+                            <span class="register-value">0x40013122</span>
+                        </div>
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG1</span>
+                            <span class="register-address">: $1FC0FFC8 :</span>
+                            <span class="register-value">0x5F74C4F9</span>
+                        </div>
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG0</span>
+                            <span class="register-address">: $1FC0FFCC :</span>
+                            <span class="register-value">0x403FF75B</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="button-group">
+                <button class="btn-secondary" id="loadSchemeBtn">Load Scheme</button>
+                <button class="btn-secondary" id="saveSchemeBtn">Save Scheme</button>
+                <button class="btn-secondary" id="defaultBtn">Default</button>
+            </div>
+            <div class="button-group">
+                <button class="btn-secondary" id="cancelBtn">Cancel</button>
+                <button class="btn-primary" id="okBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        // Initialize with device data
+        let currentConfig = {};
+        let uiSchema = [];
+        let deviceInfo = {};
+
+        // Listen for messages from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.type) {
+                case 'init':
+                    deviceInfo = message.deviceInfo;
+                    uiSchema = message.uiSchema;
+                    currentConfig = message.config || {};
+                    initializeUI();
+                    break;
+                case 'updateRegisters':
+                    updateRegisterPreview(message.registers);
+                    break;
+            }
+        });
+
+        function initializeUI() {
+            // Update header info
+            document.getElementById('deviceName').textContent = deviceInfo.name;
+            document.getElementById('flashSize').textContent = `${deviceInfo.flashKB} KB`;
+            document.getElementById('pinCount').textContent = deviceInfo.pins;
+            
+            // Generate settings by category
+            const categories = [...new Set(uiSchema.map(s => s.category))];
+            const settingsPanel = document.getElementById('settingsPanel');
+            settingsPanel.innerHTML = '';
+
+            categories.forEach(category => {
+                const section = document.createElement('div');
+                section.className = 'category-section';
+                
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = category;
+                section.appendChild(title);
+
+                const settings = uiSchema.filter(s => s.category === category);
+                settings.forEach(setting => {
+                    const group = document.createElement('div');
+                    group.className = 'setting-group';
+
+                    const label = document.createElement('label');
+                    label.className = 'setting-label';
+                    label.textContent = setting.name;
+                    label.htmlFor = `setting${setting.index}`;
+                    group.appendChild(label);
+
+                    const select = document.createElement('select');
+                    select.className = 'setting-select';
+                    select.id = `setting${setting.index}`;
+                    select.dataset.index = setting.index;
+
+                    setting.options.forEach(option => {
+                        const opt = document.createElement('option');
+                        opt.value = option;
+                        opt.textContent = option;
+                        if (option === (currentConfig[setting.index] || setting.defaultValue)) {
+                            opt.selected = true;
+                        }
+                        select.appendChild(opt);
+                    });
+
+                    select.addEventListener('change', handleSettingChange);
+                    group.appendChild(select);
+                    section.appendChild(group);
+                });
+
+                settingsPanel.appendChild(section);
+            });
+
+            // Request initial register calculation
+            calculateRegisters();
+        }
+
+        function handleSettingChange(event) {
+            const index = parseInt(event.target.dataset.index);
+            const value = event.target.value;
+            currentConfig[index] = value;
+            calculateRegisters();
+        }
+
+        function calculateRegisters() {
+            // Send current config to extension for register calculation
+            vscode.postMessage({
+                type: 'calculateRegisters',
+                config: currentConfig
+            });
+        }
+
+        function updateRegisterPreview(registers) {
+            const registerList = document.getElementById('registerList');
+            registerList.innerHTML = Object.entries(registers)
+                .map(([name, data]) => `
+                    <div class="register-line">
+                        <span class="register-name">${name}</span>
+                        <span class="register-address">: ${data.address} :</span>
+                        <span class="register-value">${data.value}</span>
+                    </div>
+                `).join('');
+
+            // Update clock frequency if calculated
+            if (registers.calculatedClock) {
+                document.getElementById('clockFreq').textContent = 
+                    registers.calculatedClock.toFixed(6);
+            }
+        }
+
+        // Button handlers
+        document.getElementById('okBtn').addEventListener('click', () => {
+            vscode.postMessage({
+                type: 'ok',
+                config: currentConfig
+            });
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'cancel' });
+        });
+
+        document.getElementById('saveSchemeBtn').addEventListener('click', () => {
+            vscode.postMessage({
+                type: 'saveScheme',
+                config: currentConfig
+            });
+        });
+
+        document.getElementById('loadSchemeBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'loadScheme' });
+        });
+
+        document.getElementById('defaultBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'loadDefaults' });
+        });
+
+        // Signal ready
+        vscode.postMessage({ type: 'ready' });
+    </script>
+</body>
+</html>

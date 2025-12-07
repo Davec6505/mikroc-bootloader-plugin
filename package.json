@@ -41,6 +41,10 @@
       {
         "command": "mikroc-pic32-bootloader.flash",
         "title": "MikroC PIC32: Flash Device"
+      },
+      {
+        "command": "mikroc-pic32-bootloader.testConfigEditor",
+        "title": "MikroC PIC32: Test Config Editor (Dev)"
       }
     ],
     "configuration": {

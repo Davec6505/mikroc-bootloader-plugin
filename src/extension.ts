@@ -4,6 +4,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { ConfigEditor } from './configEditor';
+import { EFH_DEVICES, PIC32Device, getDevicesForDisplay } from './devices/pic32mz/efhDevices';
 
 const execAsync = promisify(exec);
 
@@ -17,11 +19,20 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('MikroC PIC32 Bootloader extension is now active!');
 
 	// Register flash command
-	const disposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.flash', async () => {
+	const flashDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.flash', async () => {
 		try {
 			await flashToDevice();
 		} catch (error) {
 			vscode.window.showErrorMessage(`Flash failed: ${error}`);
+		}
+	});
+
+	// Register config editor test command
+	const configDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.testConfigEditor', async () => {
+		try {
+			await testConfigEditor(context);
+		} catch (error) {
+			vscode.window.showErrorMessage(`Config editor failed: ${error}`);
 		}
 	});
 
@@ -43,7 +54,70 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	context.subscriptions.push(disposable, statusBarItem);
+	context.subscriptions.push(flashDisposable, configDisposable, statusBarItem);
+}
+
+/**
+ * Test the config editor (temporary command for development)
+ */
+async function testConfigEditor(context: vscode.ExtensionContext) {
+	// Show device picker
+	const deviceItems = getDevicesForDisplay();
+	const selectedDevice = await vscode.window.showQuickPick(deviceItems, {
+		placeHolder: 'Select PIC32 device'
+	});
+
+	if (!selectedDevice) {
+		return;
+	}
+
+	// Find device object
+	const device = EFH_DEVICES.find(d => d.name === selectedDevice.value);
+	if (!device) {
+		vscode.window.showErrorMessage('Device not found');
+		return;
+	}
+
+	// Open config editor
+	const editor = new ConfigEditor(context, device);
+	try {
+		const config = await editor.show();
+		
+		// Show success message with config summary
+		const clockFreq = calculateClockFromConfig(config);
+		vscode.window.showInformationMessage(
+			`Configuration complete! System clock: ${clockFreq.toFixed(2)} MHz`
+		);
+	} catch (error) {
+		// User cancelled
+		console.log('Config editor cancelled');
+	}
+}
+
+/**
+ * Calculate system clock from config (helper for test command)
+ */
+function calculateClockFromConfig(config: Map<number, string>): number {
+	const pllInputDiv = config.get(6) || "3x Divider";
+	const pllMult = config.get(9) || "PLL Multiply by 50";
+	const pllOutputDiv = config.get(10) || "2x Divider";
+	const usbPllInput = config.get(11) || "USB PLL input is 24 MHz";
+
+	const inputDivMatch = pllInputDiv.match(/(\d+)x/);
+	const multMatch = pllMult.match(/by (\d+)/);
+	const outputDivMatch = pllOutputDiv.match(/(\d+)x/);
+	const inputFreqMatch = usbPllInput.match(/(\d+) MHz/);
+
+	if (!inputDivMatch || !multMatch || !outputDivMatch || !inputFreqMatch) {
+		return 200.0;
+	}
+
+	const inputFreq = parseInt(inputFreqMatch[1]);
+	const inputDiv = parseInt(inputDivMatch[1]);
+	const mult = parseInt(multMatch[1]);
+	const outputDiv = parseInt(outputDivMatch[1]);
+
+	return (inputFreq / inputDiv) * mult / outputDiv;
 }
 
 function updateStatusBarVisibility() {
