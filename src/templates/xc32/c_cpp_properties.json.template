@@ -1,0 +1,33 @@
+{
+    "configurations": [
+        {
+            "name": "XC32",
+            "includePath": [
+                "${workspaceFolder}/incs",
+                "${workspaceFolder}/config/default",
+                "C:/Program Files/Microchip/xc32/v4.35/pic32mx/include",
+                "C:/Program Files/Microchip/xc32/v4.35/pic32-libs/include"
+            ],
+            "defines": [
+                "__PIC32MZ__",
+                "__{{DEVICE_PART}}__",
+                "_SUPPRESS_PLIB_WARNING"
+            ],
+            "compilerPath": "C:/Program Files/Microchip/xc32/v4.35/bin/xc32-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64",
+            "compilerArgs": [
+                "-mprocessor={{DEVICE_PART}}"
+            ],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "C:/Program Files/Microchip/xc32/v4.35/pic32mx/include"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}

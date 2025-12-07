@@ -1,0 +1,49 @@
+/**
+ * {{PROJECT_NAME}} - Main Application
+ * Device: {{DEVICE_NAME}}
+ * 
+ * Simple LED blink example to verify build and flash
+ */
+
+#include <xc.h>
+#include <sys/attribs.h>
+#include "initialization.h"
+
+// Assuming LED on RB14 (modify for your hardware)
+#define LED_TRIS    TRISBbits.TRISB14
+#define LED_LAT     LATBbits.LATB14
+
+/**
+ * Simple delay (not accurate, for demo only)
+ */
+void delay_ms(unsigned int ms) {
+    unsigned int i, j;
+    for (i = 0; i < ms; i++) {
+        for (j = 0; j < 1000; j++) {
+            asm("nop");
+        }
+    }
+}
+
+/**
+ * Main application entry point
+ */
+int main(void) {
+    // Initialize system
+    SYS_Initialize();
+    
+    // Configure LED pin as output
+    LED_TRIS = 0;  // Output
+    LED_LAT = 0;   // Start low
+    
+    // Main loop - blink LED
+    while (1) {
+        LED_LAT = 1;       // Turn on
+        delay_ms(500);
+        
+        LED_LAT = 0;       // Turn off
+        delay_ms(500);
+    }
+    
+    return 0;
+}
