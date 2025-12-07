@@ -10,6 +10,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { PIC32Device } from './devices/pic32mz/efhDevices';
 import { EFH_UI_SCHEMA, ConfigSetting } from './devices/pic32mz/efhUiSchema';
+import { calculateRegisters, formatRegisterValue } from './devices/pic32mz/efhRegisterMap';
 
 export class ConfigEditor {
     private panel: vscode.WebviewPanel | undefined;
@@ -136,28 +137,29 @@ export class ConfigEditor {
 
     /**
      * Calculate register values and send to webview
-     * TODO: Implement actual register mapping in next phase
      */
     private calculateAndSendRegisters() {
         if (!this.panel) {return;}
 
-        // Placeholder - will implement actual register calculation
+        // Calculate actual register values from current configuration
+        const registerValues = calculateRegisters(this.currentConfig);
+
         const registers = {
             DEVCFG3: {
                 address: '$1FC0FFC0',
-                value: '0x43000000'
+                value: formatRegisterValue(registerValues.DEVCFG3)
             },
             DEVCFG2: {
                 address: '$1FC0FFC4',
-                value: '0x40013122'
+                value: formatRegisterValue(registerValues.DEVCFG2)
             },
             DEVCFG1: {
                 address: '$1FC0FFC8',
-                value: '0x5F74C4F9'
+                value: formatRegisterValue(registerValues.DEVCFG1)
             },
             DEVCFG0: {
                 address: '$1FC0FFCC',
-                value: '0x403FF75B'
+                value: formatRegisterValue(registerValues.DEVCFG0)
             },
             calculatedClock: this.calculateSystemClock()
         };
