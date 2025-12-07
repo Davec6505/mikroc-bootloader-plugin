@@ -1,0 +1,169 @@
+<?xml version="1.0"?>
+<MCU_DEVICE_FLAGS>
+  <DEVICE>
+    <DEVICE_NAME>P32MZ2048EFH100</DEVICE_NAME>
+    <SETTINGS>
+      <COUNT>40</COUNT>
+      <SETTING0>
+        <NAME>Ethernet RMII/MII Enable</NAME>
+        <DESCRIPTION>MII Enabled</DESCRIPTION>
+      </SETTING0>
+      <SETTING1>
+        <NAME>Ethernet I/O Pin Select</NAME>
+        <DESCRIPTION>Default Ethernet I/O</DESCRIPTION>
+      </SETTING1>
+      <SETTING2>
+        <NAME>Permission Group Lock One Way Configuration</NAME>
+        <DESCRIPTION>Allow only one reconfiguration</DESCRIPTION>
+      </SETTING2>
+      <SETTING3>
+        <NAME>Peripheral Module Disable Configuration</NAME>
+        <DESCRIPTION>Allow only one reconfiguration</DESCRIPTION>
+      </SETTING3>
+      <SETTING4>
+        <NAME>Peripheral Pin Select Configuration</NAME>
+        <DESCRIPTION>Allow only one reconfiguration</DESCRIPTION>
+      </SETTING4>
+      <SETTING5>
+        <NAME>USB USBID Selection</NAME>
+        <DESCRIPTION>Controlled by the USB Module</DESCRIPTION>
+      </SETTING5>
+      <SETTING6>
+        <NAME>System PLL Input Divider</NAME>
+        <DESCRIPTION>3x Divider</DESCRIPTION>
+      </SETTING6>
+      <SETTING7>
+        <NAME>System PLL Input Range</NAME>
+        <DESCRIPTION>5-10 MHz Input</DESCRIPTION>
+      </SETTING7>
+      <SETTING8>
+        <NAME>System PLL Input Clock Selection</NAME>
+        <DESCRIPTION>POSC is input to the System PLL</DESCRIPTION>
+      </SETTING8>
+      <SETTING9>
+        <NAME>System PLL Multiplier</NAME>
+        <DESCRIPTION>PLL Multiply by 50</DESCRIPTION>
+      </SETTING9>
+      <SETTING10>
+        <NAME>System PLL Output Clock Divider</NAME>
+        <DESCRIPTION>2x Divider</DESCRIPTION>
+      </SETTING10>
+      <SETTING11>
+        <NAME>USB PLL Input Frequency Selection</NAME>
+        <DESCRIPTION>USB PLL input is 24 MHz</DESCRIPTION>
+      </SETTING11>
+      <SETTING12>
+        <NAME>Oscillator Selection Bits</NAME>
+        <DESCRIPTION>Fast RC Osc w/Div-by-N (FRCDIV)</DESCRIPTION>
+      </SETTING12>
+      <SETTING13>
+        <NAME>DMT Count Window Interval</NAME>
+        <DESCRIPTION>Window/Interval value is 127/128 counter value</DESCRIPTION>
+      </SETTING13>
+      <SETTING14>
+        <NAME>Secondary Oscillator Enable</NAME>
+        <DESCRIPTION>Enable SOSC</DESCRIPTION>
+      </SETTING14>
+      <SETTING15>
+        <NAME>Internal/External Switch Over</NAME>
+        <DESCRIPTION>Enabled</DESCRIPTION>
+      </SETTING15>
+      <SETTING16>
+        <NAME>Primary Oscillator Configuration</NAME>
+        <DESCRIPTION>Primary osc disabled</DESCRIPTION>
+      </SETTING16>
+      <SETTING17>
+        <NAME>CLKO Output Signal Active on the OSCO Pin</NAME>
+        <DESCRIPTION>Disabled</DESCRIPTION>
+      </SETTING17>
+      <SETTING18>
+        <NAME>Clock Switching and Monitor Selection</NAME>
+        <DESCRIPTION>Clock Switch Enabled, FSCM Enabled</DESCRIPTION>
+      </SETTING18>
+      <SETTING19>
+        <NAME>Watchdog Timer Postscaler</NAME>
+        <DESCRIPTION>1:1048576</DESCRIPTION>
+      </SETTING19>
+      <SETTING20>
+        <NAME>Watchdog Timer Stop During Flash Programming</NAME>
+        <DESCRIPTION>WDT stops during Flash programming</DESCRIPTION>
+      </SETTING20>
+      <SETTING21>
+        <NAME>Watchdog Timer Window Mode</NAME>
+        <DESCRIPTION>Watchdog Timer is in non-Window mode</DESCRIPTION>
+      </SETTING21>
+      <SETTING22>
+        <NAME>Watchdog Timer Enable</NAME>
+        <DESCRIPTION>WDT Enabled</DESCRIPTION>
+      </SETTING22>
+      <SETTING23>
+        <NAME>Watchdog Timer Window Size</NAME>
+        <DESCRIPTION>Window size is 25%</DESCRIPTION>
+      </SETTING23>
+      <SETTING24>
+        <NAME>Deadman Timer Count Selection</NAME>
+        <DESCRIPTION>2^31 (2147483648)</DESCRIPTION>
+      </SETTING24>
+      <SETTING25>
+        <NAME>Deadman Timer Enable</NAME>
+        <DESCRIPTION>Deadman Timer is enabled</DESCRIPTION>
+      </SETTING25>
+      <SETTING26>
+        <NAME>Background Debugger Enable</NAME>
+        <DESCRIPTION>Debugger is disabled</DESCRIPTION>
+      </SETTING26>
+      <SETTING27>
+        <NAME>JTAG Enable</NAME>
+        <DESCRIPTION>JTAG Port Enabled</DESCRIPTION>
+      </SETTING27>
+      <SETTING28>
+        <NAME>ICE/ICD Comm Channel Select</NAME>
+        <DESCRIPTION>Communicate on PGEC1/PGED1</DESCRIPTION>
+      </SETTING28>
+      <SETTING29>
+        <NAME>Trace Enable</NAME>
+        <DESCRIPTION>Trace features in the CPU are enabled</DESCRIPTION>
+      </SETTING29>
+      <SETTING30>
+        <NAME>Boot ISA Selection</NAME>
+        <DESCRIPTION>Boot code and Exception code is MIPS32</DESCRIPTION>
+      </SETTING30>
+      <SETTING31>
+        <NAME>Dynamic Flash ECC Configuration</NAME>
+        <DESCRIPTION>ECC and Dynamic ECC are disabled (ECCCON bits are writable)</DESCRIPTION>
+      </SETTING31>
+      <SETTING32>
+        <NAME>Flash Sleep Mode</NAME>
+        <DESCRIPTION>Flash is powered down when the device is in Sleep mode</DESCRIPTION>
+      </SETTING32>
+      <SETTING33>
+        <NAME>Debug Mode CPU Access Permission</NAME>
+        <DESCRIPTION>Allow CPU access to all permission regions</DESCRIPTION>
+      </SETTING33>
+      <SETTING34>
+        <NAME>Soft Master Clear Enable bit</NAME>
+        <DESCRIPTION>MCLR pin generates a normal system Reset</DESCRIPTION>
+      </SETTING34>
+      <SETTING35>
+        <NAME>Secondary Oscillator Gain Control bits</NAME>
+        <DESCRIPTION>2x gain setting</DESCRIPTION>
+      </SETTING35>
+      <SETTING36>
+        <NAME>Secondary Oscillator Boost Kick Start Enable bit</NAME>
+        <DESCRIPTION>Boost the kick start of the oscillator</DESCRIPTION>
+      </SETTING36>
+      <SETTING37>
+        <NAME>Primary Oscillator Gain Control bits</NAME>
+        <DESCRIPTION>2x gain setting</DESCRIPTION>
+      </SETTING37>
+      <SETTING38>
+        <NAME>Primary Oscillator Boost Kick Start Enable bit</NAME>
+        <DESCRIPTION>Boost the kick start of the oscillator</DESCRIPTION>
+      </SETTING38>
+      <SETTING39>
+        <NAME>EJTAG Boot</NAME>
+        <DESCRIPTION>Normal EJTAG functionality</DESCRIPTION>
+      </SETTING39>
+    </SETTINGS>
+  </DEVICE>
+</MCU_DEVICE_FLAGS>

@@ -109,32 +109,23 @@ async function flashToDevice() {
 	});
 	
 	terminal.show();
-	terminal.sendText(`& "${bootloaderPath}" "${selectedFile.fsPath}"`);
 	
-	// Also run it in background to capture result
-	try {
-		const { stdout, stderr } = await execAsync(`& "${bootloaderPath}" "${selectedFile.fsPath}"`, { 
-			shell: 'powershell.exe',
-			cwd: path.dirname(selectedFile.fsPath)
-		});
-		
-		if (stdout) {
-			vscode.window.showInformationMessage(`Flash completed: ${stdout.trim()}`);
+	// Run bootloader and capture result
+	// Note: Exit code 1 is normal (device reboots and disconnects)
+	// Exit code 255 typically indicates device not found
+	terminal.sendText(`
+		& "${bootloaderPath}" "${selectedFile.fsPath}"
+		if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 1) {
+			Write-Host ""
+			Write-Host "✓ Flash completed successfully! Device rebooted." -ForegroundColor Green
+		} elseif ($LASTEXITCODE -eq 255) {
+			Write-Host ""
+			Write-Host "✗ Device not found. Check USB connection." -ForegroundColor Red
+		} else {
+			Write-Host ""
+			Write-Host "✗ Flash failed with exit code $LASTEXITCODE" -ForegroundColor Red
 		}
-		
-		if (stderr) {
-			vscode.window.showWarningMessage(`Flash output: ${stderr.trim()}`);
-		}
-	} catch (error: any) {
-		const errorDetails = [
-			error.code ? `Exit code: ${error.code}` : '',
-			error.stdout ? `Output: ${error.stdout.trim()}` : '',
-			error.stderr ? `Error: ${error.stderr.trim()}` : '',
-			!error.stdout && !error.stderr ? 'No output from bootloader. Ensure device is connected and in bootloader mode.' : ''
-		].filter(Boolean).join('\n');
-		
-		vscode.window.showErrorMessage(`Flash failed!\n${errorDetails}`);
-	}
+	`.replace(/^\s+/gm, ''));
 }
 
 // This method is called when your extension is deactivated
