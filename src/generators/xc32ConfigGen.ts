@@ -263,7 +263,9 @@ export function generateXC32Config(settings: Map<number, string>, deviceName: st
     // Generate pragmas
     XC32_PRAGMA_MAP.forEach(mapping => {
         const settingValue = settings.get(mapping.settingIndex);
-        if (!settingValue) return;
+        if (!settingValue) {
+            return;
+        }
         
         let pragmaValue = '';
         
@@ -299,17 +301,122 @@ export function generateXC32Config(settings: Map<number, string>, deviceName: st
  * Generate initialization.c file content
  */
 export function generateInitializationC(settings: Map<number, string>, deviceName: string): string {
-    const pragmaConfig = generateXC32Config(settings, deviceName);
+    // Generate user-selected configuration bits
+    let configBits = '';
     
-    return `${pragmaConfig}
-/**
- * System Initialization
- * Configure clock and peripherals
+    // Generate pragmas from user settings
+    XC32_PRAGMA_MAP.forEach(mapping => {
+        const settingValue = settings.get(mapping.settingIndex);
+        if (!settingValue) {
+            return;
+        }
+        
+        let pragmaValue = '';
+        
+        // Handle dynamic multiplier (FPLLMULT)
+        if (mapping.pragmaName === 'FPLLMULT') {
+            const match = settingValue.match(/PLL Multiply by (\d+)/);
+            if (match) {
+                pragmaValue = `MUL_${match[1]}`;
+            }
+        } else {
+            pragmaValue = mapping.valueMap[settingValue] || '';
+        }
+        
+        if (pragmaValue) {
+            configBits += `#pragma config ${mapping.pragmaName} = ${pragmaValue}\n`;
+        }
+    });
+    
+    // Add essential configuration bits not in UI (with safe defaults)
+    const additionalConfigs = `
+// Additional essential configuration bits (safe defaults)
+#pragma config FECCCON =    OFF_UNLOCKED
+#pragma config FSLEEP =     OFF
+#pragma config DBGPER =     PG_ALL
+#pragma config SMCLR =      MCLR_NORM
+#pragma config SOSCGAIN =   GAIN_LEVEL_3
+#pragma config SOSCBOOST =  ON
+#pragma config POSCGAIN =   GAIN_LEVEL_3
+#pragma config POSCBOOST =  ON
+#pragma config EJTAGBEN =   NORMAL
+#pragma config CP =         OFF
+#pragma config DMTINTV =    WIN_127_128
+#pragma config WDTPS =      PS1048576
+#pragma config WDTSPGM =    STOP
+#pragma config WINDIS =     NORMAL
+#pragma config FWDTWINSZ =  WINSZ_25
+#pragma config DMTCNT =     DMT31
+#pragma config UPLLFSEL =   FREQ_24MHZ
+#pragma config USERID =     0xffff
+#pragma config TSEQ =       0xffff
+#pragma config CSEQ =       0x0
+`;
+
+    return `/*******************************************************************************
+  System Initialization File
+
+  File Name:
+    initialization.c
+
+  Summary:
+    This file contains source code necessary to initialize the system.
+
+  Description:
+    This file contains source code necessary to initialize the system.  It
+    implements the "SYS_Initialize" function, defines the configuration bits,
+    and allocates any necessary global system resources.
+ *******************************************************************************/
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: Included Files
+// *****************************************************************************
+// *****************************************************************************
+#include "definitions.h"
+#include "device.h"
+
+// ****************************************************************************
+// ****************************************************************************
+// Section: Configuration Bits
+// ****************************************************************************
+// ****************************************************************************
+
+${configBits}${additionalConfigs}
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: System Initialization
+// *****************************************************************************
+// *****************************************************************************
+
+/*******************************************************************************
+  Function:
+    void SYS_Initialize ( void *data )
+
+  Summary:
+    Initializes the board, services, drivers, application and other modules.
+
+  Remarks:
  */
-void SYS_Initialize(void) {
-    // Clock already configured via #pragma config
-    // Add peripheral initialization here
+
+void SYS_Initialize(void* data)
+{
+    /* Disable interrupts during initialization */
+    __builtin_disable_interrupts();
+    
+    /* Configure Prefetch, Wait States and ECC */
+    PRECONbits.PREFEN = 3;    // Enable predictive prefetch for all regions
+    PRECONbits.PFMWS = 3;     // 3 wait states for 200MHz operation
+    CFGCONbits.ECCCON = 3;    // Enable Flash ECC
+    
+    /* Enable global interrupts */
+    __builtin_enable_interrupts();
 }
+
+/*******************************************************************************
+ End of File
+*/
 `;
 }
 

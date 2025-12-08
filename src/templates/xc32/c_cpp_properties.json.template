@@ -4,16 +4,18 @@
             "name": "XC32",
             "includePath": [
                 "${workspaceFolder}/incs",
+                "${workspaceFolder}/srcs",
                 "${workspaceFolder}/config/default",
-                "C:/Program Files/Microchip/xc32/v4.35/pic32mx/include",
-                "C:/Program Files/Microchip/xc32/v4.35/pic32-libs/include"
+                "C:/Program Files/Microchip/xc32/{{XC32_VERSION}}/pic32mx/include",
+                "C:/Program Files/Microchip/xc32/{{XC32_VERSION}}/pic32-libs/include",
+                "C:/Program Files/Microchip/MPLABX/packs/Microchip/PIC32MZ-EF_DFP/{{DFP_VERSION}}/xc32"
             ],
             "defines": [
                 "__PIC32MZ__",
                 "__{{DEVICE_PART}}__",
                 "_SUPPRESS_PLIB_WARNING"
             ],
-            "compilerPath": "C:/Program Files/Microchip/xc32/v4.35/bin/xc32-gcc.exe",
+            "compilerPath": "C:/Program Files/Microchip/xc32/{{XC32_VERSION}}/bin/xc32-gcc.exe",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64",
@@ -23,7 +25,8 @@
             "browse": {
                 "path": [
                     "${workspaceFolder}",
-                    "C:/Program Files/Microchip/xc32/v4.35/pic32mx/include"
+                    "C:/Program Files/Microchip/xc32/{{XC32_VERSION}}/pic32mx/include",
+                    "C:/Program Files/Microchip/MPLABX/packs/Microchip/PIC32MZ-EF_DFP/{{DFP_VERSION}}/xc32"
                 ],
                 "limitSymbolsToIncludedHeaders": true
             }

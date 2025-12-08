@@ -2,6 +2,8 @@
  * {{PROJECT_NAME}} - Main Application
  * Device: {{DEVICE_NAME}}
  * Compiler: MikroC PRO for PIC32
+ * System Clock: {{SYSTEM_CLOCK}} MHz
+ * Heap Size: {{HEAP_SIZE}} bytes
  * 
  * Simple LED blink example to verify build and flash
  */

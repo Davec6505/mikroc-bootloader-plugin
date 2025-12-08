@@ -6,6 +6,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { ConfigEditor } from './configEditor';
 import { EFH_DEVICES, PIC32Device, getDevicesForDisplay } from './devices/pic32mz/efhDevices';
+import { generateXC32Project, validateProjectOptions as validateXC32Options, XC32ProjectOptions } from './generators/xc32ProjectGen';
+import { generateMikroCProject, validateMikroCProjectOptions, MikroCProjectOptions } from './generators/mikrocProjectGen';
 
 const execAsync = promisify(exec);
 
@@ -36,6 +38,24 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	// Register XC32 project generator command
+	const xc32ProjectDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.createXC32Project', async () => {
+		try {
+			await createXC32Project(context);
+		} catch (error) {
+			vscode.window.showErrorMessage(`XC32 project creation failed: ${error}`);
+		}
+	});
+
+	// Register MikroC project generator command
+	const mikrocProjectDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.createMikroCProject', async () => {
+		try {
+			await createMikroCProject(context);
+		} catch (error) {
+			vscode.window.showErrorMessage(`MikroC project creation failed: ${error}`);
+		}
+	});
+
 	// Create status bar button
 	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 	statusBarItem.command = 'mikroc-pic32-bootloader.flash';
@@ -54,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	context.subscriptions.push(flashDisposable, configDisposable, statusBarItem);
+	context.subscriptions.push(flashDisposable, configDisposable, xc32ProjectDisposable, mikrocProjectDisposable, statusBarItem);
 }
 
 /**
@@ -81,12 +101,12 @@ async function testConfigEditor(context: vscode.ExtensionContext) {
 	// Open config editor
 	const editor = new ConfigEditor(context, device);
 	try {
-		const config = await editor.show();
+		const result = await editor.show();
 		
 		// Show success message with config summary
-		const clockFreq = calculateClockFromConfig(config);
+		const clockFreq = calculateClockFromConfig(result.config);
 		vscode.window.showInformationMessage(
-			`Configuration complete! System clock: ${clockFreq.toFixed(2)} MHz`
+			`Configuration complete! System clock: ${clockFreq.toFixed(2)} MHz, Heap: ${result.heapSize} bytes`
 		);
 	} catch (error) {
 		// User cancelled
@@ -200,6 +220,205 @@ async function flashToDevice() {
 			Write-Host "✗ Flash failed with exit code $LASTEXITCODE" -ForegroundColor Red
 		}
 	`.replace(/^\s+/gm, ''));
+}
+
+/**
+ * Handler for creating XC32 project
+ */
+async function createXC32Project(context: vscode.ExtensionContext): Promise<void> {
+	// Step 1: Device selection
+	const deviceItems = getDevicesForDisplay();
+	const selectedDevice = await vscode.window.showQuickPick(deviceItems, {
+		placeHolder: 'Select target PIC32MZ device',
+		title: 'Create XC32 Project - Device Selection'
+	});
+
+	if (!selectedDevice) {
+		return; // User cancelled
+	}
+
+	const device = EFH_DEVICES.find(d => d.name === selectedDevice.value);
+	if (!device) {
+		vscode.window.showErrorMessage('Device not found');
+		return;
+	}
+
+	// Step 2: Project name input
+	const projectName = await vscode.window.showInputBox({
+		prompt: 'Enter project name',
+		placeHolder: 'my_xc32_project',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'Project name cannot be empty';
+			}
+			if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+				return 'Project name can only contain letters, numbers, underscores, and hyphens';
+			}
+			return null;
+		}
+	});
+
+	if (!projectName) {
+		return; // User cancelled
+	}
+
+	// Step 3: Output folder selection
+	const folderUri = await vscode.window.showOpenDialog({
+		canSelectFiles: false,
+		canSelectFolders: true,
+		canSelectMany: false,
+		openLabel: 'Select output folder',
+		title: 'Create XC32 Project - Output Location'
+	});
+
+	if (!folderUri || folderUri.length === 0) {
+		return; // User cancelled
+	}
+
+	const outputPath = folderUri[0].fsPath;
+
+	// Step 4: Configuration settings via ConfigEditor
+	const editor = new ConfigEditor(context, device);
+	const result = await editor.show();
+
+	// Step 5: Validate options
+	const options: XC32ProjectOptions = {
+		projectName,
+		deviceName: device.name,
+		outputPath,
+		settings: result.config,
+		heapSize: result.heapSize,
+		xc32Version: result.xc32Version,
+		dfpVersion: result.dfpVersion,
+		useMikroeBootloader: result.useMikroeBootloader || false
+	};
+
+	const errors = validateXC32Options(options);
+	if (errors.length > 0) {
+		throw new Error(`Validation failed: ${errors.join(', ')}`);
+	}
+
+	// Step 6: Generate project
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: 'Creating XC32 Project',
+		cancellable: false
+	}, async (progress) => {
+		progress.report({ message: 'Generating project structure...' });
+		await generateXC32Project(options);
+		progress.report({ message: 'Project created successfully!' });
+	});
+
+	// Step 7: Show success and offer to open project
+	const openAction = await vscode.window.showInformationMessage(
+		`XC32 project "${projectName}" created successfully at ${path.join(outputPath, projectName)}`,
+		'Open Project',
+		'Open in New Window'
+	);
+
+	if (openAction === 'Open Project') {
+		await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(path.join(outputPath, projectName)), false);
+	} else if (openAction === 'Open in New Window') {
+		await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(path.join(outputPath, projectName)), true);
+	}
+}
+
+/**
+ * Handler for creating MikroC project
+ */
+async function createMikroCProject(context: vscode.ExtensionContext): Promise<void> {
+	// Step 1: Device selection
+	const deviceItems = getDevicesForDisplay();
+	const selectedDevice = await vscode.window.showQuickPick(deviceItems, {
+		placeHolder: 'Select target PIC32MZ device',
+		title: 'Create MikroC Project - Device Selection'
+	});
+
+	if (!selectedDevice) {
+		return; // User cancelled
+	}
+
+	const device = EFH_DEVICES.find(d => d.name === selectedDevice.value);
+	if (!device) {
+		vscode.window.showErrorMessage('Device not found');
+		return;
+	}
+
+	// Step 2: Project name input
+	const projectName = await vscode.window.showInputBox({
+		prompt: 'Enter project name',
+		placeHolder: 'my_mikroc_project',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'Project name cannot be empty';
+			}
+			if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+				return 'Project name can only contain letters, numbers, underscores, and hyphens';
+			}
+			return null;
+		}
+	});
+
+	if (!projectName) {
+		return; // User cancelled
+	}
+
+	// Step 3: Output folder selection
+	const folderUri = await vscode.window.showOpenDialog({
+		canSelectFiles: false,
+		canSelectFolders: true,
+		canSelectMany: false,
+		openLabel: 'Select output folder',
+		title: 'Create MikroC Project - Output Location'
+	});
+
+	if (!folderUri || folderUri.length === 0) {
+		return; // User cancelled
+	}
+
+	const outputPath = folderUri[0].fsPath;
+
+	// Step 4: Configuration settings via ConfigEditor
+	const editor = new ConfigEditor(context, device);
+	const result = await editor.show();
+
+	// Step 5: Validate options
+	const options: MikroCProjectOptions = {
+		projectName,
+		deviceName: device.name,
+		outputPath,
+		settings: result.config,
+		heapSize: result.heapSize
+	};
+
+	const errors = validateMikroCProjectOptions(options);
+	if (errors.length > 0) {
+		throw new Error(`Validation failed: ${errors.join(', ')}`);
+	}
+
+	// Step 6: Generate project
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: 'Creating MikroC Project',
+		cancellable: false
+	}, async (progress) => {
+		progress.report({ message: 'Generating project structure...' });
+		await generateMikroCProject(options);
+		progress.report({ message: 'Project created successfully!' });
+	});
+
+	// Step 7: Show success and offer to open project
+	const openAction = await vscode.window.showInformationMessage(
+		`MikroC project "${projectName}" created successfully at ${path.join(outputPath, projectName)}`,
+		'Open Project',
+		'Open in New Window'
+	);
+
+	if (openAction === 'Open Project') {
+		await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(path.join(outputPath, projectName)), false);
+	} else if (openAction === 'Open in New Window') {
+		await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(path.join(outputPath, projectName)), true);
+	}
 }
 
 // This method is called when your extension is deactivated

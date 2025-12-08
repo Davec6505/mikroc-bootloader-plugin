@@ -45,6 +45,14 @@
       {
         "command": "mikroc-pic32-bootloader.testConfigEditor",
         "title": "MikroC PIC32: Test Config Editor (Dev)"
+      },
+      {
+        "command": "mikroc-pic32-bootloader.createXC32Project",
+        "title": "PIC32: Create XC32 Project"
+      },
+      {
+        "command": "mikroc-pic32-bootloader.createMikroCProject",
+        "title": "PIC32: Create MikroC Project"
       }
     ],
     "configuration": {
@@ -70,7 +78,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && npm run copy-templates",
+    "copy-templates": "node -e \"require('fs').cpSync('src/templates', 'out/templates', {recursive: true})\" && node -e \"require('fs').cpSync('src/webview', 'out/webview', {recursive: true})\"",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",

@@ -13,29 +13,37 @@ MODULE = $(PROJECT_NAME)
 # Build configuration (Debug or Release)
 BUILD_CONFIG ?= Release
 
-# Directories
-SRC_DIR = srcs
-OBJ_DIR = objs
-OTHER_DIR = other
-BUILD_DIR = bins
+# Convert CURDIR from POSIX to Windows format for mikroC
+# $(CURDIR) returns /c/Users/... in MSYS Make, need C:\Users\...
+ROOT_DIR_POSIX := $(CURDIR)
+ROOT_DIR_FIXED := $(patsubst /c/%,C:/%,$(ROOT_DIR_POSIX))
+ROOT_DIR       := $(subst /,\,$(ROOT_DIR_FIXED))
 
-# MikroC PRO for PIC32 installation path
-MIKROC_DIR = C:/Users/Public/Documents/Mikroelektronika/mikroC PRO for PIC32
-COMPILER_LOCATION = $(MIKROC_DIR)/mikroCPIC32.exe
-DEFS_DIR = $(MIKROC_DIR)/Defs
-USES_DIR = $(MIKROC_DIR)/Uses
+# Project directory structure (absolute Windows paths)
+SRC_DIR   := $(ROOT_DIR)\srcs
+OBJ_DIR   := $(ROOT_DIR)\objs
+OTHER_DIR := $(ROOT_DIR)\other
 
-# Compiler flags
+# MikroC PRO for PIC32 installation paths (absolute Windows paths)
+COMPILER_LOCATION := C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC32\mikroCPIC32.exe
+DEFS_DIR          := C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC32\Defs
+USES_DIR          := C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC32\Uses
+
+# Compiler flags (no -DL for application build with hex output)
+# Note: Device name already includes 'P' prefix (P32MZ...), so use -p not -pP
 ifeq ($(BUILD_CONFIG),Debug)
-    CFLAGS = -MSF -DBG -p$(DEVICE) -HEAP 4096 -RA -DL -SSA -EBASE 0x9FC01000 -INTDEF MV_SRS7_IS32 -O11111113 -fo200
+    CFLAGS = -MSF -DBG -p$(DEVICE) -HEAP {{HEAP_SIZE}} -RA -SSA -EBASE 0x9FC01000 -INTDEF MV_SRS7_IS32 -O11111113 -fo{{SYSTEM_CLOCK}}
 else
-    CFLAGS = -MSF -p$(DEVICE) -HEAP 4096 -RA -DL -SSA -EBASE 0x9FC01000 -INTDEF MV_SRS7_IS32 -O11111114 -fo200
+    CFLAGS = -MSF -p$(DEVICE) -HEAP {{HEAP_SIZE}} -RA -SSA -EBASE 0x9FC01000 -INTDEF MV_SRS7_IS32 -O11111114 -fo{{SYSTEM_CLOCK}}
 endif
 
-# Export variables to srcs/Makefile
+# Export all configuration to srcs/Makefile
 export DEVICE MODULE CFLAGS BUILD_CONFIG
-export SRC_DIR OBJ_DIR OTHER_DIR BUILD_DIR
+export ROOT_DIR SRC_DIR OBJ_DIR OTHER_DIR
 export COMPILER_LOCATION DEFS_DIR USES_DIR
+
+# Force PowerShell-friendly make invocation
+MAKE := make.exe
 
 # Colors for output
 CYAN = $$([char]27 + "[36m")
@@ -47,7 +55,7 @@ RESET = $$([char]27 + "[0m")
 .PHONY: all
 all:
 	@Write-Host "$(CYAN)Building $(PROJECT_NAME) for $(DEVICE) ($(BUILD_CONFIG))...$(RESET)"
-	@$(MAKE) -C $(SRC_DIR) build
+	@$(MAKE) -C srcs build
 	@Write-Host "$(GREEN)Build complete!$(RESET)"
 
 .PHONY: debug
@@ -57,10 +65,9 @@ debug:
 .PHONY: clean
 clean:
 	@Write-Host "$(YELLOW)Cleaning build artifacts...$(RESET)"
-	@if (Test-Path "$(BUILD_DIR)") { Remove-Item -Recurse -Force "$(BUILD_DIR)" }
-	@if (Test-Path "$(OBJ_DIR)") { Remove-Item -Recurse -Force "$(OBJ_DIR)" }
-	@if (Test-Path "$(OTHER_DIR)") { Remove-Item -Recurse -Force "$(OTHER_DIR)" }
-	@$(MAKE) -C $(SRC_DIR) clean
+	@if (Test-Path "objs") { Remove-Item -Recurse -Force "objs" }
+	@if (Test-Path "other") { Remove-Item -Recurse -Force "other" }
+	@$(MAKE) -C srcs clean
 	@Write-Host "$(GREEN)Clean complete!$(RESET)"
 
 .PHONY: rebuild
@@ -69,8 +76,8 @@ rebuild: clean all
 .PHONY: flash
 flash: all
 	@Write-Host "$(CYAN)Flashing $(PROJECT_NAME).hex via bootloader...$(RESET)"
-	@if (Test-Path "$(BUILD_DIR)/$(PROJECT_NAME).hex") { \
-		mikro_hb "$(BUILD_DIR)/$(PROJECT_NAME).hex"; \
+	@if (Test-Path "srcs/$(PROJECT_NAME).hex") { \
+		mikro_hb "srcs/$(PROJECT_NAME).hex"; \
 		if ($$LASTEXITCODE -eq 0 -or $$LASTEXITCODE -eq 1) { \
 			Write-Host "$(GREEN)Flash successful!$(RESET)"; \
 		} elseif ($$LASTEXITCODE -eq 255) { \
@@ -81,7 +88,7 @@ flash: all
 			exit $$LASTEXITCODE; \
 		} \
 	} else { \
-		Write-Host "Error: $(BUILD_DIR)/$(PROJECT_NAME).hex not found"; \
+		Write-Host "Error: srcs/$(PROJECT_NAME).hex not found"; \
 		exit 1; \
 	}
 

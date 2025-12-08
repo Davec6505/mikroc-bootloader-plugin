@@ -45,6 +45,40 @@ function writeFile(filePath: string, content: string): void {
 }
 
 /**
+ * Calculate system clock frequency from PLL settings
+ */
+function calculateSystemClock(settings: Map<number, string>): number {
+    const pllInputDiv = settings.get(6) || "3x Divider";
+    const pllMult = settings.get(9) || "PLL Multiply by 50";
+    const pllOutputDiv = settings.get(10) || "2x Divider";
+    const oscSelection = settings.get(12) || "Primary Osc w/PLL (XT+PLL, HS+PLL)";
+
+    // Determine input frequency based on oscillator selection
+    let inputFreq = 24.0; // Default: 24 MHz crystal
+    
+    if (oscSelection.includes("FRC") || oscSelection.includes("Fast RC")) {
+        inputFreq = 8.0;
+    }
+    
+    // Extract numeric values from PLL settings
+    const inputDivMatch = pllInputDiv.match(/(\d+)x/);
+    const multMatch = pllMult.match(/by (\d+)/);
+    const outputDivMatch = pllOutputDiv.match(/(\d+)x/);
+
+    if (!inputDivMatch || !multMatch || !outputDivMatch) {
+        return 200.0; // Default
+    }
+
+    const inputDiv = parseInt(inputDivMatch[1]);
+    const mult = parseInt(multMatch[1]);
+    const outputDiv = parseInt(outputDivMatch[1]);
+
+    // Clock = (Input / InputDiv) * Mult / OutputDiv
+    const clock = (inputFreq / inputDiv) * mult / outputDiv;
+    return clock;
+}
+
+/**
  * XC32 Project Generator Options
  */
 export interface XC32ProjectOptions {
@@ -52,22 +86,35 @@ export interface XC32ProjectOptions {
     deviceName: string;        // e.g., "P32MZ2048EFH100"
     outputPath: string;
     settings: Map<number, string>;
+    heapSize?: number;         // Optional heap size (defaults to 4096)
+    xc32Version?: string;      // Optional XC32 version (auto-detect if not specified)
+    dfpVersion?: string;       // Optional DFP version (auto-detect if not specified)
+    useMikroeBootloader?: boolean;  // Use MikroE bootloader (adds -nostartfiles and startup.S)
 }
 
 /**
  * Generate complete XC32 project
  */
 export async function generateXC32Project(options: XC32ProjectOptions): Promise<void> {
-    const { projectName, deviceName, outputPath, settings } = options;
+    const { projectName, deviceName, outputPath, settings, heapSize, xc32Version, dfpVersion, useMikroeBootloader } = options;
     
     // Remove 'P' prefix for device part number
     const devicePart = deviceName.replace(/^P/, '');
+    
+    // Calculate system clock and use provided heap size (or default)
+    const systemClock = Math.round(calculateSystemClock(settings));
+    const heap = Math.round(heapSize || 4096); // Default 4KB heap
     
     // Template variables
     const vars = {
         PROJECT_NAME: projectName,
         DEVICE_NAME: deviceName,
-        DEVICE_PART: devicePart
+        DEVICE_PART: devicePart,
+        SYSTEM_CLOCK: systemClock.toString(),
+        HEAP_SIZE: heap.toString(),
+        XC32_VERSION: xc32Version || '',    // Empty string = auto-detect in Makefile
+        DFP_VERSION: dfpVersion || '',       // Empty string = auto-detect in Makefile
+        USE_MIKROE_BOOTLOADER: useMikroeBootloader ? 'yes' : 'no'
     };
     
     // Create project root
@@ -77,23 +124,33 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     // Create directory structure
     const dirs = [
         '.vscode',
-        'config/default',
-        'srcs',
+        'srcs/config/default',
         'incs',
         'bins',
         'objs',
         'linker'
     ];
     
+    // Add startup directory if using MikroE bootloader
+    if (useMikroeBootloader) {
+        dirs.push('srcs/startup');
+    }
+    
     dirs.forEach(dir => ensureDir(path.join(projectRoot, dir)));
     
     // Generate configuration code
     const initC = generateInitializationC(settings, deviceName);
-    const initH = generateInitializationH();
     
     // Write configuration files
-    writeFile(path.join(projectRoot, 'config/default/initialization.c'), initC);
-    writeFile(path.join(projectRoot, 'config/default/initialization.h'), initH);
+    writeFile(path.join(projectRoot, 'srcs/config/default/initialization.c'), initC);
+    
+    // Copy template header files (definitions.h and device.h)
+    const definitionsH = loadTemplate('config/default/definitions.h.template');
+    const definitionsContent = replaceTemplateVars(definitionsH, vars);
+    const deviceH = loadTemplate('config/default/device.h.template');
+    const deviceContent = replaceTemplateVars(deviceH, vars);
+    writeFile(path.join(projectRoot, 'srcs/config/default/definitions.h'), definitionsContent);
+    writeFile(path.join(projectRoot, 'srcs/config/default/device.h'), deviceContent);
     
     // Generate and write main.c
     const mainTemplate = loadTemplate('main.c.template');
@@ -108,6 +165,12 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     const srcsMakefileTemplate = loadTemplate('SrcsMakefile.template');
     const srcsMakefile = replaceTemplateVars(srcsMakefileTemplate, vars);
     writeFile(path.join(projectRoot, 'srcs/Makefile'), srcsMakefile);
+    
+    // Copy startup.S if using MikroE bootloader
+    if (useMikroeBootloader) {
+        const startupTemplate = loadTemplate('startup.S');
+        writeFile(path.join(projectRoot, 'srcs/startup/startup.S'), startupTemplate);
+    }
     
     // Generate and write VS Code configuration
     const tasksTemplate = loadTemplate('tasks.json.template');
@@ -182,8 +245,8 @@ export function validateProjectOptions(options: XC32ProjectOptions): string[] {
         errors.push('Project name is required');
     }
     
-    if (!/^[a-zA-Z0-9_]+$/.test(options.projectName)) {
-        errors.push('Project name must contain only alphanumeric characters and underscores');
+    if (!/^[a-zA-Z0-9_-]+$/.test(options.projectName)) {
+        errors.push('Project name must contain only alphanumeric characters, underscores, and hyphens');
     }
     
     if (!options.deviceName) {
@@ -194,8 +257,13 @@ export function validateProjectOptions(options: XC32ProjectOptions): string[] {
         errors.push('Output path is required');
     }
     
+    // Create output path if it doesn't exist
     if (!fs.existsSync(options.outputPath)) {
-        errors.push(`Output path does not exist: ${options.outputPath}`);
+        try {
+            fs.mkdirSync(options.outputPath, { recursive: true });
+        } catch (error) {
+            errors.push(`Cannot create output path: ${options.outputPath}`);
+        }
     }
     
     // Check if project already exists

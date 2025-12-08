@@ -1,13 +1,15 @@
 /**
  * {{PROJECT_NAME}} - Main Application
  * Device: {{DEVICE_NAME}}
+ * System Clock: {{SYSTEM_CLOCK}} MHz
+ * Heap Size: {{HEAP_SIZE}} bytes
  * 
  * Simple LED blink example to verify build and flash
  */
 
 #include <xc.h>
 #include <sys/attribs.h>
-#include "initialization.h"
+#include "definitions.h"
 
 // Assuming LED on RB14 (modify for your hardware)
 #define LED_TRIS    TRISBbits.TRISB14
@@ -30,7 +32,7 @@ void delay_ms(unsigned int ms) {
  */
 int main(void) {
     // Initialize system
-    SYS_Initialize();
+    SYS_Initialize(NULL);
     
     // Configure LED pin as output
     LED_TRIS = 0;  // Output

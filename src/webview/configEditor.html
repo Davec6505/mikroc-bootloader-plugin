@@ -240,6 +240,48 @@
             color: var(--vscode-charts-green);
         }
 
+        .heap-input {
+            width: 100px;
+            padding: 4px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-family: var(--vscode-font-family);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .heap-input:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .compiler-select {
+            min-width: 150px;
+            padding: 4px 8px;
+            background-color: var(--vscode-dropdown-background);
+            color: var(--vscode-dropdown-foreground);
+            border: 1px solid var(--vscode-dropdown-border);
+            border-radius: 2px;
+            font-family: var(--vscode-font-family);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .compiler-select:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .bootloader-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--vscode-button-background);
+        }
+
         /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 10px;
@@ -272,12 +314,32 @@
                     <span class="info-value clock-display" id="clockFreq">200.000000</span>
                 </div>
                 <div class="info-item">
+                    <span class="info-label">Heap Size [bytes]</span>
+                    <input type="number" class="heap-input" id="heapSize" value="4096" min="512" max="524288" step="512" />
+                </div>
+                <div class="info-item">
                     <span class="info-label">Flash Size</span>
                     <span class="info-value" id="flashSize">2048 KB</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Pin Count</span>
                     <span class="info-value" id="pinCount">100</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">XC32 Compiler Version</span>
+                    <select class="compiler-select" id="xc32Version">
+                        <option value="">Detecting...</option>
+                    </select>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Device Family Pack (DFP)</span>
+                    <select class="compiler-select" id="dfpVersion">
+                        <option value="">Detecting...</option>
+                    </select>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Use MikroE Bootloader</span>
+                    <input type="checkbox" class="bootloader-checkbox" id="useMikroeBootloader" />
                 </div>
             </div>
         </div>
@@ -352,6 +414,40 @@
         let deviceInfo = {};
 
         // Listen for messages from extension
+        // Populate XC32 compiler versions dropdown
+        function populateXC32Dropdown(versions) {
+            const select = document.getElementById('xc32Version');
+            select.innerHTML = '';
+            
+            // Add versions (already sorted latest first)
+            versions.forEach((version, index) => {
+                const option = document.createElement('option');
+                option.value = version;
+                option.textContent = version + (index === 0 ? ' (Latest)' : '');
+                if (index === 0) {
+                    option.selected = true; // Select latest by default
+                }
+                select.appendChild(option);
+            });
+        }
+
+        // Populate DFP versions dropdown
+        function populateDFPDropdown(versions) {
+            const select = document.getElementById('dfpVersion');
+            select.innerHTML = '';
+            
+            // Add versions (already sorted latest first)
+            versions.forEach((version, index) => {
+                const option = document.createElement('option');
+                option.value = version;
+                option.textContent = version + (index === 0 ? ' (Latest)' : '');
+                if (index === 0) {
+                    option.selected = true; // Select latest by default
+                }
+                select.appendChild(option);
+            });
+        }
+
         window.addEventListener('message', event => {
             const message = event.data;
             switch (message.type) {
@@ -364,6 +460,12 @@
                 case 'updateRegisters':
                     updateRegisterPreview(message.registers);
                     break;
+                case 'populateXC32Versions':
+                    populateXC32Dropdown(message.versions);
+                    break;
+                case 'populateDFPVersions':
+                    populateDFPDropdown(message.versions);
+                    break;
             }
         });
 
@@ -372,6 +474,10 @@
             document.getElementById('deviceName').textContent = deviceInfo.name;
             document.getElementById('flashSize').textContent = `${deviceInfo.flashKB} KB`;
             document.getElementById('pinCount').textContent = deviceInfo.pins;
+            
+            // Request XC32 and DFP versions from extension
+            vscode.postMessage({ type: 'getXC32Versions' });
+            vscode.postMessage({ type: 'getDFPVersions', deviceFamily: deviceInfo.family });
             
             // Generate settings by category
             const categories = [...new Set(uiSchema.map(s => s.category))];
@@ -460,9 +566,17 @@
 
         // Button handlers
         document.getElementById('okBtn').addEventListener('click', () => {
+            const heapSize = parseInt(document.getElementById('heapSize').value) || 4096;
+            const xc32Version = document.getElementById('xc32Version').value;
+            const dfpVersion = document.getElementById('dfpVersion').value;
+            const useMikroeBootloader = document.getElementById('useMikroeBootloader').checked;
             vscode.postMessage({
                 type: 'ok',
-                config: currentConfig
+                config: currentConfig,
+                heapSize: heapSize,
+                xc32Version: xc32Version,
+                dfpVersion: dfpVersion,
+                useMikroeBootloader: useMikroeBootloader
             });
         });
 
