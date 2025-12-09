@@ -1556,6 +1556,7 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                     break;
                 case 'pinTableData':
                     // Update pin table with real data from backend
+                    console.log('Received pin table data:', message.data);
                     pinTableData = message.data;
                     renderPinTable();
                     break;
@@ -1708,19 +1709,50 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
 
         function renderPinTable() {
             const tbody = document.getElementById('pinTableBody');
-            const filterGPIO = document.getElementById('filterGPIO').checked;
-            const filterAnalog = document.getElementById('filterAnalog').checked;
-            const filterPPS = document.getElementById('filterPPS').checked;
-            const filterConfigured = document.getElementById('filterConfigured').checked;
+            if (!tbody) {
+                console.error('Pin table body not found');
+                return;
+            }
+
+            const filterGPIO = document.getElementById('filterGPIO')?.checked ?? true;
+            const filterAnalog = document.getElementById('filterAnalog')?.checked ?? true;
+            const filterPPS = document.getElementById('filterPPS')?.checked ?? true;
+            const filterConfigured = document.getElementById('filterConfigured')?.checked ?? false;
 
             tbody.innerHTML = '';
 
+            if (!pinTableData || pinTableData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No pin data available. Waiting for backend...</td></tr>';
+                return;
+            }
+
             pinTableData.forEach(pin => {
-                // Apply filters
-                if (filterConfigured && pin.mode === 'Not Configured') return;
-                if (!filterGPIO && !pin.analog && !pin.rpNumber) return;
-                if (!filterAnalog && pin.analog) return;
-                if (!filterPPS && pin.rpNumber !== undefined) return;
+                // Apply "Configured Only" filter
+                if (filterConfigured && pin.mode === 'Not Configured') {
+                    return;
+                }
+
+                // Apply type filters - if filter is unchecked, skip that type
+                let showPin = false;
+                
+                // Show if GPIO filter is checked and pin is GPIO-capable
+                if (filterGPIO && !pin.analogChannel && pin.rpNumber === undefined) {
+                    showPin = true;
+                }
+                
+                // Show if Analog filter is checked and pin has analog capability
+                if (filterAnalog && pin.analogChannel) {
+                    showPin = true;
+                }
+                
+                // Show if PPS filter is checked and pin has PPS capability
+                if (filterPPS && pin.rpNumber !== undefined) {
+                    showPin = true;
+                }
+
+                if (!showPin) {
+                    return;
+                }
 
                 const row = document.createElement('tr');
                 if (pin.mode !== 'Not Configured') {
@@ -1742,6 +1774,10 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                 `;
                 tbody.appendChild(row);
             });
+
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No pins match the current filters</td></tr>';
+            }
         }
 
         function removePinConfig(pinId) {
@@ -1866,18 +1902,32 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
         });
 
         // Package selection
-        document.getElementById('pinPackageSelect').addEventListener('change', (e) => {
-            currentPackage = e.target.value;
-            // Send package change to backend
-            vscode.postMessage({
-                type: 'changePackage',
-                packageType: currentPackage
+        const packageSelect = document.getElementById('pinPackageSelect');
+        if (packageSelect) {
+            packageSelect.addEventListener('change', (e) => {
+                currentPackage = e.target.value;
+                console.log('Package changed to:', currentPackage);
+                // Send package change to backend
+                vscode.postMessage({
+                    type: 'changePackage',
+                    packageType: currentPackage
+                });
             });
-        });
+        } else {
+            console.error('Package select element not found');
+        }
 
         // Filter checkboxes
         ['filterGPIO', 'filterAnalog', 'filterPPS', 'filterConfigured'].forEach(id => {
-            document.getElementById(id).addEventListener('change', renderPinTable);
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', () => {
+                    console.log(`Filter ${id} changed to:`, element.checked);
+                    renderPinTable();
+                });
+            } else {
+                console.error(`Filter element ${id} not found`);
+            }
         });
 
         // Close dialog when clicking overlay
