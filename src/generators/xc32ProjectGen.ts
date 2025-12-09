@@ -9,6 +9,15 @@ import { generateInitializationC, generateInitializationH, generatePlibClkC } fr
 import { generateHarmonyGpioHeader, generateHarmonyGpioSource } from './harmonyGpioGen';
 import { generateHarmonyPPSCode } from './ppsCodeGen';
 import { PinConfiguration } from '../devices/pic32mz/types';
+import { 
+    TimerConfiguration, 
+    generateTimer1Header, 
+    generateTimer1Source,
+    generateTimerTypeB_Header,
+    generateTimerTypeB_Source,
+    generateTimerInterruptDeclaration,
+    generateTimerIPC
+} from './harmonyTimerGen';
 
 /**
  * Template variable replacer
@@ -94,13 +103,14 @@ export interface XC32ProjectOptions {
     dfpVersion?: string;       // Optional DFP version (auto-detect if not specified)
     useMikroeBootloader?: boolean;  // Use MikroE bootloader (adds -nostartfiles and startup.S)
     pinConfigurations?: PinConfiguration[];  // Pin Manager configurations
+    timerConfigurations?: TimerConfiguration[];  // Timer configurations
 }
 
 /**
  * Generate complete XC32 project
  */
 export async function generateXC32Project(options: XC32ProjectOptions): Promise<void> {
-    const { projectName, deviceName, outputPath, settings, heapSize, xc32Version, dfpVersion, useMikroeBootloader, pinConfigurations } = options;
+    const { projectName, deviceName, outputPath, settings, heapSize, xc32Version, dfpVersion, useMikroeBootloader, pinConfigurations, timerConfigurations } = options;
     
     // Remove 'P' prefix for device part number
     const devicePart = deviceName.replace(/^P/, '');
@@ -155,15 +165,50 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     
     dirs.forEach(dir => ensureDir(path.join(projectRoot, dir)));
     
+    // Determine which peripherals are configured
+    const hasPPS = pinConfigurations?.some(p => 
+        p.mode === 'Peripheral' && 
+        p.peripheral && 
+        (p.peripheral.ppsInputSignal || p.peripheral.ppsOutputSignal)
+    ) || false;
+    
+    const timerNumbers = timerConfigurations?.map(tc => {
+        const is32Bit = tc.timer.length === 2;
+        return is32Bit ? parseInt(tc.timer[0]) : parseInt(tc.timer);
+    }) || [];
+    
     // Generate configuration code
-    const initC = generateInitializationC(settings, deviceName);
+    const initC = generateInitializationC(settings, deviceName, {
+        hasPPS,
+        timerNumbers
+    });
     
     // Write configuration files
     writeFile(path.join(projectRoot, 'srcs/config/default/initialization.c'), initC);
     
     // Copy template header files
     const definitionsH = loadTemplate('config/default/definitions.h.template');
-    const definitionsContent = replaceTemplateVars(definitionsH, vars);
+    let definitionsContent = replaceTemplateVars(definitionsH, vars);
+    
+    // Add timer peripheral includes if configured
+    if (timerConfigurations && timerConfigurations.length > 0) {
+        const timerIncludes = timerNumbers.map(n => 
+            `#include "peripheral/tmr/plib_tmr${n}/plib_tmr${n}.h"`
+        ).join('\n');
+        definitionsContent = definitionsContent.replace(
+            '#include "peripheral/evic/plib_evic.h"',
+            `#include "peripheral/evic/plib_evic.h"\n${timerIncludes}`
+        );
+    }
+    
+    // Add PPS include if configured
+    if (hasPPS) {
+        definitionsContent = definitionsContent.replace(
+            '#include "peripheral/evic/plib_evic.h"',
+            `#include "peripheral/evic/plib_evic.h"\n#include "peripheral/pps/plib_pps.h"`
+        );
+    }
+    
     const deviceH = loadTemplate('config/default/device.h.template');
     const deviceContent = replaceTemplateVars(deviceH, vars);
     const toolchainH = loadTemplate('config/default/toolchain_specifics.h.template');
@@ -178,7 +223,18 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     
     // Generate system files (interrupts.c and exceptions.c)
     const interruptsC = loadTemplate('config/default/interrupts.c.template');
-    const interruptsCContent = replaceTemplateVars(interruptsC, vars);
+    let interruptsCContent = replaceTemplateVars(interruptsC, vars);
+    
+    // Add timer interrupt handlers if configured
+    if (timerConfigurations && timerConfigurations.length > 0) {
+        const timerHandlers = timerConfigurations.map(tc => generateTimerInterruptDeclaration(tc)).join('\n\n');
+        // Insert before "End of File" comment
+        interruptsCContent = interruptsCContent.replace(
+            '/*******************************************************************************\n End of File\n*/',
+            `\n${timerHandlers}\n\n/*******************************************************************************\n End of File\n*/`
+        );
+    }
+    
     const exceptionsC = loadTemplate('config/default/exceptions.c.template');
     const exceptionsCContent = replaceTemplateVars(exceptionsC, vars);
     
@@ -204,7 +260,17 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     
     // Generate EVIC (interrupt controller) peripheral files
     const plibEvicC = loadTemplate('config/peripheral/evic/plib_evic.c.template');
-    const plibEvicCContent = replaceTemplateVars(plibEvicC, vars);
+    let plibEvicCContent = replaceTemplateVars(plibEvicC, vars);
+    
+    // Add timer IPC settings if timers are configured
+    if (timerConfigurations && timerConfigurations.length > 0) {
+        const timerIPCs = timerConfigurations.map(tc => generateTimerIPC(tc)).join('\n');
+        plibEvicCContent = plibEvicCContent.replace(
+            '    /* Set up priority and subpriority of enabled interrupts */',
+            `    /* Set up priority and subpriority of enabled interrupts */\n${timerIPCs}`
+        );
+    }
+    
     const plibEvicH = loadTemplate('config/peripheral/evic/plib_evic.h.template');
     const plibEvicHContent = replaceTemplateVars(plibEvicH, vars);
     
@@ -303,6 +369,37 @@ ${ppsCode}
             writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/pps/plib_pps.h'), ppsHeader);
             writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/pps/plib_pps.c'), ppsSource);
             console.log('Generated PPS initialization code');
+        }
+    }
+    
+    // Generate Timer peripheral files from timer configurations
+    if (timerConfigurations && timerConfigurations.length > 0) {
+        console.log(`Generating timer files for ${timerConfigurations.length} configured timer(s)`);
+        
+        for (const timerConfig of timerConfigurations) {
+            const { timer } = timerConfig;
+            const is32Bit = timer.length === 2;
+            const timerNum = is32Bit ? parseInt(timer[0]) : parseInt(timer);
+            
+            let headerContent: string;
+            let sourceContent: string;
+            
+            if (timerNum === 1) {
+                // Timer1 Type A (16-bit only)
+                headerContent = generateTimer1Header();
+                sourceContent = generateTimer1Source(timerConfig);
+            } else {
+                // Timer2-9 Type B (16-bit or 32-bit)
+                headerContent = generateTimerTypeB_Header(timerNum);
+                sourceContent = generateTimerTypeB_Source(timerConfig);
+            }
+            
+            // Write timer peripheral files
+            const timerPath = path.join(projectRoot, `srcs/config/default/peripheral/tmr/plib_tmr${timerNum}`);
+            writeFile(path.join(timerPath, `plib_tmr${timerNum}.h`), headerContent);
+            writeFile(path.join(timerPath, `plib_tmr${timerNum}.c`), sourceContent);
+            
+            console.log(`Generated Timer${timer} peripheral files (${is32Bit ? '32-bit' : '16-bit'} mode)`);
         }
     }
     

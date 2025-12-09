@@ -302,7 +302,14 @@ export function generateXC32Config(settings: Map<number, string>, deviceName: st
 /**
  * Generate initialization.c file content
  */
-export function generateInitializationC(settings: Map<number, string>, deviceName: string): string {
+export function generateInitializationC(
+    settings: Map<number, string>, 
+    deviceName: string,
+    options?: {
+        hasPPS?: boolean;
+        timerNumbers?: number[];  // List of configured timer numbers (1-9)
+    }
+): string {
     // Generate user-selected configuration bits
     let configBits = '';
     
@@ -419,7 +426,13 @@ void SYS_Initialize(void* data)
 
     /* Initialize GPIO */
     GPIO_Initialize();
-
+${options?.hasPPS ? `
+    /* Initialize PPS */
+    PPS_Initialize();
+` : ''}${options?.timerNumbers && options.timerNumbers.length > 0 ? `
+    /* Initialize Timers */
+${options.timerNumbers.map(n => `    TMR${n}_Initialize();`).join('\n')}
+` : ''}
     /* Initialize Core Timer */
     CORETIMER_Initialize();
 
