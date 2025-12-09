@@ -65,49 +65,12 @@ function createPin(
 /**
  * Complete pin table for PIC32MZ2048EF/EC family
  * Organized by functional category for easier reference
+ * Note: Analog channels (ANx) are included as alternateFunctions of GPIO pins, not as separate pins
  */
 export const PIC32MZ_PINS: DevicePin[] = [
-    // Analog Input Pins (AN0-AN35)
-    createPin(16, 25, null, 36, 'AN0', 'I', 'Analog', ['AN0']),
-    createPin(15, 24, null, 35, 'AN1', 'I', 'Analog', ['AN1']),
-    createPin(14, 23, null, 34, 'AN2', 'I', 'Analog', ['AN2']),
-    createPin(13, 22, null, 31, 'AN3', 'I', 'Analog', ['AN3']),
-    createPin(12, 21, null, 26, 'AN4', 'I', 'Analog', ['AN4']),
-    createPin(23, 34, null, 49, 'AN5', 'I', 'Analog', ['AN5']),
-    createPin(24, 35, null, 50, 'AN6', 'I', 'Analog', ['AN6']),
-    createPin(27, 41, null, 59, 'AN7', 'I', 'Analog', ['AN7']),
-    createPin(28, 42, null, 60, 'AN8', 'I', 'Analog', ['AN8']),
-    createPin(29, 43, null, 61, 'AN9', 'I', 'Analog', ['AN9']),
-    createPin(30, 44, null, 62, 'AN10', 'I', 'Analog', ['AN10']),
-    createPin(10, 16, null, 21, 'AN11', 'I', 'Analog', ['AN11']),
-    createPin(6, 12, null, 16, 'AN12', 'I', 'Analog', ['AN12']),
-    createPin(5, 11, null, 15, 'AN13', 'I', 'Analog', ['AN13']),
-    createPin(4, 10, null, 14, 'AN14', 'I', 'Analog', ['AN14']),
-    createPin(3, 5, null, 5, 'AN15', 'I', 'Analog', ['AN15']),
-    createPin(2, 4, null, 4, 'AN16', 'I', 'Analog', ['AN16']),
-    createPin(1, 3, null, 3, 'AN17', 'I', 'Analog', ['AN17']),
-    createPin(64, 100, null, 144, 'AN18', 'I', 'Analog', ['AN18']),
-    createPin(null, 9, null, 13, 'AN19', 'I', 'Analog', ['AN19']),
-    createPin(null, 8, null, 12, 'AN20', 'I', 'Analog', ['AN20']),
-    createPin(null, 7, null, 11, 'AN21', 'I', 'Analog', ['AN21']),
-    createPin(null, 6, null, 6, 'AN22', 'I', 'Analog', ['AN22']),
-    createPin(null, 1, null, 1, 'AN23', 'I', 'Analog', ['AN23']),
-    createPin(null, 17, null, 22, 'AN24', 'I', 'Analog', ['AN24']),
-    createPin(null, 18, null, 23, 'AN25', 'I', 'Analog', ['AN25']),
-    createPin(null, 19, null, 24, 'AN26', 'I', 'Analog', ['AN26']),
-    createPin(null, 28, null, 39, 'AN27', 'I', 'Analog', ['AN27']),
-    createPin(null, 29, null, 40, 'AN28', 'I', 'Analog', ['AN28']),
-    createPin(null, 38, null, 56, 'AN29', 'I', 'Analog', ['AN29']),
-    createPin(null, 39, null, 57, 'AN30', 'I', 'Analog', ['AN30']),
-    createPin(null, 40, null, 58, 'AN31', 'I', 'Analog', ['AN31']),
-    createPin(null, 47, null, 69, 'AN32', 'I', 'Analog', ['AN32']),
-    createPin(null, 48, null, 70, 'AN33', 'I', 'Analog', ['AN33']),
-    createPin(null, 2, null, 2, 'AN34', 'I', 'Analog', ['AN34']),
-    createPin(null, null, null, 7, 'AN35', 'I', 'Analog', ['AN35']),
-    
     // PORT A GPIO Pins
-    createPin(null, 17, null, 22, 'RA0', 'I/O', 'ST', ['GPIO', 'RA0']),
-    createPin(null, 38, null, 56, 'RA1', 'I/O', 'ST', ['GPIO', 'RA1']),
+    createPin(null, 17, null, 22, 'RA0', 'I/O', 'ST', ['GPIO', 'RA0', 'AN24']),
+    createPin(null, 38, null, 56, 'RA1', 'I/O', 'ST', ['GPIO', 'RA1', 'AN29']),
     createPin(null, 59, null, 85, 'RA2', 'I/O', 'ST', ['GPIO', 'RA2']),
     createPin(null, 60, null, 86, 'RA3', 'I/O', 'ST', ['GPIO', 'RA3']),
     createPin(null, 61, null, 87, 'RA4', 'I/O', 'ST', ['GPIO', 'RA4']),
