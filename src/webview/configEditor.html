@@ -479,6 +479,244 @@
             accent-color: var(--vscode-button-background);
         }
 
+        /* Pin Manager Styles */
+        .pin-manager-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        .pin-manager-toolbar {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            padding: 12px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+        }
+
+        .pin-manager-toolbar label {
+            font-size: 12px;
+            color: var(--vscode-input-foreground);
+            margin-right: 8px;
+        }
+
+        .pin-manager-toolbar select {
+            padding: 4px 8px;
+            background-color: var(--vscode-dropdown-background);
+            color: var(--vscode-dropdown-foreground);
+            border: 1px solid var(--vscode-dropdown-border);
+            border-radius: 2px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .pin-filter-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .pin-table-container {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+        }
+
+        .pin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .pin-table thead {
+            position: sticky;
+            top: 0;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            z-index: 10;
+        }
+
+        .pin-table th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--vscode-panel-border);
+            color: var(--vscode-foreground);
+        }
+
+        .pin-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .pin-table tbody tr:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+
+        .pin-table tbody tr.configured {
+            background-color: var(--vscode-list-activeSelectionBackground);
+            color: var(--vscode-list-activeSelectionForeground);
+        }
+
+        .pin-number {
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: var(--vscode-symbolIcon-numberForeground);
+        }
+
+        .pin-id {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--vscode-symbolIcon-variableForeground);
+        }
+
+        .pin-function {
+            color: var(--vscode-symbolIcon-functionForeground);
+        }
+
+        .pin-custom-name {
+            font-style: italic;
+            color: var(--vscode-symbolIcon-stringForeground);
+        }
+
+        .pin-direction {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+        }
+
+        .pin-state {
+            font-size: 11px;
+        }
+
+        .config-btn {
+            padding: 4px 10px;
+            font-size: 11px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .config-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .config-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Pin Configuration Dialog */
+        .dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dialog-overlay.active {
+            display: flex;
+        }
+
+        .dialog {
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .dialog-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .dialog-content {
+            padding: 16px;
+        }
+
+        .dialog-section {
+            margin-bottom: 16px;
+        }
+
+        .dialog-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--vscode-foreground);
+        }
+
+        .dialog-radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .dialog-input-group {
+            margin-bottom: 12px;
+        }
+
+        .dialog-input-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .dialog-input-group input[type="text"],
+        .dialog-input-group select {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .dialog-checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .dialog-footer {
+            padding: 16px;
+            border-top: 1px solid var(--vscode-panel-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
         /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 10px;
@@ -542,6 +780,7 @@
             <div class="tabs">
                 <button class="tab active" data-tab="config">Configuration</button>
                 <button class="tab" data-tab="timer">Timer Calculator</button>
+                <button class="tab" data-tab="pins">Pin Manager</button>
             </div>
         </div>
 
@@ -718,6 +957,175 @@
                     <div class="timer-code-output">
                         <div class="timer-code-block" id="timerCodeOutput">// Configure timer settings and click Calculate</div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pin Manager Tab -->
+        <div class="tab-content" id="pinsTab">
+            <div class="pin-manager-container">
+                <div class="pin-manager-toolbar">
+                    <label>Package:</label>
+                    <select id="pinPackageSelect">
+                        <option value="64-pin">64-pin QFN/TQFP</option>
+                        <option value="100-pin" selected>100-pin TQFP</option>
+                        <option value="124-pin">124-pin VTLA</option>
+                        <option value="144-pin">144-pin TQFP/LQFP</option>
+                    </select>
+                    
+                    <div class="pin-filter-group">
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterGPIO" checked>
+                            Show GPIO
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterAnalog" checked>
+                            Show Analog
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterPPS" checked>
+                            Show PPS
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterConfigured">
+                            Configured Only
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pin-table-container">
+                    <table class="pin-table">
+                        <thead>
+                            <tr>
+                                <th>Pin #</th>
+                                <th>Pin ID</th>
+                                <th>Custom Name</th>
+                                <th>Function</th>
+                                <th>Direction</th>
+                                <th>State</th>
+                                <th>Mode</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="pinTableBody">
+                            <!-- Pin rows will be dynamically generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pin Configuration Dialog -->
+        <div class="dialog-overlay" id="pinConfigDialog">
+            <div class="dialog">
+                <div class="dialog-header" id="dialogPinName">Configure Pin: RB8</div>
+                <div class="dialog-content">
+                    <div class="dialog-section">
+                        <div class="dialog-section-title">Pin Function</div>
+                        <div class="dialog-radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="pinMode" value="GPIO" checked>
+                                GPIO
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="pinMode" value="Analog">
+                                Analog
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="pinMode" value="Peripheral">
+                                Peripheral (PPS)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- GPIO Configuration -->
+                    <div class="dialog-section" id="gpioConfigSection">
+                        <div class="dialog-section-title">GPIO Configuration</div>
+                        
+                        <div class="dialog-input-group">
+                            <label>Custom Name:</label>
+                            <input type="text" id="pinCustomName" placeholder="e.g., LED1, SW1" maxlength="20">
+                        </div>
+
+                        <div class="dialog-input-group">
+                            <label>Direction:</label>
+                            <div class="dialog-radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="pinDirection" value="Output" checked>
+                                    Output
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="pinDirection" value="Input">
+                                    Input
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="dialog-input-group" id="initialStateGroup">
+                            <label>Initial State:</label>
+                            <div class="dialog-radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="pinMode Init" value="Low" checked>
+                                    Low
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="pinInitState" value="High">
+                                    High
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="dialog-input-group">
+                            <label>Options:</label>
+                            <div class="dialog-checkbox-group">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinOpenDrain">
+                                    Open Drain
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinPullUp">
+                                    Pull-up Resistor
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinPullDown">
+                                    Pull-down Resistor
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinChangeNotification">
+                                    Change Notification Interrupt
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analog Configuration -->
+                    <div class="dialog-section" id="analogConfigSection" style="display: none;">
+                        <div class="dialog-section-title">Analog Configuration</div>
+                        <div class="dialog-input-group">
+                            <label>Analog Channel:</label>
+                            <select id="analogChannel">
+                                <option value="">Select channel...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Peripheral/PPS Configuration -->
+                    <div class="dialog-section" id="ppsConfigSection" style="display: none;">
+                        <div class="dialog-section-title">Peripheral Pin Select</div>
+                        <div class="dialog-input-group">
+                            <label>Peripheral Function:</label>
+                            <select id="ppsPeripheral">
+                                <option value="">Select peripheral...</option>
+                            </select>
+                        </div>
+                        <div id="ppsInfo" style="font-size: 11px; color: var(--vscode-descriptionForeground); margin-top: 8px;">
+                            <!-- PPS mapping info will be shown here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="dialog-footer">
+                    <button class="btn-secondary" id="dialogCancelBtn">Cancel</button>
+                    <button class="btn-primary" id="dialogOkBtn">OK</button>
                 </div>
             </div>
         </div>
@@ -1280,6 +1688,169 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
         document.getElementById('defaultBtn').addEventListener('click', () => {
             vscode.postMessage({ type: 'loadDefaults' });
         });
+
+        // ===========================
+        // PIN MANAGER
+        // ===========================
+
+        let pinConfigurations = [];
+        let currentPackage = '100-pin';
+        let currentEditingPin = null;
+
+        // Sample pin data (in real implementation, this would come from the backend)
+        const samplePins = [
+            { pinNum: 32, pinId: 'RB8', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 8 },
+            { pinNum: 33, pinId: 'RB9', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 9 },
+            { pinNum: 25, pinId: 'RB0', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 0, analog: 'AN0' },
+            { pinNum: 24, pinId: 'RB1', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 1, analog: 'AN1' },
+            { pinNum: 34, pinId: 'RB10', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 10, analog: 'AN5' },
+        ];
+
+        function renderPinTable() {
+            const tbody = document.getElementById('pinTableBody');
+            const filterGPIO = document.getElementById('filterGPIO').checked;
+            const filterAnalog = document.getElementById('filterAnalog').checked;
+            const filterPPS = document.getElementById('filterPPS').checked;
+            const filterConfigured = document.getElementById('filterConfigured').checked;
+
+            tbody.innerHTML = '';
+
+            samplePins.forEach(pin => {
+                // Apply filters
+                if (filterConfigured && pin.mode === 'Not Configured') return;
+                if (!filterGPIO && !pin.analog && !pin.rpNumber) return;
+                if (!filterAnalog && pin.analog) return;
+                if (!filterPPS && pin.rpNumber !== undefined) return;
+
+                const row = document.createElement('tr');
+                if (pin.mode !== 'Not Configured') {
+                    row.classList.add('configured');
+                }
+
+                row.innerHTML = `
+                    <td class="pin-number">${pin.pinNum}</td>
+                    <td class="pin-id">${pin.pinId}</td>
+                    <td class="pin-custom-name">${pin.customName || '-'}</td>
+                    <td class="pin-function">${pin.function}</td>
+                    <td><span class="pin-direction">${pin.direction || '-'}</span></td>
+                    <td class="pin-state">${pin.state || '-'}</td>
+                    <td>${pin.mode}</td>
+                    <td><button class="config-btn" onclick="openPinConfig('${pin.pinId}')">⚙</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function openPinConfig(pinId) {
+            currentEditingPin = pinId;
+            const pin = samplePins.find(p => p.pinId === pinId);
+            if (!pin) return;
+
+            document.getElementById('dialogPinName').textContent = `Configure Pin: ${pinId}`;
+            document.getElementById('pinCustomName').value = pin.customName || '';
+            
+            // Populate analog channel if available
+            const analogChannelSelect = document.getElementById('analogChannel');
+            analogChannelSelect.innerHTML = '<option value="">Select channel...</option>';
+            if (pin.analog) {
+                analogChannelSelect.innerHTML += `<option value="${pin.analog}">${pin.analog}</option>`;
+            }
+
+            // Populate PPS peripherals if available
+            const ppsPeripheralSelect = document.getElementById('ppsPeripheral');
+            ppsPeripheralSelect.innerHTML = '<option value="">Select peripheral...</option>';
+            if (pin.rpNumber !== undefined) {
+                ppsPeripheralSelect.innerHTML += `
+                    <option value="U1RX">UART1 Receive (U1RX)</option>
+                    <option value="U1TX">UART1 Transmit (U1TX)</option>
+                    <option value="SDI1">SPI1 Data Input (SDI1)</option>
+                    <option value="SDO1">SPI1 Data Output (SDO1)</option>
+                    <option value="IC1">Input Capture 1 (IC1)</option>
+                    <option value="OC1">Output Compare 1 (OC1)</option>
+                `;
+            }
+
+            document.getElementById('pinConfigDialog').classList.add('active');
+        }
+
+        // Pin mode radio buttons
+        document.querySelectorAll('input[name="pinMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const mode = e.target.value;
+                document.getElementById('gpioConfigSection').style.display = mode === 'GPIO' ? 'block' : 'none';
+                document.getElementById('analogConfigSection').style.display = mode === 'Analog' ? 'block' : 'none';
+                document.getElementById('ppsConfigSection').style.display = mode === 'Peripheral' ? 'block' : 'none';
+            });
+        });
+
+        // Direction radio buttons - show/hide initial state
+        document.querySelectorAll('input[name="pinDirection"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isOutput = e.target.value === 'Output';
+                document.getElementById('initialStateGroup').style.display = isOutput ? 'block' : 'none';
+            });
+        });
+
+        // Dialog buttons
+        document.getElementById('dialogCancelBtn').addEventListener('click', () => {
+            document.getElementById('pinConfigDialog').classList.remove('active');
+        });
+
+        document.getElementById('dialogOkBtn').addEventListener('click', () => {
+            if (!currentEditingPin) return;
+
+            const pin = samplePins.find(p => p.pinId === currentEditingPin);
+            if (!pin) return;
+
+            const mode = document.querySelector('input[name="pinMode"]:checked').value;
+            pin.mode = mode;
+            pin.customName = document.getElementById('pinCustomName').value;
+
+            if (mode === 'GPIO') {
+                pin.direction = document.querySelector('input[name="pinDirection"]:checked').value;
+                if (pin.direction === 'Output') {
+                    pin.state = document.querySelector('input[name="pinInitState"]:checked').value;
+                    pin.function = 'GPIO Output';
+                } else {
+                    pin.state = 'n/a';
+                    pin.function = 'GPIO Input';
+                }
+            } else if (mode === 'Analog') {
+                pin.function = document.getElementById('analogChannel').value || 'Analog';
+                pin.direction = 'In';
+                pin.state = 'n/a';
+            } else if (mode === 'Peripheral') {
+                const peripheral = document.getElementById('ppsPeripheral').value;
+                pin.function = peripheral || 'Peripheral';
+                pin.direction = peripheral.includes('RX') || peripheral.includes('SDI') || peripheral.includes('IC') ? 'In' : 'Out';
+                pin.state = 'n/a';
+            }
+
+            renderPinTable();
+            document.getElementById('pinConfigDialog').classList.remove('active');
+        });
+
+        // Package selection
+        document.getElementById('pinPackageSelect').addEventListener('change', (e) => {
+            currentPackage = e.target.value;
+            // In real implementation, would reload pin table for selected package
+            renderPinTable();
+        });
+
+        // Filter checkboxes
+        ['filterGPIO', 'filterAnalog', 'filterPPS', 'filterConfigured'].forEach(id => {
+            document.getElementById(id).addEventListener('change', renderPinTable);
+        });
+
+        // Close dialog when clicking overlay
+        document.getElementById('pinConfigDialog').addEventListener('click', (e) => {
+            if (e.target.id === 'pinConfigDialog') {
+                document.getElementById('pinConfigDialog').classList.remove('active');
+            }
+        });
+
+        // Initialize pin table
+        renderPinTable();
 
         // Signal ready
         vscode.postMessage({ type: 'ready' });
