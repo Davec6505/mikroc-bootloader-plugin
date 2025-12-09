@@ -14,6 +14,7 @@ import { EFH_UI_SCHEMA, ConfigSetting } from './devices/pic32mz/efhUiSchema';
 import { calculateRegisters, formatRegisterValue } from './devices/pic32mz/efhRegisterMap';
 import { PinManager } from './pinManager';
 import { PackageType, PinConfiguration } from './devices/pic32mz/types';
+import { TimerConfiguration } from './generators/harmonyTimerGen';
 
 export interface ConfigResult {
     config: Map<number, string>;
@@ -22,6 +23,7 @@ export interface ConfigResult {
     dfpVersion?: string;
     useMikroeBootloader?: boolean;
     pinConfigurations?: PinConfiguration[];
+    timerConfigurations?: TimerConfiguration[];
 }
 
 export class ConfigEditor {
@@ -116,7 +118,8 @@ export class ConfigEditor {
                                     xc32Version: message.xc32Version,
                                     dfpVersion: message.dfpVersion,
                                     useMikroeBootloader: message.useMikroeBootloader || false,
-                                    pinConfigurations: this.pinManager.exportState().pins
+                                    pinConfigurations: this.pinManager.exportState().pins,
+                                    timerConfigurations: message.timerConfigurations
                                 });
                             }
                             this.panel?.dispose();

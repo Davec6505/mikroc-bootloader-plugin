@@ -290,7 +290,9 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 		heapSize: result.heapSize,
 		xc32Version: result.xc32Version,
 		dfpVersion: result.dfpVersion,
-		useMikroeBootloader: result.useMikroeBootloader || false
+		useMikroeBootloader: result.useMikroeBootloader || false,
+		pinConfigurations: result.pinConfigurations,
+		timerConfigurations: result.timerConfigurations
 	};
 
 	const errors = validateXC32Options(options);

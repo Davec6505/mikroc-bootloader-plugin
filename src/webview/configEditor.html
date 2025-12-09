@@ -1670,13 +1670,30 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
             const xc32Version = document.getElementById('xc32Version').value;
             const dfpVersion = document.getElementById('dfpVersion').value;
             const useMikroeBootloader = document.getElementById('useMikroeBootloader').checked;
+            
+            // Include timer configuration if it has been calculated
+            let timerConfigurations = undefined;
+            if (timerConfig.prValue > 0) {
+                const is32Bit = timerConfig.timer.length === 2;
+                timerConfigurations = [{
+                    timer: timerConfig.timer,
+                    prescaler: timerConfig.prescaler,
+                    prValue: timerConfig.prValue,
+                    priority: timerConfig.priority,
+                    subPriority: timerConfig.subPriority,
+                    period: timerConfig.actualPeriod,
+                    mode32Bit: is32Bit
+                }];
+            }
+            
             vscode.postMessage({
                 type: 'ok',
                 config: currentConfig,
                 heapSize: heapSize,
                 xc32Version: xc32Version,
                 dfpVersion: dfpVersion,
-                useMikroeBootloader: useMikroeBootloader
+                useMikroeBootloader: useMikroeBootloader,
+                timerConfigurations: timerConfigurations
             });
         });
 
