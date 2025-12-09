@@ -6,6 +6,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { generateInitializationC, generateInitializationH, generatePlibClkC } from './xc32ConfigGen';
+import { generateHarmonyGpioHeader, generateHarmonyGpioSource } from './harmonyGpioGen';
+import { generateHarmonyPPSCode } from './ppsCodeGen';
+import { PinConfiguration } from '../devices/pic32mz/types';
 
 /**
  * Template variable replacer
@@ -90,13 +93,14 @@ export interface XC32ProjectOptions {
     xc32Version?: string;      // Optional XC32 version (auto-detect if not specified)
     dfpVersion?: string;       // Optional DFP version (auto-detect if not specified)
     useMikroeBootloader?: boolean;  // Use MikroE bootloader (adds -nostartfiles and startup.S)
+    pinConfigurations?: PinConfiguration[];  // Pin Manager configurations
 }
 
 /**
  * Generate complete XC32 project
  */
 export async function generateXC32Project(options: XC32ProjectOptions): Promise<void> {
-    const { projectName, deviceName, outputPath, settings, heapSize, xc32Version, dfpVersion, useMikroeBootloader } = options;
+    const { projectName, deviceName, outputPath, settings, heapSize, xc32Version, dfpVersion, useMikroeBootloader, pinConfigurations } = options;
     
     // Remove 'P' prefix for device part number
     const devicePart = deviceName.replace(/^P/, '');
@@ -207,14 +211,100 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/evic/plib_evic.c'), plibEvicCContent);
     writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/evic/plib_evic.h'), plibEvicHContent);
     
-    // Generate GPIO peripheral files
-    const plibGpioC = loadTemplate('config/peripheral/gpio/plib_gpio.c.template');
-    const plibGpioCContent = replaceTemplateVars(plibGpioC, vars);
-    const plibGpioH = loadTemplate('config/peripheral/gpio/plib_gpio.h.template');
-    const plibGpioHContent = replaceTemplateVars(plibGpioH, vars);
+    // Generate GPIO peripheral files from pin configurations
+    let plibGpioCContent: string;
+    let plibGpioHContent: string;
+    
+    if (pinConfigurations && pinConfigurations.length > 0) {
+        // Generate GPIO files from pin configurations
+        plibGpioHContent = generateHarmonyGpioHeader(pinConfigurations);
+        plibGpioCContent = generateHarmonyGpioSource(pinConfigurations);
+        console.log(`Generated GPIO code for ${pinConfigurations.length} configured pin(s)`);
+    } else {
+        // Use template files if no pins configured
+        const plibGpioC = loadTemplate('config/peripheral/gpio/plib_gpio.c.template');
+        plibGpioCContent = replaceTemplateVars(plibGpioC, vars);
+        const plibGpioH = loadTemplate('config/peripheral/gpio/plib_gpio.h.template');
+        plibGpioHContent = replaceTemplateVars(plibGpioH, vars);
+        console.log('No pin configurations - using template GPIO files');
+    }
     
     writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/gpio/plib_gpio.c'), plibGpioCContent);
     writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/gpio/plib_gpio.h'), plibGpioHContent);
+    
+    // Generate PPS initialization if needed
+    if (pinConfigurations && pinConfigurations.length > 0) {
+        const hasPPS = pinConfigurations.some(p => 
+            p.mode === 'Peripheral' && 
+            p.peripheral && 
+            (p.peripheral.ppsInputSignal || p.peripheral.ppsOutputSignal)
+        );
+        
+        if (hasPPS) {
+            const ppsCode = generateHarmonyPPSCode(pinConfigurations);
+            
+            // Create PPS header
+            const ppsHeader = `/*******************************************************************************
+  PPS PLIB
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+    plib_pps.h
+
+  Summary:
+    PPS PLIB Header File
+
+  Description:
+    This library provides an interface to configure Peripheral Pin Select (PPS).
+
+*******************************************************************************/
+
+#ifndef PLIB_PPS_H
+#define PLIB_PPS_H
+
+#include <device.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void PPS_Initialize(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // PLIB_PPS_H
+`;
+            
+            // Create PPS source
+            const ppsSource = `/*******************************************************************************
+  PPS PLIB
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+    plib_pps.c
+
+  Summary:
+    PPS PLIB Implementation
+
+*******************************************************************************/
+
+#include "plib_pps.h"
+
+${ppsCode}
+`;
+            
+            writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/pps/plib_pps.h'), ppsHeader);
+            writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/pps/plib_pps.c'), ppsSource);
+            console.log('Generated PPS initialization code');
+        }
+    }
     
     // Generate and write main.c
     const mainTemplate = loadTemplate('main.c.template');
