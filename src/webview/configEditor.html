@@ -905,7 +905,28 @@
                     </div>
 
                     <div class="timer-section">
-                        <div class="timer-section-title">5. Interrupt Configuration</div>
+                        <div class="timer-section-title">5. Prescaler Configuration</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">Prescaler</label>
+                            <select class="timer-select" id="timerPrescaler">
+                                <option value="auto" selected>Auto (Calculate Best)</option>
+                                <option value="1">1:1</option>
+                                <option value="2">1:2</option>
+                                <option value="4">1:4</option>
+                                <option value="8">1:8</option>
+                                <option value="16">1:16</option>
+                                <option value="32">1:32</option>
+                                <option value="64">1:64</option>
+                                <option value="256">1:256</option>
+                            </select>
+                        </div>
+                        <div class="timer-note" style="margin-top: 8px; font-size: 11px; color: #888;">
+                            Note: Timer1 supports 1,8,64,256. Timer2-9 support all values.
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">6. Interrupt Configuration</div>
                         <div class="timer-input-group">
                             <label class="timer-label">Interrupt Priority (1-7)</label>
                             <input type="number" class="timer-input" id="timerPriority" value="7" min="1" max="7" step="1" />
@@ -917,7 +938,7 @@
                     </div>
 
                     <div class="timer-section">
-                        <div class="timer-section-title">6. Interrupt Time</div>
+                        <div class="timer-section-title">7. Interrupt Time</div>
                         <div class="timer-inline-group">
                             <div class="timer-input-group">
                                 <label class="timer-label">Period</label>
@@ -1205,6 +1226,7 @@
             const unit = document.getElementById('timerPeriodUnit').value;
             const priority = parseInt(document.getElementById('timerPriority').value);
             const subPriority = parseInt(document.getElementById('timerSubPriority').value);
+            const prescalerSelection = document.getElementById('timerPrescaler').value;
             
             // Convert period to seconds
             let periodSeconds = period;
@@ -1221,22 +1243,49 @@
             const is16Bit = timerNum.length === 1; // Single digit = 16-bit
             const is32Bit = timerNum.length === 2; // Two digits = 32-bit paired
             
-            // Find best prescaler
-            // Timer1 Type A: 1, 8, 64, 256
-            // Timer2-9 Type B: 1, 2, 4, 8, 16, 32, 64, 256
-            const prescalers = timerNum === '1' ? [1, 8, 64, 256] : [1, 2, 4, 8, 16, 32, 64, 256];
             let bestPrescaler = 1;
             let bestPR = 0;
             let bestError = Infinity;
             
-            for (const presc of prescalers) {
-                const pr = Math.round(requiredTicks / presc);
-                const maxPR = is16Bit ? 65536 : 4294967296; // 16-bit: 65536, 32-bit: 4294967296
+            // Check if manual prescaler is selected
+            if (prescalerSelection !== 'auto') {
+                // Use manually selected prescaler
+                const manualPrescaler = parseInt(prescalerSelection);
+                
+                // Validate prescaler for timer type
+                const validPrescalers = timerNum === '1' ? [1, 8, 64, 256] : [1, 2, 4, 8, 16, 32, 64, 256];
+                if (!validPrescalers.includes(manualPrescaler)) {
+                    alert(`Prescaler ${manualPrescaler} is not valid for Timer${timerNum}. Valid values: ${validPrescalers.join(', ')}`);
+                    return;
+                }
+                
+                const pr = Math.round(requiredTicks / manualPrescaler);
+                const maxPR = is16Bit ? 65536 : 4294967296;
                 
                 if (pr > 0 && pr <= maxPR) {
-                    const actualTicks = pr * presc;
+                    bestPrescaler = manualPrescaler;
+                    bestPR = pr;
+                    const actualTicks = pr * manualPrescaler;
                     const actualPeriod = actualTicks / timerClock;
-                    const error = Math.abs((actualPeriod - periodSeconds) / periodSeconds) * 100;
+                    bestError = Math.abs((actualPeriod - periodSeconds) / periodSeconds) * 100;
+                } else {
+                    alert(`Period value ${pr} exceeds maximum for ${is16Bit ? '16-bit' : '32-bit'} timer (max: ${maxPR})`);
+                    return;
+                }
+            } else {
+                // Auto-calculate best prescaler
+                // Timer1 Type A: 1, 8, 64, 256
+                // Timer2-9 Type B: 1, 2, 4, 8, 16, 32, 64, 256
+                const prescalers = timerNum === '1' ? [1, 8, 64, 256] : [1, 2, 4, 8, 16, 32, 64, 256];
+                
+                for (const presc of prescalers) {
+                    const pr = Math.round(requiredTicks / presc);
+                    const maxPR = is16Bit ? 65536 : 4294967296; // 16-bit: 65536, 32-bit: 4294967296
+                    
+                    if (pr > 0 && pr <= maxPR) {
+                        const actualTicks = pr * presc;
+                        const actualPeriod = actualTicks / timerClock;
+                        const error = Math.abs((actualPeriod - periodSeconds) / periodSeconds) * 100;
                     
                     if (error < bestError) {
                         bestError = error;
@@ -1245,6 +1294,7 @@
                     }
                 }
             }
+            } // End of auto-calculation
             
             // Calculate actual period
             const actualTicks = bestPR * bestPrescaler;
