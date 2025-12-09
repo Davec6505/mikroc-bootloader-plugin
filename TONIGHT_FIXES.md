@@ -199,23 +199,30 @@ while (tcmd_t != cmdDONE)  // Loop condition
 After sending the `cmdREBOOT` command to the device, the code never set `tcmd_t = cmdDONE`, so the while loop continued running infinitely. This kept the USB connection open, preventing the device from properly rebooting into the new application.
 
 ### Solution
-Added state transition to exit the loop after reboot:
+Added state transition to exit the loop after **final** reboot (when all regions are flashed):
 
 ```c
 case cmdREBOOT:
-    // Exit the main loop after reboot command is sent
-    tcmd_t = cmdDONE;  // ✅ FIX: Properly exit loop
+    // Only exit loop when vector_index > 2 (final reboot sent)
+    // If vector_index <= 2, cmdREBOOT sets tcmd_t = cmdNON to continue
+    if (vector_index > 2)
+    {
+        tcmd_t = cmdDONE;  // ✅ FIX: Exit after final reboot
+    }
     break;
 ```
 
+The bootloader flashes multiple regions (program memory, config memory, etc.) and increments `vector_index` after each. Only when `vector_index > 2` does it send the final reboot command and exit the loop.
+
 ### Files Changed
-- `MikroC_bootloader/srcs/HexFile.c` - Line 691
+- `MikroC_bootloader/srcs/HexFile.c` - Lines 609-625, 692-698
 
 ### Testing
 - ✅ Bootloader now properly exits after flashing
 - ✅ Device releases USB connection  
 - ✅ Application starts immediately after flash
 - ✅ Works with all generated XC32 projects
+- ✅ Multiple flash regions handled correctly
 
 This was a **critical bug** that made all our generated projects appear broken when they were actually fine - the issue was in the flashing tool, not the generated code!
 
