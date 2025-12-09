@@ -22,16 +22,17 @@ const XC32_PRAGMA_MAP: PragmaMapping[] = [
         pragmaName: 'FMIIEN',
         settingIndex: 0,
         valueMap: {
-            'Default RMII': 'OFF',
-            'Alternate MII': 'ON'
+            'MII Enabled': 'ON',
+            'RMII Enabled': 'ON',
+            'OFF': 'OFF'
         }
     },
     {
         pragmaName: 'FETHIO',
         settingIndex: 1,
         valueMap: {
-            'Default Ethernet I/O Pins': 'ON',
-            'Alternate Ethernet I/O Pins': 'OFF'
+            'Default Ethernet I/O': 'ON',
+            'Alternate Ethernet I/O': 'OFF'
         }
     },
     {
@@ -62,8 +63,8 @@ const XC32_PRAGMA_MAP: PragmaMapping[] = [
         pragmaName: 'FUSBIDIO',
         settingIndex: 5,
         valueMap: {
-            'Controlled by USB Module': 'ON',
-            'Controlled by PORT': 'OFF'
+            'Controlled by the USB Module': 'ON',
+            'Controlled by Port Function': 'OFF'
         }
     },
 
@@ -98,8 +99,8 @@ const XC32_PRAGMA_MAP: PragmaMapping[] = [
         pragmaName: 'FPLLICLK',
         settingIndex: 8,
         valueMap: {
-            'FRC Oscillator': 'PLL_FRC',
-            'POSC (Primary Oscillator)': 'PLL_POSC'
+            'FRC': 'PLL_FRC',
+            'POSC': 'PLL_POSC'
         }
     },
     {
@@ -122,8 +123,10 @@ const XC32_PRAGMA_MAP: PragmaMapping[] = [
         pragmaName: 'UPLLFSEL',
         settingIndex: 11,
         valueMap: {
-            'System PLL output is used for USB clock': 'SYS_PLL',
-            'USB PLL output is used for USB clock': 'USB_PLL'
+            'USB PLL input is 8 MHz': 'FREQ_8MHZ',
+            'USB PLL input is 12 MHz': 'FREQ_12MHZ',
+            'USB PLL input is 16 MHz': 'FREQ_16MHZ',
+            'USB PLL input is 24 MHz': 'FREQ_24MHZ'
         }
     },
 
@@ -132,14 +135,13 @@ const XC32_PRAGMA_MAP: PragmaMapping[] = [
         pragmaName: 'FNOSC',
         settingIndex: 12,
         valueMap: {
-            'Fast RC Oscillator (FRC)': 'FRC',
-            'Fast RC Oscillator (FRC) with PLL': 'SPLL',
-            'Primary Oscillator (XT, HS, EC)': 'POSC',
-            'Primary Oscillator (XT, HS, EC) with PLL': 'PRIPLL',
-            'Secondary Oscillator (SOSC)': 'SOSC',
-            'Low-Power RC Oscillator (LPRC)': 'LPRC',
-            'Fast RC Oscillator (FRC) divided by 16': 'FRCDIV16',
-            'Fast RC Oscillator (FRC) divided by FRCDIV': 'FRCDIV'
+            'Fast RC Osc (FRC)': 'FRC',
+            'Fast RC Osc w/Div-by-N (FRCDIV)': 'FRCDIV',
+            'Primary Osc (XT, HS, EC)': 'POSC',
+            'Primary Osc w/PLL (XT+PLL, HS+PLL)': 'SPLL',
+            'Secondary Osc (SOSC)': 'SOSC',
+            'Low-Power RC Osc (LPRC)': 'LPRC',
+            'Fast RC Osc w/Div-by-16 (FRC/16)': 'FRCDIV16'
         }
     },
     {
@@ -163,26 +165,26 @@ const XC32_PRAGMA_MAP: PragmaMapping[] = [
         settingIndex: 16,
         valueMap: {
             'External clock mode': 'EC',
-            'XT mode (crystal, 4-10 MHz)': 'XT',
-            'HS mode (crystal, 10-40 MHz)': 'HS',
-            'Primary oscillator disabled': 'OFF'
+            'XT osc mode': 'XT',
+            'HS osc mode': 'HS',
+            'Disabled': 'OFF'
         }
     },
     {
         pragmaName: 'OSCIOFNC',
         settingIndex: 17,
         valueMap: {
-            'Disabled (REFCLKO I/O pin enabled)': 'OFF',
-            'Enabled (REFCLKO disabled)': 'ON'
+            'CLKO output disabled': 'OFF',
+            'CLKO output active': 'ON'
         }
     },
     {
         pragmaName: 'FCKSM',
         settingIndex: 18,
         valueMap: {
-            'Clock switching and FSCM are enabled': 'CSECME',
-            'Clock switching is enabled, FSCM is disabled': 'CSECMD',
-            'Clock switching and FSCM are disabled': 'CSDCMD'
+            'Clock Switching Enabled, FSCM Enabled': 'CSECME',
+            'Clock Switching Enabled, FSCM Disabled': 'CSECMD',
+            'Clock Switching Disabled, FSCM Disabled': 'CSDCMD'
         }
     },
     {
@@ -347,7 +349,6 @@ export function generateInitializationC(settings: Map<number, string>, deviceNam
 #pragma config WINDIS =     NORMAL
 #pragma config FWDTWINSZ =  WINSZ_25
 #pragma config DMTCNT =     DMT31
-#pragma config UPLLFSEL =   FREQ_24MHZ
 #pragma config USERID =     0xffff
 #pragma config TSEQ =       0xffff
 #pragma config CSEQ =       0x0
@@ -402,16 +403,30 @@ ${configBits}${additionalConfigs}
 
 void SYS_Initialize(void* data)
 {
-    /* Disable interrupts during initialization */
-    __builtin_disable_interrupts();
+    /* MISRAC 2012 deviation block start */
+    /* MISRA C-2012 Rule 2.2 deviated in this file.  Deviation record ID -  H3_MISRAC_2012_R_2_2_DR_1 */
+
+    /* Start out with interrupts disabled before configuring any modules */
+    (void)__builtin_disable_interrupts();
+
+    /* Initialize Clock System */
+    CLK_Initialize();
     
     /* Configure Prefetch, Wait States and ECC */
-    PRECONbits.PREFEN = 3;    // Enable predictive prefetch for all regions
-    PRECONbits.PFMWS = 3;     // 3 wait states for 200MHz operation
-    CFGCONbits.ECCCON = 3;    // Enable Flash ECC
-    
-    /* Enable global interrupts */
-    __builtin_enable_interrupts();
+    PRECONbits.PREFEN = 3;
+    PRECONbits.PFMWS = 3;
+    CFGCONbits.ECCCON = 3;
+
+    /* Initialize GPIO */
+    GPIO_Initialize();
+
+    /* Initialize Core Timer */
+    CORETIMER_Initialize();
+
+    /* Initialize Interrupt Controller */
+    EVIC_Initialize();
+
+    /* MISRAC 2012 deviation block end */
 }
 
 /*******************************************************************************
@@ -437,5 +452,137 @@ export function generateInitializationH(): string {
 void SYS_Initialize(void);
 
 #endif /* _INITIALIZATION_H */
+`;
+}
+
+/**
+ * Generate plib_clk.c content with peripheral clock and PMD settings
+ */
+export function generatePlibClkC(settings: { [key: number]: string }): string {
+    // Extract peripheral clock divisors (indices 40-41)
+    const pb2DivSetting = settings[40] || "PBCLK2 is SYSCLK/4";
+    const pb3DivSetting = settings[41] || "PBCLK3 is SYSCLK/4";
+    
+    // Map UI strings to divisor values (PBxDIV register expects divisor - 1)
+    const pb2Div = parseInt(pb2DivSetting.match(/\/(\d+)/)?.[1] || "4") - 1;
+    const pb3Div = parseInt(pb3DivSetting.match(/\/(\d+)/)?.[1] || "4") - 1;
+    
+    // PMD register values - default to 0x1001, 0x3, etc. (from working example)
+    // In future, these could be customizable based on settings 42-48
+    const pmd1 = "0x1001U";
+    const pmd2 = "0x3U";
+    const pmd3 = "0x1e201ffU";
+    const pmd4 = "0xe0U";
+    const pmd5 = "0x301f3f3dU";
+    const pmd6 = "0x10830001U";
+    const pmd7 = "0x500000U";
+    
+    return `/*******************************************************************************
+  SYS CLK Static Functions for Clock System Service
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+    plib_clk.c
+
+  Summary:
+    SYS CLK static function implementations for the Clock System Service.
+
+  Description:
+    The Clock System Service provides a simple interface to manage the
+    oscillators on Microchip microcontrollers. This file defines the static
+    implementation for the Clock System Service.
+
+  Remarks:
+    Static functions incorporate all system clock configuration settings as
+    determined by the user via the MikroC Bootloader Plugin configuration.
+
+*******************************************************************************/
+
+/*******************************************************************************
+* Copyright (C) 2019 Microchip Technology Inc. and its subsidiaries.
+*
+* Subject to your compliance with these terms, you may use Microchip software
+* and any derivatives exclusively with Microchip products. It is your
+* responsibility to comply with third party license terms applicable to your
+* use of third party software (including open source software) that may
+* accompany Microchip software.
+*
+* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+* PARTICULAR PURPOSE.
+*
+* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
+* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
+* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
+* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
+* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
+* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
+*******************************************************************************/
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: Include Files
+// *****************************************************************************
+// *****************************************************************************
+
+#include "device.h"
+#include "plib_clk.h"
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: File Scope Functions
+// *****************************************************************************
+// *****************************************************************************
+
+// *****************************************************************************
+/* Function:
+    void CLK_Initialize( void )
+
+  Summary:
+    Initializes hardware and internal data structure of the System Clock.
+
+  Description:
+    This function initializes the hardware and internal data structure of System
+    Clock Service.
+
+  Remarks:
+    This configuration is determined by the user via the MikroC Bootloader Plugin.
+    The objective is to eliminate the user's need to be knowledgeable in the
+    function of the 'configuration bits' to configure the system oscillators.
+*/
+
+void CLK_Initialize(void)
+{
+    /* Unlock system for clock configuration */
+    SYSKEY = 0x00000000U;
+    SYSKEY = 0xAA996655U;
+    SYSKEY = 0x556699AAU;
+
+    /* Peripheral Module Disable Configuration */
+    CFGCONbits.PMDLOCK = 0;
+
+    PMD1 = ${pmd1};
+    PMD2 = ${pmd2};
+    PMD3 = ${pmd3};
+    PMD4 = ${pmd4};
+    PMD5 = ${pmd5};
+    PMD6 = ${pmd6};
+    PMD7 = ${pmd7};
+
+    CFGCONbits.PMDLOCK = 1;
+
+    /* Peripheral Bus 2 is by default enabled, set its divisor */
+    PB2DIVbits.PBDIV = ${pb2Div};
+
+    /* Peripheral Bus 3 is by default enabled, set its divisor */
+    PB3DIVbits.PBDIV = ${pb3Div};
+
+    /* Lock system since done with clock configuration */
+    SYSKEY = 0x33333333U;
+}
 `;
 }

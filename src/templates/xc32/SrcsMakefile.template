@@ -53,39 +53,54 @@ else
 	endif
 endif
 
-# User-selected versions (from project generator)
-XC32_VERSION ?= {{XC32_VERSION}}
-DFP_VERSION ?= {{DFP_VERSION}}
+# Auto-detect XC32 and DFP if not passed from root Makefile
+ifeq ($(COMPILER_LOCATION),)
+	ifeq ($(detected_OS),Windows)
+		XC32_BASE := C:/Program Files/Microchip/xc32
+		XC32_VERSION := $(shell powershell -Command "Get-ChildItem '$(XC32_BASE)' -Directory | Where-Object { $$_.Name -match '^v\d+\.\d+$$' } | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name")
+		COMPILER_LOCATION := $(XC32_BASE)/$(XC32_VERSION)/bin
+	else
+		XC32_BASE := /opt/microchip/xc32
+		XC32_VERSION := $(shell ls -d $(XC32_BASE)/v* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+		COMPILER_LOCATION := $(XC32_BASE)/$(XC32_VERSION)/bin
+	endif
+endif
 
-# XC32 Compiler paths
+# Compiler paths
 ifeq ($(detected_OS),Windows)
-	XC32_BASE := C:/Program Files/Microchip/xc32
-	XC32_PATH := $(XC32_BASE)/$(XC32_VERSION)/bin
-	CC := "$(XC32_PATH)/xc32-gcc.exe"
-	LD := "$(XC32_PATH)/xc32-gcc.exe"
-	AR := "$(XC32_PATH)/xc32-ar.exe"
-	OBJCOPY := "$(XC32_PATH)/xc32-bin2hex.exe"
-	SIZE := "$(XC32_PATH)/xc32-size.exe"
+	CC := "$(COMPILER_LOCATION)/xc32-gcc.exe"
+	LD := "$(COMPILER_LOCATION)/xc32-gcc.exe"
+	AR := "$(COMPILER_LOCATION)/xc32-ar.exe"
+	OBJCOPY := "$(COMPILER_LOCATION)/xc32-bin2hex.exe"
+	SIZE := "$(COMPILER_LOCATION)/xc32-size.exe"
 else
-	XC32_BASE := /opt/microchip/xc32
-	XC32_PATH := $(XC32_BASE)/$(XC32_VERSION)/bin
-	CC := $(XC32_PATH)/xc32-gcc
-	LD := $(XC32_PATH)/xc32-gcc
-	AR := $(XC32_PATH)/xc32-ar
-	OBJCOPY := $(XC32_PATH)/xc32-bin2hex
-	SIZE := $(XC32_PATH)/xc32-size
+	CC := $(COMPILER_LOCATION)/xc32-gcc
+	LD := $(COMPILER_LOCATION)/xc32-gcc
+	AR := $(COMPILER_LOCATION)/xc32-ar
+	OBJCOPY := $(COMPILER_LOCATION)/xc32-bin2hex
+	SIZE := $(COMPILER_LOCATION)/xc32-size
 endif
 
 # DFP (Device Family Pack) paths
-ifeq ($(detected_OS),Windows)
-	DFP_BASE := C:/Program Files/Microchip/MPLABX/packs/Microchip/PIC32MZ-EF_DFP
-else
-	DFP_BASE := /opt/microchip/mplabx/packs/Microchip/PIC32MZ-EF_DFP
+# Use DFP from root Makefile if provided, otherwise auto-detect
+ifeq ($(DFP),)
+	ifeq ($(detected_OS),Windows)
+		MPLABX_BASE := C:/Program Files/Microchip/MPLABX
+		MPLABX_VERSION := $(shell powershell -Command "Get-ChildItem '$(MPLABX_BASE)' -Directory | Where-Object { $$_.Name -match '^v\d+\.\d+$$' } | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name")
+		DFP_BASE := $(MPLABX_BASE)/$(MPLABX_VERSION)/packs/Microchip/PIC32MZ-EF_DFP
+		DFP_VERSION := $(shell powershell -Command "Get-ChildItem '$(DFP_BASE)' -Directory | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name")
+	else
+		MPLABX_BASE := /opt/microchip/mplabx
+		MPLABX_VERSION := $(shell ls -d $(MPLABX_BASE)/v* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+		DFP_BASE := $(MPLABX_BASE)/$(MPLABX_VERSION)/packs/Microchip/PIC32MZ-EF_DFP
+		DFP_VERSION := $(shell ls -d $(DFP_BASE)/* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+	endif
+	DFP := $(DFP_BASE)/$(DFP_VERSION)
 endif
 
-DFP_PATH := $(DFP_BASE)/$(DFP_VERSION)
+DFP_PATH := $(DFP)
 DFP_INC := $(DFP_PATH)/xc32
-DFP_LIB := $(DFP_PATH)/xc32/lib
+DFP_LIB := $(DFP_PATH)/xc32/$(DEVICE)/lib
 
 # Directory structure (relative to srcs/)
 ROOT_DIR := ..
@@ -121,27 +136,24 @@ endef
 define get_inc_dirs
 $(sort $(dir $(wildcard $(1)/*/.))) \
 $(sort $(dir $(wildcard $(1)/*/*/.))) \
-$(sort $(dir $(wildcard $(1)/*/*/*/.)))
+$(sort $(dir $(wildcard $(1)/*/*/*/.))) \
+$(sort $(dir $(wildcard $(1)/*/*/*/*/.))) \
+$(sort $(dir $(wildcard $(1)/*/*/*/*/*/.)))
 endef
 
 # Discover all source files
 ALL_SRCS := $(call get_c_files,$(SRC_DIR))
 ALL_ASM_SRCS := $(call get_s_files,$(SRC_DIR))
 
-# Exclude config/default and startup directories from dynamic discovery
-# (these are handled separately below)
-EXCLUDED_FILES := $(wildcard $(CONFIG_DIR)/*.c) $(wildcard startup/*.S)
+# Exclude startup directory from dynamic discovery (handled separately below)
+EXCLUDED_FILES := $(wildcard startup/*.S)
 
 # Filter excluded files
 SRCS := $(filter-out $(EXCLUDED_FILES),$(ALL_SRCS))
 ASM_SRCS := $(filter-out $(EXCLUDED_FILES),$(ALL_ASM_SRCS))
 
-# Config source files (from config/default/)
-CONFIG_SRCS := $(wildcard $(CONFIG_DIR)/*.c)
-
 # Convert sources to object files with proper paths (use notdir to avoid nested subdirs)
 OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(notdir $(SRCS)))
-CONFIG_OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(notdir $(CONFIG_SRCS)))
 
 # MikroE Bootloader: Create startup object file if enabled
 ifeq ($(USE_MIKROE_BOOTLOADER),yes)
@@ -151,14 +163,22 @@ else
 endif
 
 # All objects
-ALL_OBJS := $(OBJS) $(CONFIG_OBJS) $(ASM_OBJS)
+ALL_OBJS := $(OBJS) $(ASM_OBJS)
 
 # Discover all source subdirectories
 SRC_DIRS := $(sort $(dir $(SRCS) $(ASM_SRCS)))
 SRC_SUBDIRS := $(sort $(filter-out startup/,$(SRC_DIRS:$(SRC_DIR)/%=%)))
 
-# Include directories
-INC_FLAGS := -I$(SRC_DIR) -I$(INC_DIR) -I$(INC_DIR)/config/default -I"$(DFP_INC)"
+# Set up vpath to search for sources in all discovered directories
+vpath %.c $(SRC_DIR) $(addprefix $(SRC_DIR)/,$(SRC_SUBDIRS))
+vpath %.S $(SRC_DIR) $(SRC_DIR)/startup
+
+# Discover all include directories dynamically (5 levels deep)
+INC_DIRS_SRC := $(call get_inc_dirs,$(SRC_DIR))
+INC_DIRS_INC := $(call get_inc_dirs,$(INC_DIR))
+
+# Build include flags dynamically
+INC_FLAGS := -I$(SRC_DIR) -I$(INC_DIR) $(foreach dir,$(INC_DIRS_SRC),-I$(dir)) $(foreach dir,$(INC_DIRS_INC),-I$(dir)) -I"$(DFP_INC)"
 
 # Compiler flags (build configuration-specific)
 ifeq ($(BUILD_CONFIG),Debug)
@@ -169,6 +189,7 @@ endif
 
 # Common compiler flags
 CFLAGS += -mprocessor=$(DEVICE)
+CFLAGS += -mdfp="$(DFP)"
 CFLAGS += -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -fno-common -ffunction-sections -fdata-sections
 CFLAGS += -mno-smart-io
@@ -181,6 +202,7 @@ endif
 
 # Linker flags
 LDFLAGS := -mprocessor=$(DEVICE)
+LDFLAGS += -mdfp="$(DFP)"
 LDFLAGS += -Wl,--gc-sections
 LDFLAGS += -Wl,--defsym=_min_heap_size=$(HEAP_SIZE)
 LDFLAGS += -Wl,--defsym=_min_stack_size=$(STACK_SIZE)
@@ -220,7 +242,17 @@ $(ELF): $(ALL_OBJS) | $(OUT_DIR) $(OTHER_DIR)
 	@echo "Linking $(MODULE)..."
 	$(LD) $(LDFLAGS) -Wl,-Map=$(MAP) -o $@ $(ALL_OBJS)
 
-# Compile main.c from srcs/
+# Pattern rule for compiling .c files from any discovered directory
+$(OBJ_DIR)/%.o: %.c | $(OBJ_DIR)
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Pattern rule for assembling .S files
+$(OBJ_DIR)/%.o: %.S | $(OBJ_DIR)
+	@echo "Assembling $<..."
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Compile main.c from srcs/ (kept for clarity, but pattern rule handles it)
 $(OBJ_DIR)/main.o: main.c | $(OBJ_DIR)
 	@echo "Compiling $<..."
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -253,12 +285,12 @@ build_dir:
 	@$(call MKDIR,$(ROOT_DIR)/other)
 	@$(call MKDIR,$(SRC_DIR))
 	@echo ""
-	@echo "Creating config subdirectories..."
-	@$(call MKDIR,$(INC_DIR)/config)
-	@$(call MKDIR,$(INC_DIR)/config/default)
-	@echo ""
-	@echo "Moving header files from config/default to incs/config/default..."
-	@$(foreach header,$(wildcard $(CONFIG_DIR)/*.h),$(call MOVE,$(header),$(INC_DIR)/config/default);)
+	@echo "Discovering and moving header files..."
+	@$(foreach header,$(wildcard $(SRC_DIR)/*.h),$(call MKDIR,$(INC_DIR));$(call MOVE,$(header),$(INC_DIR));)
+	@$(foreach header,$(wildcard $(SRC_DIR)/*/*.h),$(call MKDIR,$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));$(call MOVE,$(header),$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));)
+	@$(foreach header,$(wildcard $(SRC_DIR)/*/*/*.h),$(call MKDIR,$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));$(call MOVE,$(header),$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));)
+	@$(foreach header,$(wildcard $(SRC_DIR)/*/*/*/*.h),$(call MKDIR,$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));$(call MOVE,$(header),$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));)
+	@$(foreach header,$(wildcard $(SRC_DIR)/*/*/*/*/*.h),$(call MKDIR,$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));$(call MOVE,$(header),$(dir $(INC_DIR)/$(patsubst $(SRC_DIR)/%,%,$(header))));)
 	@echo "Headers moved"
 	@echo ""
 	@echo "========================================"
@@ -328,6 +360,12 @@ debug:
 	@echo ""
 	@echo "Source Subdirectories:"
 	@$(foreach subdir,$(SRC_SUBDIRS),echo "  $(subdir)";)
+	@echo ""
+	@echo "Include Directories from SRC:"
+	@$(foreach inc,$(INC_DIRS_SRC),echo "  $(inc)";)
+	@echo ""
+	@echo "Include Directories from INC:"
+	@$(foreach inc,$(INC_DIRS_INC),echo "  $(inc)";)
 	@echo "=========================================="
 
 .PHONY: all build_dir clean version debug

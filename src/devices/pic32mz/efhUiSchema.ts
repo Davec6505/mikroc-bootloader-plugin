@@ -53,7 +53,7 @@ export const EFH_UI_SCHEMA: ConfigSetting[] = [
             "Allow multiple reconfigurations",
             "Allow only one reconfiguration"
         ],
-        defaultValue: "Allow only one reconfiguration"
+        defaultValue: "Allow multiple reconfigurations"
     },
     {
         index: 3,
@@ -63,7 +63,7 @@ export const EFH_UI_SCHEMA: ConfigSetting[] = [
             "Allow multiple reconfigurations",
             "Allow only one reconfiguration"
         ],
-        defaultValue: "Allow only one reconfiguration"
+        defaultValue: "Allow multiple reconfigurations"
     },
     {
         index: 4,
@@ -73,7 +73,7 @@ export const EFH_UI_SCHEMA: ConfigSetting[] = [
             "Allow multiple reconfigurations",
             "Allow only one reconfiguration"
         ],
-        defaultValue: "Allow only one reconfiguration"
+        defaultValue: "Allow multiple reconfigurations"
     },
     
     // USB Configuration
@@ -229,7 +229,7 @@ export const EFH_UI_SCHEMA: ConfigSetting[] = [
             "HS osc mode",
             "Disabled"
         ],
-        defaultValue: "HS osc mode"
+        defaultValue: "External clock mode"
     },
     {
         index: 17,
@@ -476,6 +476,121 @@ export const EFH_UI_SCHEMA: ConfigSetting[] = [
             "Reduced EJTAG functionality"
         ],
         defaultValue: "Normal EJTAG functionality"
+    },
+    
+    // Peripheral Clock Configuration (Runtime - not config bits)
+    {
+        index: 40,
+        name: "Peripheral Bus 2 Clock Divisor",
+        category: "Peripheral Clocks",
+        options: [
+            "PBCLK2 is SYSCLK/1",
+            "PBCLK2 is SYSCLK/2",
+            "PBCLK2 is SYSCLK/3",
+            "PBCLK2 is SYSCLK/4",
+            "PBCLK2 is SYSCLK/5",
+            "PBCLK2 is SYSCLK/6",
+            "PBCLK2 is SYSCLK/7",
+            "PBCLK2 is SYSCLK/8"
+        ],
+        defaultValue: "PBCLK2 is SYSCLK/4",
+        description: "Peripheral Bus 2 services UART, SPI, I2C peripherals"
+    },
+    {
+        index: 41,
+        name: "Peripheral Bus 3 Clock Divisor",
+        category: "Peripheral Clocks",
+        options: [
+            "PBCLK3 is SYSCLK/1",
+            "PBCLK3 is SYSCLK/2",
+            "PBCLK3 is SYSCLK/3",
+            "PBCLK3 is SYSCLK/4",
+            "PBCLK3 is SYSCLK/5",
+            "PBCLK3 is SYSCLK/6",
+            "PBCLK3 is SYSCLK/7",
+            "PBCLK3 is SYSCLK/8"
+        ],
+        defaultValue: "PBCLK3 is SYSCLK/4",
+        description: "Peripheral Bus 3 services Timer, ADC, Comparator peripherals"
+    },
+    
+    // Peripheral Module Disable (PMD) Configuration
+    {
+        index: 42,
+        name: "PMD1 - ADC, CVR, CMP Disable",
+        category: "Power Management",
+        options: [
+            "All enabled",
+            "Custom"
+        ],
+        defaultValue: "All enabled",
+        description: "Peripheral Module Disable register 1 (ADC, Comparators, CVref)"
+    },
+    {
+        index: 43,
+        name: "PMD2 - CMP, DAC Disable",
+        category: "Power Management",
+        options: [
+            "All enabled",
+            "Custom"
+        ],
+        defaultValue: "All enabled",
+        description: "Peripheral Module Disable register 2 (Comparators, DAC)"
+    },
+    {
+        index: 44,
+        name: "PMD3 - IC, OC, Timer Disable",
+        category: "Power Management",
+        options: [
+            "All enabled",
+            "Custom"
+        ],
+        defaultValue: "All enabled",
+        description: "Peripheral Module Disable register 3 (Input Capture, Output Compare, Timers)"
+    },
+    {
+        index: 45,
+        name: "PMD4 - USB Disable",
+        category: "Power Management",
+        options: [
+            "All enabled",
+            "Custom"
+        ],
+        defaultValue: "All enabled",
+        description: "Peripheral Module Disable register 4 (USB)"
+    },
+    {
+        index: 46,
+        name: "PMD5 - UART, SPI, I2C Disable",
+        category: "Power Management",
+        options: [
+            "All enabled",
+            "Custom"
+        ],
+        defaultValue: "All enabled",
+        description: "Peripheral Module Disable register 5 (UART, SPI, I2C)"
+    },
+    {
+        index: 47,
+        name: "PMD6 - REFO, PMP, SQI, ETH, CAN Disable",
+        category: "Power Management",
+        options: [
+            "All enabled",
+            "Custom"
+        ],
+        defaultValue: "All enabled",
+        description: "Peripheral Module Disable register 6 (REFO, PMP, SQI, Ethernet, CAN)"
+    },
+    {
+        index: 48,
+        name: "PMD7 - DMA Disable",
+        category: "Power Management",
+        options: [
+            "All enabled",
+            "Custom"
+        ],
+        defaultValue: "All enabled",
+        description: "Peripheral Module Disable register 7 (DMA)"
     }
 ];
 

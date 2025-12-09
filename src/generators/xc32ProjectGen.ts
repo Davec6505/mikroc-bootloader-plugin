@@ -5,7 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { generateInitializationC, generateInitializationH } from './xc32ConfigGen';
+import { generateInitializationC, generateInitializationH, generatePlibClkC } from './xc32ConfigGen';
 
 /**
  * Template variable replacer
@@ -104,6 +104,11 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     // Calculate system clock and use provided heap size (or default)
     const systemClock = Math.round(calculateSystemClock(settings));
     const heap = Math.round(heapSize || 4096); // Default 4KB heap
+    const stack = Math.round(heapSize || 4096); // Default 4KB stack (same as heap)
+    
+    // Core timer runs at half the CPU clock speed
+    const coreTimerFreq = Math.round(systemClock * 1000000 / 2);
+    const coreTimerCompare = '0x186a0'; // 100,000 decimal for 1ms interrupts at 100MHz
     
     // Template variables
     const vars = {
@@ -111,7 +116,11 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
         DEVICE_NAME: deviceName,
         DEVICE_PART: devicePart,
         SYSTEM_CLOCK: systemClock.toString(),
+        CPU_CLOCK_FREQUENCY: (systemClock * 1000000).toString(),
+        CORETIMER_FREQUENCY: coreTimerFreq.toString(),
+        CORETIMER_COMPARE_VALUE: coreTimerCompare,
         HEAP_SIZE: heap.toString(),
+        STACK_SIZE: stack.toString(),
         XC32_VERSION: xc32Version || '',    // Empty string = auto-detect in Makefile
         DFP_VERSION: dfpVersion || '',       // Empty string = auto-detect in Makefile
         USE_MIKROE_BOOTLOADER: useMikroeBootloader ? 'yes' : 'no'
@@ -125,6 +134,10 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     const dirs = [
         '.vscode',
         'srcs/config/default',
+        'srcs/config/default/peripheral/clk',
+        'srcs/config/default/peripheral/coretimer',
+        'srcs/config/default/peripheral/evic',
+        'srcs/config/default/peripheral/gpio',
         'incs',
         'bins',
         'objs',
@@ -144,13 +157,64 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     // Write configuration files
     writeFile(path.join(projectRoot, 'srcs/config/default/initialization.c'), initC);
     
-    // Copy template header files (definitions.h and device.h)
+    // Copy template header files
     const definitionsH = loadTemplate('config/default/definitions.h.template');
     const definitionsContent = replaceTemplateVars(definitionsH, vars);
     const deviceH = loadTemplate('config/default/device.h.template');
     const deviceContent = replaceTemplateVars(deviceH, vars);
+    const toolchainH = loadTemplate('config/default/toolchain_specifics.h.template');
+    const toolchainContent = replaceTemplateVars(toolchainH, vars);
+    const interruptsH = loadTemplate('config/default/interrupts.h.template');
+    const interruptsHContent = replaceTemplateVars(interruptsH, vars);
+    
     writeFile(path.join(projectRoot, 'srcs/config/default/definitions.h'), definitionsContent);
     writeFile(path.join(projectRoot, 'srcs/config/default/device.h'), deviceContent);
+    writeFile(path.join(projectRoot, 'srcs/config/default/toolchain_specifics.h'), toolchainContent);
+    writeFile(path.join(projectRoot, 'srcs/config/default/interrupts.h'), interruptsHContent);
+    
+    // Generate system files (interrupts.c and exceptions.c)
+    const interruptsC = loadTemplate('config/default/interrupts.c.template');
+    const interruptsCContent = replaceTemplateVars(interruptsC, vars);
+    const exceptionsC = loadTemplate('config/default/exceptions.c.template');
+    const exceptionsCContent = replaceTemplateVars(exceptionsC, vars);
+    
+    writeFile(path.join(projectRoot, 'srcs/config/default/interrupts.c'), interruptsCContent);
+    writeFile(path.join(projectRoot, 'srcs/config/default/exceptions.c'), exceptionsCContent);
+    
+    // Generate clock peripheral library files (plib_clk.c and plib_clk.h)
+    const settingsObj: { [key: number]: string } = {};
+    settings.forEach((value, key) => settingsObj[key] = value);
+    const plibClkC = generatePlibClkC(settingsObj);
+    const plibClkH = loadTemplate('config/peripheral/clk/plib_clk.h.template');
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/clk/plib_clk.c'), plibClkC);
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/clk/plib_clk.h'), plibClkH);
+    
+    // Generate core timer peripheral files
+    const plibCoretimerC = loadTemplate('config/peripheral/coretimer/plib_coretimer.c.template');
+    const plibCoretimerCContent = replaceTemplateVars(plibCoretimerC, vars);
+    const plibCoretimerH = loadTemplate('config/peripheral/coretimer/plib_coretimer.h.template');
+    const plibCoretimerHContent = replaceTemplateVars(plibCoretimerH, vars);
+    
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/coretimer/plib_coretimer.c'), plibCoretimerCContent);
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/coretimer/plib_coretimer.h'), plibCoretimerHContent);
+    
+    // Generate EVIC (interrupt controller) peripheral files
+    const plibEvicC = loadTemplate('config/peripheral/evic/plib_evic.c.template');
+    const plibEvicCContent = replaceTemplateVars(plibEvicC, vars);
+    const plibEvicH = loadTemplate('config/peripheral/evic/plib_evic.h.template');
+    const plibEvicHContent = replaceTemplateVars(plibEvicH, vars);
+    
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/evic/plib_evic.c'), plibEvicCContent);
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/evic/plib_evic.h'), plibEvicHContent);
+    
+    // Generate GPIO peripheral files
+    const plibGpioC = loadTemplate('config/peripheral/gpio/plib_gpio.c.template');
+    const plibGpioCContent = replaceTemplateVars(plibGpioC, vars);
+    const plibGpioH = loadTemplate('config/peripheral/gpio/plib_gpio.h.template');
+    const plibGpioHContent = replaceTemplateVars(plibGpioH, vars);
+    
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/gpio/plib_gpio.c'), plibGpioCContent);
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/gpio/plib_gpio.h'), plibGpioHContent);
     
     // Generate and write main.c
     const mainTemplate = loadTemplate('main.c.template');
