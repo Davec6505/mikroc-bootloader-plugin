@@ -9,15 +9,45 @@ Flash PIC32 microcontrollers using the MikroC HID bootloader directly from Visua
 
 ## Features
 
-- 🚀 **One-Click Flashing**: Flash .hex files to PIC32 devices with a single command
-- ⚡ **Status Bar Button**: Quick access button in the status bar (click "⚡ Flash PIC32")
-- 🔍 **Auto-Discovery**: Automatically finds .hex files in your workspace
-- 📁 **Multiple Files**: Quick picker when multiple .hex files are found
-- 💻 **Terminal Integration**: See bootloader output in real-time
-- ⚙️ **Configurable**: Customize bootloader path, file patterns, and UI elements
-- 🛡️ **Error Handling**: Clear, actionable error messages
+### 🚀 Bootloader Flashing
+- **One-Click Flashing**: Flash .hex files to PIC32 devices with a single command
+- **Status Bar Button**: Quick access button in the status bar (click "⚡ Flash PIC32")
+- **Auto-Discovery**: Automatically finds .hex files in your workspace
+- **Multiple Files**: Quick picker when multiple .hex files are found
+- **Terminal Integration**: See bootloader output in real-time
 
-## Prerequisites
+### ⚙️ Device Configuration Editor (PIC32MZ EC/EF)
+- **Visual DEVCFG Editor**: Configure all 40 PIC32MZ configuration settings with dropdown menus
+- **Real-time Register Preview**: See DEVCFG0-3 register values update as you configure
+- **Clock Calculator**: Automatic system clock calculation from PLL settings
+- **Scheme Save/Load**: Save and load configuration schemes for different projects
+- **XC32/DFP Version Selection**: Choose compiler and device pack versions
+- **Mikroelektronika Bootloader Option**: Enable bootloader-compatible configuration
+
+### 🕐 Timer Calculator
+- **All Timer Types**: Configure Timer1 (Type A 16-bit) and Timer2-9 (Type B 16/32-bit)
+- **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible code
+- **PBCLK3 Integration**: Automatically uses system clock configuration
+- **Interrupt Support**: Configure interrupt priorities and enable flags
+- **16/32-bit Mode**: Timer2-9 can operate as 16-bit or combined 32-bit timers
+
+### 📌 Pin Manager (PIC32MZ EC/EF)
+- **Complete Pin Database**: 100+ GPIO pins across PORTA-PORTK
+- **Package Support**: 64/100/124/144-pin package configurations
+- **GPIO Configuration**: Set pins as input/output with pull-up/pull-down, open-drain
+- **Analog Configuration**: Configure 36 analog inputs (AN0-AN35)
+- **PPS Support**: Full Peripheral Pin Select for remappable peripherals
+- **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible GPIO code
+- **Visual Table**: Filter by GPIO, Analog, PPS, or configured pins
+
+### 🏗️ Project Generator (In Development)
+- **XC32 Projects**: Generate complete buildable XC32 projects with Makefiles
+- **mikroC Projects**: Generate mikroC PRO for PIC32 projects (planned)
+- **Device Configuration**: Automatic integration of DEVCFG settings
+- **Peripheral Code**: Integration of Timer and GPIO initialization code
+- **VS Code Tasks**: Build, clean, and flash tasks pre-configured
+
+## Usage
 
 ### Required
 
@@ -116,32 +146,32 @@ Example:
 
 ## Usage
 
-### Basic Workflow
+### Device Configuration
+
+1. Open Command Palette (`Ctrl+Shift+P`)
+2. Type "PIC32: Configure Device"
+3. Select your device (currently supports PIC32MZ EC/EF family)
+4. Configure settings in the visual editor:
+   - **Configuration Tab**: Set oscillator, PLL, watchdog, debug settings
+   - **Timer Calculator Tab**: Configure timers with automatic code generation
+   - **Pin Manager Tab**: Configure GPIO, analog pins, and PPS mappings
+5. Click OK to generate project or save configuration
+
+### Bootloader Flashing
 
 **Method 1: Status Bar Button (Quickest)**
-1. **Connect Device**: Connect your PIC32 device and ensure it's in bootloader mode
-2. **Click Button**: Click the "⚡ Flash PIC32" button in the status bar (bottom-left)
-3. **Select File**: If multiple .hex files exist, select the one to flash
-4. **Monitor**: Watch the terminal output for flash progress
+1. Connect your PIC32 device in bootloader mode
+2. Click the "⚡ Flash PIC32" button in the status bar
+3. Select .hex file if multiple exist
+4. Monitor terminal output for flash progress
 
 **Method 2: Command Palette**
-1. **Connect Device**: Connect your PIC32 device and ensure it's in bootloader mode
-2. **Open Project**: Open your MikroC project workspace in VS Code
-3. **Flash**: Press `Ctrl+Shift+P` and type "MikroC PIC32: Flash Device"
-4. **Select File**: If multiple .hex files exist, select the one to flash
-5. **Monitor**: Watch the terminal output for flash progress
+1. Press `Ctrl+Shift+P`
+2. Type "MikroC PIC32: Flash Device"
+3. Select the .hex file to flash
+4. Monitor progress in integrated terminal
 
-### Keyboard Shortcut (Optional)
-
-Add a custom keybinding in `keybindings.json`:
-```json
-{
-  "key": "ctrl+alt+f",
-  "command": "mikroc-pic32-bootloader.flash"
-}
-```
-
-## Troubleshooting
+## Prerequisites
 
 ### Common Issues
 
@@ -167,12 +197,15 @@ See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for:
 - Building from source
 - Contributing guidelines
 
-## Learning Resources
+See [PIN_MANAGER_DESIGN.md](PIN_MANAGER_DESIGN.md) for:
+- Pin Manager implementation details
+- PPS mapping architecture
+- Code generation formats
 
-See [VIDEO_TUTORIALS.md](VIDEO_TUTORIALS.md) for:
-- VS Code extension development tutorials
-- TypeScript learning resources
-- Step-by-step guides
+See [FEATURE_PROJECT_GENERATOR.md](FEATURE_PROJECT_GENERATOR.md) for:
+- XC32 project generator architecture
+- Makefile template system
+- Project structure details
 
 ## Contributing
 
@@ -195,58 +228,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Acknowledgments
 
 - MikroElektronika for the MikroC compiler
+- Microchip for PIC32 devices and XC32 toolchain
 - VS Code team for excellent extension APIs
 
 ---
 
 **⭐ If this extension helped you, please star the repo!**
-
-## Features
-
-- Flash .hex files to PIC32 devices via USB HID
-- Automatic detection of .hex files in your workspace
-- Quick picker when multiple .hex files are found
-- Integrated terminal output for bootloader status
-
-## Usage
-
-1. Open a workspace containing your PIC32 project with .hex files
-2. Press `Ctrl+Shift+P` and type "Flash to PIC32 Device"
-3. Select the .hex file to flash (if multiple are found)
-4. The bootloader will execute and flash your device
-
-## Extension Settings
-
-This extension contributes the following settings:
-
-* `mikroc-pic32-bootloader.bootloaderPath`: Path to the mikro_hb.exe bootloader executable
-* `mikroc-pic32-bootloader.hexFilePattern`: Glob pattern to search for .hex files (default: `**/bins/**/*.hex`)
-
-## Release Notes
-
-### 0.0.1
-
-Initial release - Flash PIC32 devices via USB HID bootloader
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
