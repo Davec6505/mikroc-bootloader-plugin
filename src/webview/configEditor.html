@@ -1065,7 +1065,7 @@
                             <label>Initial State:</label>
                             <div class="dialog-radio-group">
                                 <label class="radio-label">
-                                    <input type="radio" name="pinMode Init" value="Low" checked>
+                                    <input type="radio" name="pinInitState" value="Low" checked>
                                     Low
                                 </label>
                                 <label class="radio-label">
@@ -1845,12 +1845,24 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
         });
 
         document.getElementById('dialogOkBtn').addEventListener('click', () => {
-            if (!currentEditingPin) return;
+            if (!currentEditingPin) {
+                console.error('No pin selected for editing');
+                return;
+            }
 
             const pin = pinTableData.find(p => p.pinId === currentEditingPin);
-            if (!pin) return;
+            if (!pin) {
+                console.error('Pin not found:', currentEditingPin);
+                return;
+            }
 
-            const mode = document.querySelector('input[name="pinMode"]:checked').value;
+            const modeRadio = document.querySelector('input[name="pinMode"]:checked');
+            if (!modeRadio) {
+                console.error('No pin mode selected');
+                return;
+            }
+
+            const mode = modeRadio.value;
             const customName = document.getElementById('pinCustomName').value;
 
             // Build configuration object matching backend PinConfiguration interface
@@ -1860,13 +1872,21 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
             };
 
             if (mode === 'GPIO') {
-                const direction = document.querySelector('input[name="pinDirection"]:checked').value;
-                const initialState = direction === 'Output' 
-                    ? document.querySelector('input[name="pinInitState"]:checked').value
-                    : undefined;
-                const pullUp = document.getElementById('pinMode') && document.querySelector('input[name="pullUpDown"]:checked')?.value === 'Pull-up';
-                const pullDown = document.getElementById('pinMode') && document.querySelector('input[name="pullUpDown"]:checked')?.value === 'Pull-down';
-                const openDrain = document.getElementById('pinMode') && document.querySelector('input[name="driveMode"]:checked')?.value === 'Open-drain';
+                const directionRadio = document.querySelector('input[name="pinDirection"]:checked');
+                if (!directionRadio) {
+                    console.error('No direction selected');
+                    return;
+                }
+                const direction = directionRadio.value;
+                const initialStateRadio = direction === 'Output' 
+                    ? document.querySelector('input[name="pinInitState"]:checked')
+                    : null;
+                const initialState = initialStateRadio ? initialStateRadio.value : undefined;
+                
+                // Get checkbox states
+                const pullUp = document.getElementById('pinPullUp')?.checked || false;
+                const pullDown = document.getElementById('pinPullDown')?.checked || false;
+                const openDrain = document.getElementById('pinOpenDrain')?.checked || false;
 
                 config.gpio = {
                     direction: direction,
@@ -1876,13 +1896,25 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                     pullDown: pullDown,
                     openDrain: openDrain
                 };
+
+                console.log('GPIO config:', config);
             } else if (mode === 'Analog') {
                 const channelName = document.getElementById('analogChannel').value;
+                if (!channelName) {
+                    console.error('No analog channel selected');
+                    return;
+                }
                 config.analog = {
                     channelName: channelName
                 };
+
+                console.log('Analog config:', config);
             } else if (mode === 'Peripheral') {
                 const peripheral = document.getElementById('ppsPeripheral').value;
+                if (!peripheral) {
+                    console.error('No peripheral selected');
+                    return;
+                }
                 const isInput = peripheral.includes('RX') || peripheral.includes('SDI') || peripheral.includes('IC');
                 
                 config.peripheral = {
@@ -1890,9 +1922,12 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                     ppsInputSignal: isInput ? peripheral : undefined,
                     ppsOutputFunction: !isInput ? peripheral : undefined
                 };
+
+                console.log('Peripheral config:', config);
             }
 
             // Send configuration to backend
+            console.log('Sending setPinConfiguration:', config);
             vscode.postMessage({
                 type: 'setPinConfiguration',
                 config: config
