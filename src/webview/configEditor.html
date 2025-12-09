@@ -1554,6 +1554,15 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                 case 'populateDFPVersions':
                     populateDFPDropdown(message.versions);
                     break;
+                case 'pinTableData':
+                    // Update pin table with real data from backend
+                    pinTableData = message.data;
+                    renderPinTable();
+                    break;
+                case 'generatedPinCode':
+                    // Handle generated code display (could show in a new tab/panel)
+                    console.log('Generated code:', message.code);
+                    break;
             }
         });
 
@@ -1693,18 +1702,9 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
         // PIN MANAGER
         // ===========================
 
-        let pinConfigurations = [];
+        let pinTableData = [];
         let currentPackage = '100-pin';
         let currentEditingPin = null;
-
-        // Sample pin data (in real implementation, this would come from the backend)
-        const samplePins = [
-            { pinNum: 32, pinId: 'RB8', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 8 },
-            { pinNum: 33, pinId: 'RB9', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 9 },
-            { pinNum: 25, pinId: 'RB0', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 0, analog: 'AN0' },
-            { pinNum: 24, pinId: 'RB1', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 1, analog: 'AN1' },
-            { pinNum: 34, pinId: 'RB10', customName: '', function: 'GPIO', direction: '', state: '', mode: 'Not Configured', rpNumber: 10, analog: 'AN5' },
-        ];
 
         function renderPinTable() {
             const tbody = document.getElementById('pinTableBody');
@@ -1715,7 +1715,7 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
 
             tbody.innerHTML = '';
 
-            samplePins.forEach(pin => {
+            pinTableData.forEach(pin => {
                 // Apply filters
                 if (filterConfigured && pin.mode === 'Not Configured') return;
                 if (!filterGPIO && !pin.analog && !pin.rpNumber) return;
@@ -1735,15 +1735,27 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                     <td><span class="pin-direction">${pin.direction || '-'}</span></td>
                     <td class="pin-state">${pin.state || '-'}</td>
                     <td>${pin.mode}</td>
-                    <td><button class="config-btn" onclick="openPinConfig('${pin.pinId}')">⚙</button></td>
+                    <td>
+                        <button class="config-btn" onclick="openPinConfig('${pin.pinId}')">⚙</button>
+                        ${pin.mode !== 'Not Configured' ? `<button class="config-btn" onclick="removePinConfig('${pin.pinId}')" title="Clear Configuration">✖</button>` : ''}
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
         }
 
+        function removePinConfig(pinId) {
+            if (confirm(`Clear configuration for pin ${pinId}?`)) {
+                vscode.postMessage({
+                    type: 'removePinConfiguration',
+                    pinName: pinId
+                });
+            }
+        }
+
         function openPinConfig(pinId) {
             currentEditingPin = pinId;
-            const pin = samplePins.find(p => p.pinId === pinId);
+            const pin = pinTableData.find(p => p.pinId === pinId);
             if (!pin) return;
 
             document.getElementById('dialogPinName').textContent = `Configure Pin: ${pinId}`;
@@ -1799,42 +1811,68 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
         document.getElementById('dialogOkBtn').addEventListener('click', () => {
             if (!currentEditingPin) return;
 
-            const pin = samplePins.find(p => p.pinId === currentEditingPin);
+            const pin = pinTableData.find(p => p.pinId === currentEditingPin);
             if (!pin) return;
 
             const mode = document.querySelector('input[name="pinMode"]:checked').value;
-            pin.mode = mode;
-            pin.customName = document.getElementById('pinCustomName').value;
+            const customName = document.getElementById('pinCustomName').value;
+
+            // Build configuration object matching backend PinConfiguration interface
+            const config = {
+                pinName: currentEditingPin,
+                mode: mode
+            };
 
             if (mode === 'GPIO') {
-                pin.direction = document.querySelector('input[name="pinDirection"]:checked').value;
-                if (pin.direction === 'Output') {
-                    pin.state = document.querySelector('input[name="pinInitState"]:checked').value;
-                    pin.function = 'GPIO Output';
-                } else {
-                    pin.state = 'n/a';
-                    pin.function = 'GPIO Input';
-                }
+                const direction = document.querySelector('input[name="pinDirection"]:checked').value;
+                const initialState = direction === 'Output' 
+                    ? document.querySelector('input[name="pinInitState"]:checked').value
+                    : undefined;
+                const pullUp = document.getElementById('pinMode') && document.querySelector('input[name="pullUpDown"]:checked')?.value === 'Pull-up';
+                const pullDown = document.getElementById('pinMode') && document.querySelector('input[name="pullUpDown"]:checked')?.value === 'Pull-down';
+                const openDrain = document.getElementById('pinMode') && document.querySelector('input[name="driveMode"]:checked')?.value === 'Open-drain';
+
+                config.gpio = {
+                    direction: direction,
+                    customName: customName,
+                    initialState: initialState,
+                    pullUp: pullUp,
+                    pullDown: pullDown,
+                    openDrain: openDrain
+                };
             } else if (mode === 'Analog') {
-                pin.function = document.getElementById('analogChannel').value || 'Analog';
-                pin.direction = 'In';
-                pin.state = 'n/a';
+                const channelName = document.getElementById('analogChannel').value;
+                config.analog = {
+                    channelName: channelName
+                };
             } else if (mode === 'Peripheral') {
                 const peripheral = document.getElementById('ppsPeripheral').value;
-                pin.function = peripheral || 'Peripheral';
-                pin.direction = peripheral.includes('RX') || peripheral.includes('SDI') || peripheral.includes('IC') ? 'In' : 'Out';
-                pin.state = 'n/a';
+                const isInput = peripheral.includes('RX') || peripheral.includes('SDI') || peripheral.includes('IC');
+                
+                config.peripheral = {
+                    function: peripheral,
+                    ppsInputSignal: isInput ? peripheral : undefined,
+                    ppsOutputFunction: !isInput ? peripheral : undefined
+                };
             }
 
-            renderPinTable();
+            // Send configuration to backend
+            vscode.postMessage({
+                type: 'setPinConfiguration',
+                config: config
+            });
+
             document.getElementById('pinConfigDialog').classList.remove('active');
         });
 
         // Package selection
         document.getElementById('pinPackageSelect').addEventListener('change', (e) => {
             currentPackage = e.target.value;
-            // In real implementation, would reload pin table for selected package
-            renderPinTable();
+            // Send package change to backend
+            vscode.postMessage({
+                type: 'changePackage',
+                packageType: currentPackage
+            });
         });
 
         // Filter checkboxes
