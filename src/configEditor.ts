@@ -12,6 +12,8 @@ import { exec } from 'child_process';
 import { PIC32Device } from './devices/pic32mz/efhDevices';
 import { EFH_UI_SCHEMA, ConfigSetting } from './devices/pic32mz/efhUiSchema';
 import { calculateRegisters, formatRegisterValue } from './devices/pic32mz/efhRegisterMap';
+import { PinManager } from './pinManager';
+import { PackageType, PinConfiguration } from './devices/pic32mz/types';
 
 export interface ConfigResult {
     config: Map<number, string>;
@@ -19,6 +21,7 @@ export interface ConfigResult {
     xc32Version?: string;
     dfpVersion?: string;
     useMikroeBootloader?: boolean;
+    pinConfigurations?: PinConfiguration[];
 }
 
 export class ConfigEditor {
@@ -27,6 +30,7 @@ export class ConfigEditor {
     private currentConfig: Map<number, string>;
     private heapSize: number = 4096;
     private onConfigComplete: ((result: ConfigResult) => void) | undefined;
+    private pinManager: PinManager;
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -34,7 +38,30 @@ export class ConfigEditor {
     ) {
         this.device = device;
         this.currentConfig = new Map();
+        
+        // Initialize Pin Manager
+        const packageType = this.getPackageType(device.name);
+        this.pinManager = new PinManager(device.name, packageType);
+        
         this.initializeDefaults();
+    }
+
+    /**
+     * Extract package type from device name
+     */
+    private getPackageType(deviceName: string): PackageType {
+        // Extract pin count from device name (e.g., P32MZ2048EFH100 -> 100)
+        const match = deviceName.match(/(\d{2,3})$/);
+        if (match) {
+            const pinCount = match[1];
+            switch (pinCount) {
+                case '64': return '64-pin';
+                case '100': return '100-pin';
+                case '124': return '124-pin';
+                case '144': return '144-pin';
+            }
+        }
+        return '100-pin'; // Default
     }
 
     /**
@@ -88,7 +115,8 @@ export class ConfigEditor {
                                     heapSize: this.heapSize,
                                     xc32Version: message.xc32Version,
                                     dfpVersion: message.dfpVersion,
-                                    useMikroeBootloader: message.useMikroeBootloader || false
+                                    useMikroeBootloader: message.useMikroeBootloader || false,
+                                    pinConfigurations: this.pinManager.exportState().pins
                                 });
                             }
                             this.panel?.dispose();
@@ -113,6 +141,24 @@ export class ConfigEditor {
                             break;
                         case 'getDFPVersions':
                             await this.sendDFPVersions(message.deviceFamily);
+                            break;
+                        case 'getPinTable':
+                            this.sendPinTableData();
+                            break;
+                        case 'setPinConfiguration':
+                            this.pinManager.setPinConfiguration(message.config);
+                            this.sendPinTableData(); // Refresh table
+                            break;
+                        case 'removePinConfiguration':
+                            this.pinManager.removePinConfiguration(message.pinName);
+                            this.sendPinTableData(); // Refresh table
+                            break;
+                        case 'changePackage':
+                            this.pinManager.setPackageType(message.packageType);
+                            this.sendPinTableData(); // Refresh table with new package
+                            break;
+                        case 'generatePinCode':
+                            this.sendGeneratedPinCode(message.codeFormat);
                             break;
                     }
                 },
@@ -147,6 +193,9 @@ export class ConfigEditor {
 
         // Send initial register values
         this.calculateAndSendRegisters();
+        
+        // Send initial pin table data
+        this.sendPinTableData();
     }
 
     /**
@@ -459,6 +508,43 @@ export class ConfigEditor {
             type: 'populateDFPVersions',
             versions: versionArray
         });
+    }
+
+    /**
+     * Send pin table data to webview
+     */
+    private sendPinTableData() {
+        if (!this.panel) {return;}
+
+        const pinTableData = this.pinManager.getPinTableData();
+        
+        this.panel.webview.postMessage({
+            type: 'pinTableData',
+            data: pinTableData
+        });
+    }
+
+    /**
+     * Send generated pin code to webview
+     */
+    private sendGeneratedPinCode(codeFormat: 'mikroc' | 'harmony') {
+        if (!this.panel) {return;}
+
+        if (codeFormat === 'mikroc') {
+            const code = this.pinManager.generateMikroCCode();
+            this.panel.webview.postMessage({
+                type: 'generatedPinCode',
+                codeFormat: 'mikroc',
+                code: code
+            });
+        } else {
+            const code = this.pinManager.generateHarmonyCode();
+            this.panel.webview.postMessage({
+                type: 'generatedPinCode',
+                codeFormat: 'harmony',
+                code: code
+            });
+        }
     }
 
     /**
