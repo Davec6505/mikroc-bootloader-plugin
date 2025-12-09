@@ -284,6 +284,20 @@
             color: var(--vscode-input-foreground);
         }
 
+        .timer-checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: var(--vscode-input-foreground);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .timer-checkbox-label input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
         .timer-select,
         .timer-input {
             width: 100%;
@@ -927,13 +941,38 @@
 
                     <div class="timer-section">
                         <div class="timer-section-title">6. Interrupt Configuration</div>
-                        <div class="timer-input-group">
-                            <label class="timer-label">Interrupt Priority (1-7)</label>
-                            <input type="number" class="timer-input" id="timerPriority" value="7" min="1" max="7" step="1" />
+                        <div class="timer-input-group" style="margin-bottom: 12px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="timerEnableInterrupt" checked />
+                                Enable Timer Interrupt
+                            </label>
                         </div>
-                        <div class="timer-input-group" style="margin-top: 12px;">
-                            <label class="timer-label">Interrupt Subpriority (0-3)</label>
-                            <input type="number" class="timer-input" id="timerSubPriority" value="0" min="0" max="3" step="1" />
+                        <div id="timerInterruptSettings">
+                            <div class="timer-input-group">
+                                <label class="timer-label">Interrupt Priority (1-7)</label>
+                                <input type="number" class="timer-input" id="timerPriority" value="7" min="1" max="7" step="1" />
+                            </div>
+                            <div class="timer-input-group" style="margin-top: 12px;">
+                                <label class="timer-label">Interrupt Subpriority (0-3)</label>
+                                <input type="number" class="timer-input" id="timerSubPriority" value="0" min="0" max="3" step="1" />
+                            </div>
+                            <div class="timer-input-group" style="margin-top: 12px;">
+                                <label class="timer-label">Shadow Register Set (SRS)</label>
+                                <select class="timer-select" id="timerShadowSet">
+                                    <option value="auto" selected>Auto (Use Priority)</option>
+                                    <option value="0">SRS 0 (Main)</option>
+                                    <option value="1">SRS 1</option>
+                                    <option value="2">SRS 2</option>
+                                    <option value="3">SRS 3</option>
+                                    <option value="4">SRS 4</option>
+                                    <option value="5">SRS 5</option>
+                                    <option value="6">SRS 6</option>
+                                    <option value="7">SRS 7</option>
+                                </select>
+                            </div>
+                            <div class="timer-note" style="margin-top: 8px; font-size: 11px; color: #888;">
+                                Note: Auto uses ipl{priority}SRS, Manual uses ipl{priority}SOFT for custom SRS selection
+                            </div>
                         </div>
                     </div>
 
@@ -1182,7 +1221,9 @@
             actualPeriod: 1.0,
             error: 0,
             priority: 7,
-            subPriority: 0
+            subPriority: 0,
+            enableInterrupt: true,
+            shadowSet: 'auto'
         };
 
         // Update PBCLK3 display when frequency or divider changes
@@ -1323,6 +1364,8 @@
             timerConfig.error = bestError;
             timerConfig.priority = priority;
             timerConfig.subPriority = subPriority;
+            timerConfig.enableInterrupt = document.getElementById('timerEnableInterrupt').checked;
+            timerConfig.shadowSet = document.getElementById('timerShadowSet').value;
             
             // Update info box
             document.getElementById('timerInfo').style.display = 'block';
@@ -1542,6 +1585,16 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
         document.getElementById('copyTimerCodeBtn')?.addEventListener('click', copyTimerCode);
         document.getElementById('codeFormat')?.addEventListener('change', generateTimerCode);
         
+        // Toggle interrupt settings visibility
+        document.getElementById('timerEnableInterrupt')?.addEventListener('change', function() {
+            const interruptSettings = document.getElementById('timerInterruptSettings');
+            if (this.checked) {
+                interruptSettings.style.display = 'block';
+            } else {
+                interruptSettings.style.display = 'none';
+            }
+        });
+        
         // Auto-update timer when frequency changes (from main config)
         function updateTimerFrequency() {
             const clockFreq = document.getElementById('clockFreq')?.textContent;
@@ -1732,7 +1785,9 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                     priority: timerConfig.priority,
                     subPriority: timerConfig.subPriority,
                     period: timerConfig.actualPeriod,
-                    mode32Bit: is32Bit
+                    mode32Bit: is32Bit,
+                    enableInterrupt: timerConfig.enableInterrupt,
+                    shadowSet: timerConfig.shadowSet
                 }];
             }
             

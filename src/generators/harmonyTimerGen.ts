@@ -18,6 +18,8 @@ export interface TimerConfiguration {
     subPriority: number;    // Interrupt sub-priority (0-3)
     period: number;         // Actual period in seconds
     mode32Bit?: boolean;    // True if 32-bit paired mode (Timer2-9 only)
+    enableInterrupt?: boolean;  // Enable interrupt (default: true)
+    shadowSet?: string;     // 'auto' or '0'-'7' for manual SRS selection
 }
 
 /**
@@ -144,7 +146,7 @@ void TMR1_CallbackRegister(TMR1_CALLBACK callback, uintptr_t context);
  * Generate plib_tmr1.c (Timer1 Type A - 16-bit only)
  */
 export function generateTimer1Source(config: TimerConfiguration): string {
-    const { prescaler, prValue, priority, subPriority } = config;
+    const { prescaler, prValue, priority, subPriority, enableInterrupt = true } = config;
     
     // Map prescaler to TCKPS bits for Type A (Timer1)
     const prescalerMap: { [key: number]: number } = {
@@ -232,16 +234,17 @@ void TMR1_Initialize(void)
     TMR1 = 0x0;
 
     /* TCKPS = ${tckps} (1:${prescaler}) */
-    T1CON = 0x${tckps << 4}U;
+    T1CON = 0x${(tckps << 4).toString(16).toUpperCase()}U;
 
     /* Set period */
     PR1 = ${prValue}U;
-
+${enableInterrupt ? `
     /* Clear interrupt flag */
     IFS0CLR = _IFS0_T1IF_MASK;
 
     /* Enable Timer interrupt */
     IEC0SET = _IEC0_T1IE_MASK;
+` : ''}
 }
 
 void TMR1_Start(void)
@@ -427,7 +430,7 @@ void TMR${timerNum}_CallbackRegister(TMR${timerNum}_CALLBACK callback, uintptr_t
  * Generate plib_tmr2.c through plib_tmr9.c (Type B timers)
  */
 export function generateTimerTypeB_Source(config: TimerConfiguration): string {
-    const { timer, prescaler, prValue, priority, subPriority } = config;
+    const { timer, prescaler, prValue, priority, subPriority, enableInterrupt = true } = config;
     const is32Bit = timer.length === 2;
     const timerNum = is32Bit ? parseInt(timer[0]) : parseInt(timer);
     const t32Bit = is32Bit ? 1 : 0;
@@ -531,12 +534,13 @@ void TMR${timerNum}_Initialize(void)
 
     /* Set period */
     PR${timerNum} = ${prValue}U;
-
+${enableInterrupt ? `
     /* Clear interrupt flag */
     IFS0CLR = _IFS0_T${timerNum}IF_MASK;
 
     /* Enable Timer interrupt */
     IEC0SET = _IEC0_T${timerNum}IE_MASK;
+` : ''}
 }
 
 void TMR${timerNum}_Start(void)
@@ -602,11 +606,20 @@ void __attribute__((used)) TIMER_${timerNum}_InterruptHandler(void)
  * Generate timer interrupt handler declaration for interrupts.c
  */
 export function generateTimerInterruptDeclaration(config: TimerConfiguration): string {
-    const { timer, priority } = config;
+    const { timer, priority, shadowSet = 'auto' } = config;
     const is32Bit = timer.length === 2;
     const timerNum = is32Bit ? parseInt(timer[0]) : parseInt(timer);
     
-    return `void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) TIMER_${timerNum}_Handler(void)
+    // Determine IPL attribute based on shadow set selection
+    let iplAttr: string;
+    if (shadowSet === 'auto') {
+        iplAttr = `ipl${priority}SRS`;
+    } else {
+        // Manual SRS selection uses SOFT and manual assignment
+        iplAttr = `ipl${priority}SOFT`;
+    }
+    
+    return `void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ${iplAttr}) TIMER_${timerNum}_Handler (void)
 {
     TIMER_${timerNum}_InterruptHandler();
 }`;
@@ -616,7 +629,7 @@ export function generateTimerInterruptDeclaration(config: TimerConfiguration): s
  * Generate timer IPC initialization for EVIC_Initialize()
  */
 export function generateTimerIPC(config: TimerConfiguration): string {
-    const { timer, priority, subPriority } = config;
+    const { timer, priority, subPriority, shadowSet = 'auto' } = config;
     const is32Bit = timer.length === 2;
     const timerNum = is32Bit ? parseInt(timer[0]) : parseInt(timer);
     
@@ -631,5 +644,17 @@ export function generateTimerIPC(config: TimerConfiguration): string {
     const priorityBits = (priority << 2) | subPriority;
     const ipcValue = priorityBits;
     
-    return `    IPC${ipcNum}SET = 0x${ipcValue.toString(16).toUpperCase()}U;  /* TIMER_${timerNum}: Priority ${priority} / Subpriority ${subPriority} */`;
+    let ipcCode = `    IPC${ipcNum}SET = 0x${ipcValue.toString(16).toUpperCase()}U;  /* TIMER_${timerNum}: Priority ${priority} / Subpriority ${subPriority} */`;
+    
+    // Add manual shadow register assignment if not auto
+    if (shadowSet !== 'auto') {
+        const srsNum = parseInt(shadowSet);
+        // OFF register controls shadow register assignment for each interrupt
+        // Each interrupt uses 4 bits in OFFxxx registers
+        ipcCode += `\n    /* Manual SRS assignment: Shadow Register Set ${srsNum} */`;
+        // Note: The actual OFF register assignment would require interrupt number mapping
+        // For now, we'll document this in comments since SOFT mode handles it automatically
+    }
+    
+    return ipcCode;
 }

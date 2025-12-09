@@ -225,14 +225,17 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     const interruptsC = loadTemplate('config/default/interrupts.c.template');
     let interruptsCContent = replaceTemplateVars(interruptsC, vars);
     
-    // Add timer interrupt handlers if configured
+    // Add timer interrupt handlers if configured and interrupts enabled
     if (timerConfigurations && timerConfigurations.length > 0) {
-        const timerHandlers = timerConfigurations.map(tc => generateTimerInterruptDeclaration(tc)).join('\n\n');
-        // Insert before "End of File" comment
-        interruptsCContent = interruptsCContent.replace(
-            '/*******************************************************************************\n End of File\n*/',
-            `\n${timerHandlers}\n\n/*******************************************************************************\n End of File\n*/`
-        );
+        const timersWithInterrupts = timerConfigurations.filter(tc => tc.enableInterrupt !== false);
+        if (timersWithInterrupts.length > 0) {
+            const timerHandlers = timersWithInterrupts.map(tc => generateTimerInterruptDeclaration(tc)).join('\n\n');
+            // Insert before "End of File" comment
+            interruptsCContent = interruptsCContent.replace(
+                '/*******************************************************************************\n End of File\n*/',
+                `\n${timerHandlers}\n\n/*******************************************************************************\n End of File\n*/`
+            );
+        }
     }
     
     const exceptionsC = loadTemplate('config/default/exceptions.c.template');
@@ -262,13 +265,16 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     const plibEvicC = loadTemplate('config/peripheral/evic/plib_evic.c.template');
     let plibEvicCContent = replaceTemplateVars(plibEvicC, vars);
     
-    // Add timer IPC settings if timers are configured
+    // Add timer IPC settings if timers are configured with interrupts
     if (timerConfigurations && timerConfigurations.length > 0) {
-        const timerIPCs = timerConfigurations.map(tc => generateTimerIPC(tc)).join('\n');
-        plibEvicCContent = plibEvicCContent.replace(
-            '    /* Set up priority and subpriority of enabled interrupts */',
-            `    /* Set up priority and subpriority of enabled interrupts */\n${timerIPCs}`
-        );
+        const timersWithInterrupts = timerConfigurations.filter(tc => tc.enableInterrupt !== false);
+        if (timersWithInterrupts.length > 0) {
+            const timerIPCs = timersWithInterrupts.map(tc => generateTimerIPC(tc)).join('\n');
+            plibEvicCContent = plibEvicCContent.replace(
+                '    /* Set up priority and subpriority of enabled interrupts */',
+                `    /* Set up priority and subpriority of enabled interrupts */\n${timerIPCs}`
+            );
+        }
     }
     
     const plibEvicH = loadTemplate('config/peripheral/evic/plib_evic.h.template');
