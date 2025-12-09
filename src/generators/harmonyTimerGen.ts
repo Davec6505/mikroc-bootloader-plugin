@@ -83,6 +83,7 @@ export function generateTimer1Header(): string {
 #include <stdint.h>
 #include <stdbool.h>
 #include "device.h"
+#include "plib_tmr1_common.h"
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility
@@ -97,14 +98,6 @@ export function generateTimer1Header(): string {
 // Section: Data Types
 // *****************************************************************************
 // *****************************************************************************
-
-typedef void (*TMR1_CALLBACK)(uint32_t status, uintptr_t context);
-
-typedef struct
-{
-    TMR1_CALLBACK callback;
-    uintptr_t context;
-} TMR1_OBJECT;
 
 // *****************************************************************************
 // *****************************************************************************
@@ -127,6 +120,12 @@ uint16_t TMR1_CounterGet(void);
 void TMR1_CounterSet(uint16_t count);
 
 uint32_t TMR1_FrequencyGet(void);
+
+void TMR1_InterruptEnable(void);
+
+void TMR1_InterruptDisable(void);
+
+void TMR1_CallbackRegister(TMR1_CALLBACK callback_fn, uintptr_t context);
 
 void TMR1_CallbackRegister(TMR1_CALLBACK callback, uintptr_t context);
 
@@ -211,48 +210,41 @@ export function generateTimer1Source(config: TimerConfiguration): string {
 #include "plib_tmr1.h"
 #include "interrupts.h"
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Global Data
-// *****************************************************************************
-// *****************************************************************************
-
-static TMR1_OBJECT tmr1Obj;
-
-// *****************************************************************************
-// *****************************************************************************
-// Section: TMR1 Implementation
-// *****************************************************************************
-// *****************************************************************************
+static volatile TMR1_TIMER_OBJECT tmr1Obj;
 
 void TMR1_Initialize(void)
 {
     /* Disable Timer */
     T1CONCLR = _T1CON_ON_MASK;
 
+    /*
+    SIDL = 0
+    TWDIS = 0
+    TGATE = 0
+    TCKPS = ${tckps}
+    TSYNC = 0
+    TCS = 0
+    */
+    T1CONSET = 0x${(tckps << 4).toString(16).toUpperCase()};
+
     /* Clear counter */
     TMR1 = 0x0;
 
-    /* TCKPS = ${tckps} (1:${prescaler}) */
-    T1CON = 0x${(tckps << 4).toString(16).toUpperCase()}U;
-
-    /* Set period */
-    PR1 = ${prValue}U;
+    /*Set period */
+    PR1 = ${prValue};
 ${enableInterrupt ? `
-    /* Clear interrupt flag */
-    IFS0CLR = _IFS0_T1IF_MASK;
-
-    /* Enable Timer interrupt */
-    IEC0SET = _IEC0_T1IE_MASK;
+    /* Setup TMR1 Interrupt */
+    TMR1_InterruptEnable();  /* Enable interrupt on the way out */
 ` : ''}
 }
 
-void TMR1_Start(void)
+void TMR1_Start (void)
 {
     T1CONSET = _T1CON_ON_MASK;
 }
 
-void TMR1_Stop(void)
+
+void TMR1_Stop (void)
 {
     T1CONCLR = _T1CON_ON_MASK;
 }
@@ -284,24 +276,37 @@ uint32_t TMR1_FrequencyGet(void)
     return (SYS_CLK_FREQ / ${prescaler}U);
 }
 
-void TMR1_CallbackRegister(TMR1_CALLBACK callback, uintptr_t context)
+void __attribute__((used)) TIMER_1_InterruptHandler (void)
 {
-    tmr1Obj.callback = callback;
-    tmr1Obj.context = context;
-}
-
-void __attribute__((used)) TIMER_1_InterruptHandler(void)
-{
-    uint32_t status = IFS0bits.T1IF;
-    
-    /* Clear interrupt flag */
+    uint32_t status  = 0U;
+    status = IFS0bits.T1IF;
     IFS0CLR = _IFS0_T1IF_MASK;
 
-    if (tmr1Obj.callback != NULL)
+    if((tmr1Obj.callback_fn != NULL))
     {
         uintptr_t context = tmr1Obj.context;
-        tmr1Obj.callback(status, context);
+        tmr1Obj.callback_fn(status, context);
     }
+}
+
+
+void TMR1_InterruptEnable(void)
+{
+    IEC0SET = _IEC0_T1IE_MASK;
+}
+
+
+void TMR1_InterruptDisable(void)
+{
+    IEC0CLR = _IEC0_T1IE_MASK;
+}
+
+
+void TMR1_CallbackRegister( TMR1_CALLBACK callback_fn, uintptr_t context )
+{
+    /* - Save callback_fn and context in local memory */
+    tmr1Obj.callback_fn = callback_fn;
+    tmr1Obj.context = context;
 }
 `;
 }
@@ -367,6 +372,7 @@ export function generateTimerTypeB_Header(timerNum: number): string {
 #include <stdint.h>
 #include <stdbool.h>
 #include "device.h"
+#include "plib_tmr_common.h"
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility
@@ -382,14 +388,6 @@ export function generateTimerTypeB_Header(timerNum: number): string {
 // *****************************************************************************
 // *****************************************************************************
 
-typedef void (*TMR${timerNum}_CALLBACK)(uint32_t status, uintptr_t context);
-
-typedef struct
-{
-    TMR${timerNum}_CALLBACK callback;
-    uintptr_t context;
-} TMR${timerNum}_OBJECT;
-
 // *****************************************************************************
 // *****************************************************************************
 // Section: Interface Routines
@@ -402,17 +400,19 @@ void TMR${timerNum}_Start(void);
 
 void TMR${timerNum}_Stop(void);
 
-void TMR${timerNum}_PeriodSet(uint32_t period);
+void TMR${timerNum}_PeriodSet(uint16_t period);
 
-uint32_t TMR${timerNum}_PeriodGet(void);
+uint16_t TMR${timerNum}_PeriodGet(void);
 
-uint32_t TMR${timerNum}_CounterGet(void);
-
-void TMR${timerNum}_CounterSet(uint32_t count);
+uint16_t TMR${timerNum}_CounterGet(void);
 
 uint32_t TMR${timerNum}_FrequencyGet(void);
 
-void TMR${timerNum}_CallbackRegister(TMR${timerNum}_CALLBACK callback, uintptr_t context);
+void TMR${timerNum}_InterruptEnable(void);
+
+void TMR${timerNum}_InterruptDisable(void);
+
+void TMR${timerNum}_CallbackRegister(TMR_CALLBACK callback_fn, uintptr_t context);
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility
@@ -513,7 +513,7 @@ export function generateTimerTypeB_Source(config: TimerConfiguration): string {
 // *****************************************************************************
 // *****************************************************************************
 
-static TMR${timerNum}_OBJECT tmr${timerNum}Obj;
+static volatile TMR_TIMER_OBJECT tmr${timerNum}Obj;
 
 // *****************************************************************************
 // *****************************************************************************
@@ -526,29 +526,33 @@ void TMR${timerNum}_Initialize(void)
     /* Disable Timer */
     T${timerNum}CONCLR = _T${timerNum}CON_ON_MASK;
 
+    /*
+    SIDL = 0
+    TCKPS =${tckps}
+    T32   = ${is32Bit ? '1' : '0'}
+    TCS = 0
+    */
+    T${timerNum}CONSET = 0x${tconValue.toString(16).toUpperCase()};
+
     /* Clear counter */
     TMR${timerNum} = 0x0;
 
-    /* TCKPS = ${tckps} (1:${prescaler})${is32Bit ? ', T32 = 1 (32-bit mode)' : ''} */
-    T${timerNum}CON = 0x${tconValue.toString(16).toUpperCase()}U;
-
-    /* Set period */
+    /*Set period */
     PR${timerNum} = ${prValue}U;
 ${enableInterrupt ? `
-    /* Clear interrupt flag */
-    IFS0CLR = _IFS0_T${timerNum}IF_MASK;
-
-    /* Enable Timer interrupt */
+    /* Enable TMR Interrupt */
     IEC0SET = _IEC0_T${timerNum}IE_MASK;
 ` : ''}
 }
+
 
 void TMR${timerNum}_Start(void)
 {
     T${timerNum}CONSET = _T${timerNum}CON_ON_MASK;
 }
 
-void TMR${timerNum}_Stop(void)
+
+void TMR${timerNum}_Stop (void)
 {
     T${timerNum}CONCLR = _T${timerNum}CON_ON_MASK;
 }
@@ -580,24 +584,37 @@ uint32_t TMR${timerNum}_FrequencyGet(void)
     return (SYS_CLK_FREQ / ${prescaler}U);
 }
 
-void TMR${timerNum}_CallbackRegister(TMR${timerNum}_CALLBACK callback, uintptr_t context)
+void __attribute__((used)) TIMER_${timerNum}_InterruptHandler (void)
 {
-    tmr${timerNum}Obj.callback = callback;
-    tmr${timerNum}Obj.context = context;
-}
-
-void __attribute__((used)) TIMER_${timerNum}_InterruptHandler(void)
-{
-    uint32_t status = IFS0bits.T${timerNum}IF;
-    
-    /* Clear interrupt flag */
+    uint32_t status  = 0U;
+    status = IFS0bits.T${timerNum}IF;
     IFS0CLR = _IFS0_T${timerNum}IF_MASK;
 
-    if (tmr${timerNum}Obj.callback != NULL)
+    if((tmr${timerNum}Obj.callback_fn != NULL))
     {
         uintptr_t context = tmr${timerNum}Obj.context;
-        tmr${timerNum}Obj.callback(status, context);
+        tmr${timerNum}Obj.callback_fn(status, context);
     }
+}
+
+
+void TMR${timerNum}_InterruptEnable(void)
+{
+    IEC0SET = _IEC0_T${timerNum}IE_MASK;
+}
+
+
+void TMR${timerNum}_InterruptDisable(void)
+{
+    IEC0CLR = _IEC0_T${timerNum}IE_MASK;
+}
+
+
+void TMR${timerNum}_CallbackRegister( TMR_CALLBACK callback_fn, uintptr_t context )
+{
+    /* - Save callback_fn and context in local memory */
+    tmr${timerNum}Obj.callback_fn = callback_fn;
+    tmr${timerNum}Obj.context = context;
 }
 `;
 }
@@ -613,13 +630,13 @@ export function generateTimerInterruptDeclaration(config: TimerConfiguration): s
     // Determine IPL attribute based on shadow set selection
     let iplAttr: string;
     if (shadowSet === 'auto') {
-        iplAttr = `ipl${priority}SRS`;
+        iplAttr = `IPL${priority}SRS`;
     } else {
         // Manual SRS selection uses SOFT and manual assignment
-        iplAttr = `ipl${priority}SOFT`;
+        iplAttr = `IPL${priority}SOFT`;
     }
     
-    return `void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ${iplAttr}) TIMER_${timerNum}_Handler (void)
+    return `void __ISR(_TIMER_${timerNum}_VECTOR, ${iplAttr}) TIMER_${timerNum}_Handler (void)
 {
     TIMER_${timerNum}_InterruptHandler();
 }`;
@@ -658,3 +675,258 @@ export function generateTimerIPC(config: TimerConfiguration): string {
     
     return ipcCode;
 }
+
+/**
+ * Generate plib_tmr1_common.h (Common types for Timer1)
+ */
+export function generateTmr1CommonHeader(): string {
+    return `/*******************************************************************************
+  TMR1 Peripheral Library Interface Header File
+
+  Company
+    Microchip Technology Inc.
+
+  File Name
+    plib_tmr1_common.h
+
+  Summary
+    TMR1 peripheral library interface.
+
+  Description
+    This file defines the interface to the TC peripheral library.  This
+    library provides access to and control of the associated peripheral
+    instance.
+
+*******************************************************************************/
+
+// DOM-IGNORE-BEGIN
+/*******************************************************************************
+* Copyright (C) 2019 Microchip Technology Inc. and its subsidiaries.
+*
+* Subject to your compliance with these terms, you may use Microchip software
+* and any derivatives exclusively with Microchip products. It is your
+* responsibility to comply with third party license terms applicable to your
+* use of third party software (including open source software) that may
+* accompany Microchip software.
+*
+* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+* PARTICULAR PURPOSE.
+*
+* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
+* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
+* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
+* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
+* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
+* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
+*******************************************************************************/
+// DOM-IGNORE-END
+
+#ifndef PLIB_TMR1_COMMON_H    // Guards against multiple inclusion
+#define PLIB_TMR1_COMMON_H
+
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: Included Files
+// *****************************************************************************
+// *****************************************************************************
+
+/*  This section lists the other files that are included in this file.
+*/
+#include <stddef.h>
+
+// DOM-IGNORE-BEGIN
+#ifdef __cplusplus  // Provide C++ Compatibility
+
+extern "C" {
+
+#endif
+
+// DOM-IGNORE-END
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: Data Types
+// *****************************************************************************
+// *****************************************************************************
+/*  The following data type definitions are used by the functions in this
+    interface and should be considered part of it.
+*/
+
+
+// *****************************************************************************
+/* TMR1_CALLBACK
+
+  Summary:
+    Use to register a callback with the TMR1.
+
+  Description:
+    When a match is asserted, a callback can be activated.
+    Use TMR1_CALLBACK as the function pointer to register the callback
+    with the match.
+
+  Remarks:
+    The callback should look like:
+      void callback(handle, context);
+\tMake sure the return value and parameters of the callback are correct.
+*/
+
+typedef void (*TMR1_CALLBACK)(uint32_t status, uintptr_t context);
+
+// *****************************************************************************
+
+typedef struct
+{
+    /*TMR1 callback function happens on Period match*/
+    TMR1_CALLBACK callback_fn;
+    /* - Client data (Event Context) that will be passed to callback */
+    uintptr_t context;
+
+}TMR1_TIMER_OBJECT;
+
+// DOM-IGNORE-BEGIN
+#ifdef __cplusplus  // Provide C++ Compatibility
+
+}
+
+#endif
+// DOM-IGNORE-END
+
+#endif //_PLIB_TMR1_COMMON_H
+
+/**
+ End of File
+*/
+`;
+}
+
+/**
+ * Generate plib_tmr_common.h (Common types for Timer2-9)
+ */
+export function generateTmrCommonHeader(): string {
+    return `/*******************************************************************************
+  TMR Peripheral Library Interface Header File
+
+  Company
+    Microchip Technology Inc.
+
+  File Name
+    plib_tmr_common.h
+
+  Summary
+    TMR peripheral library interface.
+
+  Description
+    This file defines the interface to the TC peripheral library.  This
+    library provides access to and control of the associated peripheral
+    instance.
+
+*******************************************************************************/
+
+// DOM-IGNORE-BEGIN
+/*******************************************************************************
+* Copyright (C) 2019 Microchip Technology Inc. and its subsidiaries.
+*
+* Subject to your compliance with these terms, you may use Microchip software
+* and any derivatives exclusively with Microchip products. It is your
+* responsibility to comply with third party license terms applicable to your
+* use of third party software (including open source software) that may
+* accompany Microchip software.
+*
+* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+* PARTICULAR PURPOSE.
+*
+* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
+* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
+* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
+* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
+* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
+* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
+*******************************************************************************/
+// DOM-IGNORE-END
+
+#ifndef PLIB_TMR_COMMON_H    // Guards against multiple inclusion
+#define PLIB_TMR_COMMON_H
+
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: Included Files
+// *****************************************************************************
+// *****************************************************************************
+
+/*  This section lists the other files that are included in this file.
+*/
+#include <stddef.h>
+
+// DOM-IGNORE-BEGIN
+#ifdef __cplusplus  // Provide C++ Compatibility
+
+extern "C" {
+
+#endif
+
+// DOM-IGNORE-END
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: Data Types
+// *****************************************************************************
+// *****************************************************************************
+/*  The following data type definitions are used by the functions in this
+    interface and should be considered part of it.
+*/
+
+
+// *****************************************************************************
+/* TMR_CALLBACK
+
+  Summary:
+    Use to register a callback with the TMR.
+
+  Description:
+    When a match is asserted, a callback can be activated.
+    Use TMR_CALLBACK as the function pointer to register the callback
+    with the match.
+
+  Remarks:
+    The callback should look like:
+      void callback(handle, context);
+\tMake sure the return value and parameters of the callback are correct.
+*/
+
+typedef void (*TMR_CALLBACK)(uint32_t status, uintptr_t context);
+
+// *****************************************************************************
+
+typedef struct
+{
+    /*TMR callback function happens on Period match*/
+    TMR_CALLBACK callback_fn;
+    /* - Client data (Event Context) that will be passed to callback */
+    uintptr_t context;
+
+}TMR_TIMER_OBJECT;
+
+// DOM-IGNORE-BEGIN
+#ifdef __cplusplus  // Provide C++ Compatibility
+
+}
+
+#endif
+// DOM-IGNORE-END
+
+#endif //_PLIB_TMR_COMMON_H
+
+/**
+ End of File
+*/
+`;
+}
+

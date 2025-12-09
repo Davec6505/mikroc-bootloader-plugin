@@ -16,7 +16,9 @@ import {
     generateTimerTypeB_Header,
     generateTimerTypeB_Source,
     generateTimerInterruptDeclaration,
-    generateTimerIPC
+    generateTimerIPC,
+    generateTmr1CommonHeader,
+    generateTmrCommonHeader
 } from './harmonyTimerGen';
 
 /**
@@ -192,9 +194,11 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     
     // Add timer peripheral includes if configured
     if (timerConfigurations && timerConfigurations.length > 0) {
-        const timerIncludes = timerNumbers.map(n => 
-            `#include "peripheral/tmr/plib_tmr${n}/plib_tmr${n}.h"`
-        ).join('\n');
+        const timerIncludes = timerNumbers.map(n => {
+            // Timer1 goes in tmr1/, Timer2-9 go in tmr/
+            const path = n === 1 ? 'peripheral/tmr1' : 'peripheral/tmr';
+            return `#include "${path}/plib_tmr${n}.h"`;
+        }).join('\n');
         definitionsContent = definitionsContent.replace(
             '#include "peripheral/evic/plib_evic.h"',
             `#include "peripheral/evic/plib_evic.h"\n${timerIncludes}`
@@ -214,7 +218,31 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     const toolchainH = loadTemplate('config/default/toolchain_specifics.h.template');
     const toolchainContent = replaceTemplateVars(toolchainH, vars);
     const interruptsH = loadTemplate('config/default/interrupts.h.template');
-    const interruptsHContent = replaceTemplateVars(interruptsH, vars);
+    let interruptsHContent = replaceTemplateVars(interruptsH, vars);
+    
+    // Add timer interrupt handler declarations to interrupts.h
+    if (timerConfigurations && timerConfigurations.length > 0) {
+        console.log(`Adding timer interrupt handlers for ${timerConfigurations.length} timer(s)`);
+        const timersWithInterrupts = timerConfigurations.filter(tc => tc.enableInterrupt !== false);
+        console.log(`Timers with interrupts enabled: ${timersWithInterrupts.length}`);
+        if (timersWithInterrupts.length > 0) {
+            const timerHandlerDecls = timersWithInterrupts.map(tc => {
+                const { timer } = tc;
+                const is32Bit = timer.length === 2;
+                const timerNum = is32Bit ? parseInt(timer[0]) : parseInt(timer);
+                return `void TIMER_${timerNum}_InterruptHandler( void );`;
+            }).join('\n');
+            
+            console.log(`Timer handler declarations:\n${timerHandlerDecls}`);
+            
+            interruptsHContent = interruptsHContent.replace(
+                '// Section: Handler Routines\n// *****************************************************************************\n// *****************************************************************************',
+                `// Section: Handler Routines\n// *****************************************************************************\n// *****************************************************************************\n${timerHandlerDecls}\n\n`
+            );
+        }
+    } else {
+        console.log('No timer configurations found');
+    }
     
     writeFile(path.join(projectRoot, 'srcs/config/default/definitions.h'), definitionsContent);
     writeFile(path.join(projectRoot, 'srcs/config/default/device.h'), deviceContent);
@@ -227,15 +255,44 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     
     // Add timer interrupt handlers if configured and interrupts enabled
     if (timerConfigurations && timerConfigurations.length > 0) {
+        console.log(`Adding timer interrupt handlers for ${timerConfigurations.length} timer(s)`);
+        console.log('Timer configurations:', JSON.stringify(timerConfigurations, null, 2));
         const timersWithInterrupts = timerConfigurations.filter(tc => tc.enableInterrupt !== false);
+        console.log(`Timers with interrupts enabled: ${timersWithInterrupts.length}`);
         if (timersWithInterrupts.length > 0) {
+            // Generate forward declarations
+            const timerDeclarations = timersWithInterrupts.map(tc => {
+                const { timer } = tc;
+                const is32Bit = timer.length === 2;
+                const timerNum = is32Bit ? parseInt(timer[0]) : parseInt(timer);
+                return `void TIMER_${timerNum}_Handler (void);`;
+            }).join('\n');
+            
+            console.log(`Timer ISR declarations:\n${timerDeclarations}`);
+            
+            // Generate ISR definitions
             const timerHandlers = timersWithInterrupts.map(tc => generateTimerInterruptDeclaration(tc)).join('\n\n');
-            // Insert before "End of File" comment
+            
+            console.log(`Timer ISR definitions:\n${timerHandlers}`);
+            
+            // Insert declarations
             interruptsCContent = interruptsCContent.replace(
-                '/*******************************************************************************\n End of File\n*/',
-                `\n${timerHandlers}\n\n/*******************************************************************************\n End of File\n*/`
+                '// Section: System Interrupt Vector declarations\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n',
+                `// Section: System Interrupt Vector declarations\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n${timerDeclarations}\r\n\r\n`
             );
+            
+            console.log('After declarations replacement, contains TIMER_1_Handler:', interruptsCContent.includes('TIMER_1_Handler'));
+            
+            // Insert ISR definitions
+            interruptsCContent = interruptsCContent.replace(
+                '// Section: System Interrupt Vector definitions\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n',
+                `// Section: System Interrupt Vector definitions\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n${timerHandlers}\r\n\r\n`
+            );
+            
+            console.log('After definitions replacement, contains __ISR:', interruptsCContent.includes('__ISR'));
         }
+    } else {
+        console.log('No timer configurations found');
     }
     
     const exceptionsC = loadTemplate('config/default/exceptions.c.template');
@@ -382,6 +439,10 @@ ${ppsCode}
     if (timerConfigurations && timerConfigurations.length > 0) {
         console.log(`Generating timer files for ${timerConfigurations.length} configured timer(s)`);
         
+        // Track if we need to generate common headers
+        let needTmr1Common = false;
+        let needTmrCommon = false;
+        
         for (const timerConfig of timerConfigurations) {
             const { timer } = timerConfig;
             const is32Bit = timer.length === 2;
@@ -389,23 +450,40 @@ ${ppsCode}
             
             let headerContent: string;
             let sourceContent: string;
+            let timerPath: string;
             
             if (timerNum === 1) {
-                // Timer1 Type A (16-bit only)
+                // Timer1 Type A (16-bit only) - goes in peripheral/tmr1/
                 headerContent = generateTimer1Header();
                 sourceContent = generateTimer1Source(timerConfig);
+                timerPath = path.join(projectRoot, 'srcs/config/default/peripheral/tmr1');
+                needTmr1Common = true;
             } else {
-                // Timer2-9 Type B (16-bit or 32-bit)
+                // Timer2-9 Type B (16-bit or 32-bit) - goes in peripheral/tmr/
                 headerContent = generateTimerTypeB_Header(timerNum);
                 sourceContent = generateTimerTypeB_Source(timerConfig);
+                timerPath = path.join(projectRoot, 'srcs/config/default/peripheral/tmr');
+                needTmrCommon = true;
             }
             
-            // Write timer peripheral files
-            const timerPath = path.join(projectRoot, `srcs/config/default/peripheral/tmr/plib_tmr${timerNum}`);
+            // Write timer peripheral files (flat structure, no subdirectories)
             writeFile(path.join(timerPath, `plib_tmr${timerNum}.h`), headerContent);
             writeFile(path.join(timerPath, `plib_tmr${timerNum}.c`), sourceContent);
             
             console.log(`Generated Timer${timer} peripheral files (${is32Bit ? '32-bit' : '16-bit'} mode)`);
+        }
+        
+        // Generate common headers if needed
+        if (needTmr1Common) {
+            const tmr1CommonPath = path.join(projectRoot, 'srcs/config/default/peripheral/tmr1');
+            writeFile(path.join(tmr1CommonPath, 'plib_tmr1_common.h'), generateTmr1CommonHeader());
+            console.log('Generated plib_tmr1_common.h');
+        }
+        
+        if (needTmrCommon) {
+            const tmrCommonPath = path.join(projectRoot, 'srcs/config/default/peripheral/tmr');
+            writeFile(path.join(tmrCommonPath, 'plib_tmr_common.h'), generateTmrCommonHeader());
+            console.log('Generated plib_tmr_common.h');
         }
     }
     
