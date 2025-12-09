@@ -27,7 +27,7 @@
         }
 
         .header {
-            padding: 16px;
+            padding: 16px 16px 0 16px;
             background-color: var(--vscode-editorGroupHeader-tabsBackground);
             border-bottom: 1px solid var(--vscode-panel-border);
         }
@@ -36,6 +36,43 @@
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background-color: transparent;
+            color: var(--vscode-tab-inactiveForeground);
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--vscode-tab-activeForeground);
+        }
+
+        .tab.active {
+            color: var(--vscode-tab-activeForeground);
+            border-bottom-color: var(--vscode-tab-activeBorder);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
         }
 
         .device-info {
@@ -202,6 +239,166 @@
             align-items: center;
         }
 
+        /* Timer Calculator Styles */
+        .timer-calc-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .timer-left-panel {
+            flex: 0 0 400px;
+            padding: 20px;
+            border-right: 1px solid var(--vscode-panel-border);
+            overflow-y: auto;
+        }
+
+        .timer-right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .timer-section {
+            margin-bottom: 24px;
+        }
+
+        .timer-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .timer-input-group {
+            margin-bottom: 16px;
+        }
+
+        .timer-label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .timer-select,
+        .timer-input {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .timer-inline-group {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .timer-inline-group .timer-input-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .timer-inline-group .timer-unit {
+            padding: 6px 12px;
+            background-color: var(--vscode-button-secondaryBackground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .timer-calc-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 3px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .timer-calc-btn:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .timer-result-header {
+            padding: 12px 16px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-result-title {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .timer-copy-btn {
+            padding: 6px 12px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 2px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .timer-copy-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .timer-code-output {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background-color: var(--vscode-editor-background);
+        }
+
+        .timer-code-block {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--vscode-editor-foreground);
+            white-space: pre;
+        }
+
+        .timer-comment {
+            color: var(--vscode-editorCodeLens-foreground);
+        }
+
+        .timer-info-box {
+            padding: 12px;
+            background-color: var(--vscode-textBlockQuote-background);
+            border-left: 3px solid var(--vscode-textBlockQuote-border);
+            border-radius: 3px;
+            margin-top: 16px;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .timer-info-label {
+            font-weight: 600;
+            color: var(--vscode-foreground);
+        }
+            justify-content: space-between;
+            align-items: center;
+        }
+
+
         .button-group {
             display: flex;
             gap: 8px;
@@ -342,9 +539,14 @@
                     <input type="checkbox" class="bootloader-checkbox" id="useMikroeBootloader" />
                 </div>
             </div>
+            <div class="tabs">
+                <button class="tab active" data-tab="config">Configuration</button>
+                <button class="tab" data-tab="timer">Timer Calculator</button>
+            </div>
         </div>
 
-        <div class="main-content">
+        <!-- Configuration Tab -->
+        <div class="tab-content active" id="configTab">
             <div class="left-panel" id="settingsPanel">
                 <!-- Settings will be dynamically generated here -->
             </div>
@@ -392,6 +594,134 @@
             </div>
         </div>
 
+        <!-- Timer Calculator Tab -->
+        <div class="tab-content" id="timerTab">
+            <div class="timer-calc-container">
+                <div class="timer-left-panel">
+                    <div class="timer-section">
+                        <div class="timer-section-title">1. Select Device</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">MCU Family</label>
+                            <select class="timer-select" id="timerMcuFamily">
+                                <option value="PIC32MZ_EC">PIC32MZ EC</option>
+                                <option value="PIC32MZ_EF">PIC32MZ EF</option>
+                                <option value="PIC32MX">PIC32MX</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">2. Clock Configuration</div>
+                        <div class="timer-inline-group">
+                            <div class="timer-input-group">
+                                <label class="timer-label">SYSCLK Frequency</label>
+                                <input type="number" class="timer-input" id="timerFrequency" value="200" min="1" max="400" step="1" />
+                            </div>
+                            <div class="timer-unit">MHz</div>
+                        </div>
+                        <div class="timer-input-group" style="margin-top: 12px;">
+                            <label class="timer-label">PBCLK3 Divider (Timers use PBCLK3)</label>
+                            <select class="timer-select" id="timerPBCLK3Div">
+                                <option value="1">÷1 (PBCLK3 = SYSCLK)</option>
+                                <option value="2" selected>÷2 (PBCLK3 = SYSCLK/2)</option>
+                                <option value="3">÷3 (PBCLK3 = SYSCLK/3)</option>
+                                <option value="4">÷4 (PBCLK3 = SYSCLK/4)</option>
+                                <option value="5">÷5 (PBCLK3 = SYSCLK/5)</option>
+                                <option value="8">÷8 (PBCLK3 = SYSCLK/8)</option>
+                                <option value="16">÷16 (PBCLK3 = SYSCLK/16)</option>
+                                <option value="32">÷32 (PBCLK3 = SYSCLK/32)</option>
+                                <option value="64">÷64 (PBCLK3 = SYSCLK/64)</option>
+                                <option value="128">÷128 (PBCLK3 = SYSCLK/128)</option>
+                            </select>
+                        </div>
+                        <div class="timer-info-box" style="display: block; margin-top: 8px;">
+                            <div><span class="timer-info-label">PBCLK3:</span> <span id="pbclk3Display">100.000 MHz</span></div>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">4. Choose Timer</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">Timer</label>
+                            <select class="timer-select" id="timerNumber">
+                                <option value="1">Timer1 (16-bit Type A)</option>
+                                <optgroup label="Type B - 16-bit Mode">
+                                    <option value="2">Timer2 (16-bit)</option>
+                                    <option value="3">Timer3 (16-bit)</option>
+                                    <option value="4">Timer4 (16-bit)</option>
+                                    <option value="5">Timer5 (16-bit)</option>
+                                    <option value="6">Timer6 (16-bit)</option>
+                                    <option value="7">Timer7 (16-bit)</option>
+                                    <option value="8">Timer8 (16-bit)</option>
+                                    <option value="9">Timer9 (16-bit)</option>
+                                </optgroup>
+                                <optgroup label="Type B - 32-bit Mode">
+                                    <option value="23">Timer2/3 (32-bit)</option>
+                                    <option value="45">Timer4/5 (32-bit)</option>
+                                    <option value="67">Timer6/7 (32-bit)</option>
+                                    <option value="89">Timer8/9 (32-bit)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">5. Interrupt Configuration</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">Interrupt Priority (1-7)</label>
+                            <input type="number" class="timer-input" id="timerPriority" value="7" min="1" max="7" step="1" />
+                        </div>
+                        <div class="timer-input-group" style="margin-top: 12px;">
+                            <label class="timer-label">Interrupt Subpriority (0-3)</label>
+                            <input type="number" class="timer-input" id="timerSubPriority" value="0" min="0" max="3" step="1" />
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">6. Interrupt Time</div>
+                        <div class="timer-inline-group">
+                            <div class="timer-input-group">
+                                <label class="timer-label">Period</label>
+                                <input type="number" class="timer-input" id="timerPeriod" value="1" min="0.001" max="3600" step="0.001" />
+                            </div>
+                            <select class="timer-select" id="timerPeriodUnit" style="flex: 0 0 80px;">
+                                <option value="us">μs</option>
+                                <option value="ms" selected>ms</option>
+                                <option value="s">s</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="timer-calc-btn" id="calculateTimerBtn">
+                        ⚡ Calculate
+                    </button>
+
+                    <div class="timer-info-box" id="timerInfo" style="display: none;">
+                        <div><span class="timer-info-label">Prescaler:</span> <span id="infoPrescaler"></span></div>
+                        <div><span class="timer-info-label">PR Value:</span> <span id="infoPR"></span></div>
+                        <div><span class="timer-info-label">Actual Period:</span> <span id="infoActual"></span></div>
+                        <div><span class="timer-info-label">Error:</span> <span id="infoError"></span></div>
+                    </div>
+                </div>
+
+                <div class="timer-right-panel">
+                    <div class="timer-result-header">
+                        <div class="timer-result-title">Generated Code</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select class="timer-select" id="codeFormat" style="width: auto; min-width: 120px;">
+                                <option value="mikroc">mikroC</option>
+                                <option value="harmony">Harmony (XC32)</option>
+                            </select>
+                            <button class="timer-copy-btn" id="copyTimerCodeBtn">📋 Copy to Clipboard</button>
+                        </div>
+                    </div>
+                    <div class="timer-code-output">
+                        <div class="timer-code-block" id="timerCodeOutput">// Configure timer settings and click Calculate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="footer">
             <div class="button-group">
                 <button class="btn-secondary" id="loadSchemeBtn">Load Scheme</button>
@@ -412,6 +742,356 @@
         let currentConfig = {};
         let uiSchema = [];
         let deviceInfo = {};
+        let timerConfig = {
+            frequency: 200,
+            pbclk3Div: 2,
+            timer: '1',
+            period: 1,
+            unit: 'ms',
+            prescaler: 8,
+            prValue: 12500,
+            actualPeriod: 1.0,
+            error: 0,
+            priority: 7,
+            subPriority: 0
+        };
+
+        // Update PBCLK3 display when frequency or divider changes
+        function updatePBCLK3Display() {
+            const sysclk = parseFloat(document.getElementById('timerFrequency').value);
+            const divider = parseInt(document.getElementById('timerPBCLK3Div').value);
+            const pbclk3 = sysclk / divider;
+            document.getElementById('pbclk3Display').textContent = `${pbclk3.toFixed(3)} MHz`;
+        }
+
+        // Event listeners for PBCLK3 updates
+        document.getElementById('timerFrequency')?.addEventListener('input', updatePBCLK3Display);
+        document.getElementById('timerPBCLK3Div')?.addEventListener('change', updatePBCLK3Display);
+
+        // Update display on load
+        setTimeout(updatePBCLK3Display, 100);
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                // Update tab buttons
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(targetTab + 'Tab').classList.add('active');
+            });
+        });
+
+        // Timer Calculator Functions
+        function calculateTimer() {
+            const frequency = parseFloat(document.getElementById('timerFrequency').value) * 1000000; // Convert MHz to Hz
+            const pbclk3Div = parseInt(document.getElementById('timerPBCLK3Div').value);
+            const timerNum = document.getElementById('timerNumber').value;
+            const period = parseFloat(document.getElementById('timerPeriod').value);
+            const unit = document.getElementById('timerPeriodUnit').value;
+            const priority = parseInt(document.getElementById('timerPriority').value);
+            const subPriority = parseInt(document.getElementById('timerSubPriority').value);
+            
+            // Convert period to seconds
+            let periodSeconds = period;
+            if (unit === 'us') periodSeconds = period / 1000000;
+            else if (unit === 'ms') periodSeconds = period / 1000;
+            
+            // Timer runs at PBCLK3 (SYSCLK / pbclk3Div)
+            const timerClock = frequency / pbclk3Div;
+            
+            // Calculate required ticks
+            const requiredTicks = timerClock * periodSeconds;
+            
+            // Determine if 16-bit or 32-bit timer
+            const is16Bit = timerNum.length === 1; // Single digit = 16-bit
+            const is32Bit = timerNum.length === 2; // Two digits = 32-bit paired
+            
+            // Find best prescaler
+            // Timer1 Type A: 1, 8, 64, 256
+            // Timer2-9 Type B: 1, 2, 4, 8, 16, 32, 64, 256
+            const prescalers = timerNum === '1' ? [1, 8, 64, 256] : [1, 2, 4, 8, 16, 32, 64, 256];
+            let bestPrescaler = 1;
+            let bestPR = 0;
+            let bestError = Infinity;
+            
+            for (const presc of prescalers) {
+                const pr = Math.round(requiredTicks / presc);
+                const maxPR = is16Bit ? 65536 : 4294967296; // 16-bit: 65536, 32-bit: 4294967296
+                
+                if (pr > 0 && pr <= maxPR) {
+                    const actualTicks = pr * presc;
+                    const actualPeriod = actualTicks / timerClock;
+                    const error = Math.abs((actualPeriod - periodSeconds) / periodSeconds) * 100;
+                    
+                    if (error < bestError) {
+                        bestError = error;
+                        bestPrescaler = presc;
+                        bestPR = pr;
+                    }
+                }
+            }
+            
+            // Calculate actual period
+            const actualTicks = bestPR * bestPrescaler;
+            const actualPeriodSeconds = actualTicks / timerClock;
+            let actualPeriodDisplay, actualUnit;
+            
+            if (actualPeriodSeconds < 0.001) {
+                actualPeriodDisplay = (actualPeriodSeconds * 1000000).toFixed(3);
+                actualUnit = 'μs';
+            } else if (actualPeriodSeconds < 1) {
+                actualPeriodDisplay = (actualPeriodSeconds * 1000).toFixed(6);
+                actualUnit = 'ms';
+            } else {
+                actualPeriodDisplay = actualPeriodSeconds.toFixed(6);
+                actualUnit = 's';
+            }
+            
+            // Update timer config
+            timerConfig.frequency = frequency;
+            timerConfig.pbclk3Div = pbclk3Div;
+            timerConfig.timer = timerNum;
+            timerConfig.period = periodSeconds;
+            timerConfig.prescaler = bestPrescaler;
+            timerConfig.prValue = bestPR;
+            timerConfig.actualPeriod = actualPeriodSeconds;
+            timerConfig.error = bestError;
+            timerConfig.priority = priority;
+            timerConfig.subPriority = subPriority;
+            
+            // Update info box
+            document.getElementById('timerInfo').style.display = 'block';
+            document.getElementById('infoPrescaler').textContent = `1:${bestPrescaler}`;
+            document.getElementById('infoPR').textContent = bestPR;
+            document.getElementById('infoActual').textContent = `${actualPeriodDisplay} ${actualUnit}`;
+            document.getElementById('infoError').textContent = `${bestError.toFixed(4)}%`;
+            
+            // Generate code
+            generateTimerCode();
+        }
+
+        function generateTimerCode() {
+            const { timer, prescaler, prValue, actualPeriod, priority, subPriority, pbclk3Div } = timerConfig;
+            const codeFormat = document.getElementById('codeFormat').value;
+            let code = '';
+            
+            // Format actual period display
+            let actualDisplay;
+            if (actualPeriod < 0.001) {
+                actualDisplay = `${(actualPeriod * 1000000).toFixed(3)} us`;
+            } else if (actualPeriod < 1) {
+                actualDisplay = `${(actualPeriod * 1000).toFixed(3)} ms`;
+            } else {
+                actualDisplay = `${actualPeriod.toFixed(6)} s`;
+            }
+            
+            // Determine prescaler value for TCKPS bits
+            const prescalerMap = {
+                1: 0,    // 000
+                2: 1,    // 001
+                4: 2,    // 010
+                8: 3,    // 011
+                16: 4,   // 100
+                32: 5,   // 101
+                64: 6,   // 110
+                256: 7   // 111
+            };
+            const tckps = prescalerMap[prescaler];
+            
+            if (codeFormat === 'mikroc') {
+                code = generateMikroCCode(timer, prescaler, prValue, actualDisplay, tckps, priority);
+            } else {
+                code = generateHarmonyCode(timer, prescaler, prValue, actualDisplay, tckps, priority, subPriority, pbclk3Div);
+            }
+            
+            document.getElementById('timerCodeOutput').innerHTML = code;
+        }
+
+        function generateMikroCCode(timer, prescaler, prValue, actualDisplay, tckps, priority) {
+            let code = '';
+            
+            if (timer === '1') {
+                // Timer1 Type A (16-bit only)
+                const tckpsHex = (tckps << 4).toString(16).padStart(2, '0');
+                const tconValue = `0x80${tckpsHex}`;
+                
+                code = `<span class="timer-comment">//Timer1</span>
+<span class="timer-comment">//Prescaler 1:${prescaler}; PR1 Preload = ${prValue}; Actual Interrupt Time = ${actualDisplay}</span>
+ 
+<span class="timer-comment">//Place/Copy this part in declaration section</span>
+void InitTimer1(){
+  T1CON\t\t = ${tconValue};
+  T1IP0_bit\t = ${(priority & 1) ? 1 : 0};
+  T1IP1_bit\t = ${(priority & 2) ? 1 : 0};
+  T1IP2_bit\t = ${(priority & 4) ? 1 : 0};
+  T1IF_bit\t = 0;
+  T1IE_bit\t = 1;
+  PR1\t\t = ${prValue};
+  TMR1\t\t = 0;
+}
+ 
+void Timer1Interrupt() iv IVT_TIMER_1 ilevel ${priority} ics ICS_SRS {
+  T1IF_bit\t = 0;
+  <span class="timer-comment">//Enter your code here</span> 
+}`;
+            } else if (timer.length === 2) {
+                // 32-bit paired timer
+                const evenTimer = timer[0];
+                const timerName = `Timer${timer[0]}_${timer[1]}`;
+                const tckpsHex = (tckps << 4).toString(16).padStart(2, '0');
+                const tconValue = `0x${(0x80 | (tckps << 4) | 0x08).toString(16)}`; // ON + TCKPS + T32
+                
+                code = `<span class="timer-comment">//${timerName} (32-bit mode)</span>
+<span class="timer-comment">//Prescaler 1:${prescaler}; PR${evenTimer} Preload = ${prValue}; Actual Interrupt Time = ${actualDisplay}</span>
+ 
+<span class="timer-comment">//Place/Copy this part in declaration section</span>
+void Init${timerName}(){
+  T${evenTimer}CON\t\t = ${tconValue};
+  T${evenTimer}IP0_bit\t = ${(priority & 1) ? 1 : 0};
+  T${evenTimer}IP1_bit\t = ${(priority & 2) ? 1 : 0};
+  T${evenTimer}IP2_bit\t = ${(priority & 4) ? 1 : 0};
+  T${evenTimer}IF_bit\t = 0;
+  T${evenTimer}IE_bit\t = 1;
+  PR${evenTimer}\t\t = ${prValue};
+  TMR${evenTimer}\t\t = 0;
+}
+ 
+void ${timerName}Interrupt() iv IVT_TIMER_${evenTimer} ilevel ${priority} ics ICS_SRS {
+  T${evenTimer}IF_bit\t = 0;
+  <span class="timer-comment">//Enter your code here</span> 
+}`;
+            } else {
+                // 16-bit Type B timer
+                const tckpsHex = (tckps << 4).toString(16).padStart(2, '0');
+                const tconValue = `0x80${tckpsHex}`;
+                
+                code = `<span class="timer-comment">//Timer${timer} (16-bit mode)</span>
+<span class="timer-comment">//Prescaler 1:${prescaler}; PR${timer} Preload = ${prValue}; Actual Interrupt Time = ${actualDisplay}</span>
+ 
+<span class="timer-comment">//Place/Copy this part in declaration section</span>
+void InitTimer${timer}(){
+  T${timer}CON\t\t = ${tconValue};
+  T${timer}IP0_bit\t = ${(priority & 1) ? 1 : 0};
+  T${timer}IP1_bit\t = ${(priority & 2) ? 1 : 0};
+  T${timer}IP2_bit\t = ${(priority & 4) ? 1 : 0};
+  T${timer}IF_bit\t = 0;
+  T${timer}IE_bit\t = 1;
+  PR${timer}\t\t = ${prValue};
+  TMR${timer}\t\t = 0;
+}
+ 
+void Timer${timer}Interrupt() iv IVT_TIMER_${timer} ilevel ${priority} ics ICS_SRS {
+  T${timer}IF_bit\t = 0;
+  <span class="timer-comment">//Enter your code here</span> 
+}`;
+            }
+            
+            return code;
+        }
+
+        function generateHarmonyCode(timer, prescaler, prValue, actualDisplay, tckps, priority, subPriority, pbclk3Div) {
+            let code = '';
+            const is32Bit = timer.length === 2;
+            const timerNum = is32Bit ? timer[0] : timer;
+            const timerName = is32Bit ? `${timer[0]}_${timer[1]}` : timer;
+            
+            // Calculate IPC register and bit positions
+            const ipcNum = Math.floor((parseInt(timerNum) - 1) / 4) + 1;
+            const ipcShift = ((parseInt(timerNum) - 1) % 4) * 8;
+            const priorityBits = (priority << 2) | subPriority;
+            const ipcValue = `0x${(priorityBits << ipcShift).toString(16)}`;
+            
+            // Generate TCON value
+            let tconValue;
+            if (timer === '1') {
+                tconValue = `0x${((tckps << 4)).toString(16)}`;
+            } else if (is32Bit) {
+                tconValue = `0x${((tckps << 4) | 0x08).toString(16)}`; // T32 bit set
+            } else {
+                tconValue = `0x${((tckps << 4)).toString(16)}`;
+            }
+            
+            code = `<span class="timer-comment">/* ========= plib_clk.c - Add to CLK_Initialize() ========= */</span>
+<span class="timer-comment">/* Peripheral Bus 3 divisor (for timers) */</span>
+PB3DIVbits.PBDIV = ${pbclk3Div - 1};
+
+<span class="timer-comment">/* ========= plib_tmr${timerNum}.c ========= */</span>
+<span class="timer-comment">// Timer${timerName} Configuration</span>
+<span class="timer-comment">// Prescaler 1:${prescaler}; PR${timerNum} = ${prValue}; Period = ${actualDisplay}</span>
+
+void TMR${timer === '1' ? '1' : timerNum}_Initialize(void)
+{
+    <span class="timer-comment">/* Disable Timer */</span>
+    T${timerNum}CONCLR = _T${timerNum}CON_ON_MASK;
+
+    <span class="timer-comment">/* TCKPS = ${tckps}${is32Bit ? ', T32 = 1' : ''} */</span>
+    T${timerNum}CONSET = ${tconValue};
+
+    <span class="timer-comment">/* Clear counter */</span>
+    TMR${timerNum} = 0x0;
+
+    <span class="timer-comment">/* Set period */</span>
+    PR${timerNum} = ${prValue}U;
+
+    <span class="timer-comment">/* Enable TMR Interrupt */</span>
+    IEC0SET = _IEC0_T${timerNum}IE_MASK;
+}
+
+<span class="timer-comment">/* ========= plib_evic.c - Add to EVIC_Initialize() ========= */</span>
+IPC${ipcNum}SET = ${ipcValue}U;  <span class="timer-comment">/* TIMER_${timerNum}: Priority ${priority} / Subpriority ${subPriority} */</span>
+
+<span class="timer-comment">/* ========= interrupts.c ========= */</span>
+void __attribute__((used)) TIMER_${timerNum}_InterruptHandler(void)
+{
+    uint32_t status = IFS0bits.T${timerNum}IF;
+    IFS0CLR = _IFS0_T${timerNum}IF_MASK;
+
+    <span class="timer-comment">/* Your code here */</span>
+}
+
+<span class="timer-comment">/* Handler declaration */</span>
+void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) TIMER_${timerNum}_Handler(void)
+{
+    TIMER_${timerNum}_InterruptHandler();
+}`;
+            
+            return code;
+        }
+
+        function copyTimerCode() {
+            const codeElement = document.getElementById('timerCodeOutput');
+            const codeText = codeElement.innerText;
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                const btn = document.getElementById('copyTimerCodeBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Timer button event listeners
+        document.getElementById('calculateTimerBtn')?.addEventListener('click', calculateTimer);
+        document.getElementById('copyTimerCodeBtn')?.addEventListener('click', copyTimerCode);
+        document.getElementById('codeFormat')?.addEventListener('change', generateTimerCode);
+        
+        // Auto-update timer when frequency changes (from main config)
+        function updateTimerFrequency() {
+            const clockFreq = document.getElementById('clockFreq')?.textContent;
+            if (clockFreq) {
+                const freq = parseFloat(clockFreq);
+                document.getElementById('timerFrequency').value = freq;
+            }
+        }
 
         // Listen for messages from extension
         // Populate XC32 compiler versions dropdown
@@ -561,6 +1241,8 @@
             if (registers.calculatedClock) {
                 document.getElementById('clockFreq').textContent = 
                     registers.calculatedClock.toFixed(6);
+                // Update timer calculator frequency
+                document.getElementById('timerFrequency').value = registers.calculatedClock;
             }
         }
 
