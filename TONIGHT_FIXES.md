@@ -174,3 +174,49 @@ Creating HEX file: ../bins/xc32-test.hex
 ## Status: COMPLETE ✅
 
 All templates now generate working Makefiles with fully dynamic include discovery that works on both Windows and Linux.
+
+---
+
+## CRITICAL BOOTLOADER FIX (Post-Build Issue)
+
+### Problem: Device Won't Start After Flash
+After successfully building and flashing hex files with our `MikroC_bootloader` tool, the device would not start running the application. The USB connection appeared to not release.
+
+### Root Cause
+The bootloader tool (`MikroC_bootloader/srcs/HexFile.c`) had an **infinite loop bug** in the `setupChiptoBoot()` function:
+
+```c
+while (tcmd_t != cmdDONE)  // Loop condition
+{
+    // ... programming sequence ...
+    
+    case cmdREBOOT:
+        // Send reboot command
+        break;  // ❌ BUG: Never transitions to cmdDONE!
+}
+```
+
+After sending the `cmdREBOOT` command to the device, the code never set `tcmd_t = cmdDONE`, so the while loop continued running infinitely. This kept the USB connection open, preventing the device from properly rebooting into the new application.
+
+### Solution
+Added state transition to exit the loop after reboot:
+
+```c
+case cmdREBOOT:
+    // Exit the main loop after reboot command is sent
+    tcmd_t = cmdDONE;  // ✅ FIX: Properly exit loop
+    break;
+```
+
+### Files Changed
+- `MikroC_bootloader/srcs/HexFile.c` - Line 691
+
+### Testing
+- ✅ Bootloader now properly exits after flashing
+- ✅ Device releases USB connection  
+- ✅ Application starts immediately after flash
+- ✅ Works with all generated XC32 projects
+
+This was a **critical bug** that made all our generated projects appear broken when they were actually fine - the issue was in the flashing tool, not the generated code!
+
+---
