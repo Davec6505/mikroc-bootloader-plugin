@@ -18,6 +18,7 @@
 // Include the processor-specific header
 #include <xc.h>
 #include <sys/attribs.h>
+#include "toolchain_specifics.h"
 
 #endif /* DEVICE_H */
 /*******************************************************************************

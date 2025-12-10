@@ -209,6 +209,7 @@ export function generateTimer1Source(config: TimerConfiguration): string {
 #include "device.h"
 #include "plib_tmr1.h"
 #include "interrupts.h"
+#include "definitions.h"
 
 static volatile TMR1_TIMER_OBJECT tmr1Obj;
 
@@ -271,9 +272,7 @@ void TMR1_CounterSet(uint16_t count)
 
 uint32_t TMR1_FrequencyGet(void)
 {
-    /* Return PBCLK3 frequency divided by prescaler */
-    /* Note: Actual frequency depends on system configuration */
-    return (SYS_CLK_FREQ / ${prescaler}U);
+    return (CPU_CLOCK_FREQUENCY / ${prescaler}U);
 }
 
 void __attribute__((used)) TIMER_1_InterruptHandler (void)
@@ -506,6 +505,7 @@ export function generateTimerTypeB_Source(config: TimerConfiguration): string {
 #include "device.h"
 #include "plib_tmr${timerNum}.h"
 #include "interrupts.h"
+#include "definitions.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -579,9 +579,7 @@ void TMR${timerNum}_CounterSet(${timerType} count)
 
 uint32_t TMR${timerNum}_FrequencyGet(void)
 {
-    /* Return PBCLK3 frequency divided by prescaler */
-    /* Note: Actual frequency depends on system configuration */
-    return (SYS_CLK_FREQ / ${prescaler}U);
+    return (CPU_CLOCK_FREQUENCY / ${prescaler}U);
 }
 
 void __attribute__((used)) TIMER_${timerNum}_InterruptHandler (void)
@@ -630,13 +628,13 @@ export function generateTimerInterruptDeclaration(config: TimerConfiguration): s
     // Determine IPL attribute based on shadow set selection
     let iplAttr: string;
     if (shadowSet === 'auto') {
-        iplAttr = `IPL${priority}SRS`;
+        iplAttr = `ipl${priority}SRS`;
     } else {
         // Manual SRS selection uses SOFT and manual assignment
-        iplAttr = `IPL${priority}SOFT`;
+        iplAttr = `ipl${priority}SOFT`;
     }
     
-    return `void __ISR(_TIMER_${timerNum}_VECTOR, ${iplAttr}) TIMER_${timerNum}_Handler (void)
+    return `void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ${iplAttr}) TIMER_${timerNum}_Handler (void)
 {
     TIMER_${timerNum}_InterruptHandler();
 }`;

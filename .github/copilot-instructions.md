@@ -22,25 +22,57 @@ content.replace('// Section: Header\r\n// ***\r\n', replacement);
 
 **Why**: XC32 compiler and MCC generate files with CRLF. String.replace() is byte-exact matching.
 
-### 2. XC32 ISR Macro Format
+### 2. XC32 ISR Macro Format - CRITICAL DISCOVERY
+**The __ISR macro REQUIRES <sys/attribs.h> to be included!**
+
 **Correct ISR syntax for interrupts.c:**
 ```c
-// ✅ CORRECT
-void __ISR(_TIMER_1_VECTOR, IPL1SRS) TIMER_1_Handler(void)
+// ✅ CORRECT - Works after including <sys/attribs.h> in device.h
+void __attribute__((used)) __ISR(_TIMER_1_VECTOR, ipl1SRS) TIMER_1_Handler(void)
 {
     TIMER_1_InterruptHandler();
 }
 
-// ❌ WRONG - Causes compiler errors
-void __attribute__((used)) __ISR(_TIMER_1_VECTOR, ipl1SRS) TIMER_1_Handler(void)
+// ❌ WRONG - Uppercase IPL causes compilation errors
+void __attribute__((used)) __ISR(_TIMER_1_VECTOR, IPL1SRS) TIMER_1_Handler(void)
 ```
 
 **Rules**:
-- NO `__attribute__((used))` - already included in `__ISR` macro
-- IPL must be UPPERCASE: `IPL1SRS`, `IPL7SRS`, `IPL2SOFT`
+- device.h MUST include `#include <sys/attribs.h>` where __ISR macro is defined
+- IPL must be LOWERCASE: `ipl1SRS`, `ipl7SRS`, `ipl2SOFT`
 - `SRS` = auto shadow register set, `SOFT` = manual/software assignment
+- `__attribute__((used))` prevents optimization from removing interrupt vectors
 
-### 3. MCC Harmony 3 Interrupt Architecture
+**XC32 __ISR Macro Definition** (from xc32/v5.00/pic32m/include/pic32m-libs/sys/attribs.h):
+```c
+#define __ISR(v,ipl) __attribute__((vector(v), interrupt(ipl), nomips16))
+```
+
+### 3. Timer Peripheral Includes - CRITICAL
+**Timer source files MUST include definitions.h for CPU_CLOCK_FREQUENCY:**
+
+```c
+// ✅ CORRECT includes for plib_tmr1.c
+#include "device.h"
+#include "plib_tmr1.h"
+#include "interrupts.h"
+#include "definitions.h"  // ← REQUIRED for CPU_CLOCK_FREQUENCY
+```
+
+**Frequency constant:**
+```c
+// ✅ CORRECT
+uint32_t TMR1_FrequencyGet(void) {
+    return (CPU_CLOCK_FREQUENCY / 1U);  // Defined in definitions.h
+}
+
+// ❌ WRONG - SYS_CLK_FREQ does not exist
+uint32_t TMR1_FrequencyGet(void) {
+    return (SYS_CLK_FREQ / 1U);
+}
+```
+
+### 4. MCC Harmony 3 Interrupt Architecture
 
 **Three-layer system** (see MCC_INTERRUPT_ARCHITECTURE.md):
 
@@ -67,14 +99,20 @@ void __attribute__((used)) __ISR(_TIMER_1_VECTOR, ipl1SRS) TIMER_1_Handler(void)
 
 **Why**: Separation of concerns - ISR vectors (system) vs handler logic (peripheral library).
 
-### 4. Timer Peripheral Code Generation (MCC Style)
+### 3. Timer Peripheral Code Generation (MCC Style)
 
 **File Structure**:
 - Timer1 (Type A): `peripheral/tmr1/plib_tmr1.{h,c}` + `peripheral/tmr1/plib_tmr1_common.h`
 - Timer2-9 (Type B): `peripheral/tmr/plib_tmr{2-9}.{h,c}` + `peripheral/tmr/plib_tmr_common.h`
 
-**Key Patterns**:
+**Key Patterns from Harmony3 .ftl templates**:
 ```c
+// Timer source MUST include definitions.h
+#include "device.h"
+#include "plib_tmr1.h"
+#include "interrupts.h"
+#include "definitions.h"  // ← CRITICAL for CPU_CLOCK_FREQUENCY
+
 // Use volatile timer objects
 static volatile TMR1_TIMER_OBJECT tmr1Obj;
 
@@ -82,14 +120,24 @@ static volatile TMR1_TIMER_OBJECT tmr1Obj;
 T1CONSET = _T1CON_ON_MASK;  // ✅ CORRECT
 T1CON |= _T1CON_ON_MASK;    // ❌ Avoid (RMW issue)
 
-// Initialize status to 0U explicitly
+// Initialize status to 0U explicitly  
 tmr1Obj.timer1Status = 0U;
 
 // Use callback_fn field name (not callback)
 if (tmr1Obj.callback_fn != NULL) {
     tmr1Obj.callback_fn(tmr1Obj.context);
 }
+
+// FrequencyGet returns CPU_CLOCK_FREQUENCY (not SYS_CLK_FREQ)
+uint32_t TMR1_FrequencyGet(void) {
+    return (CPU_CLOCK_FREQUENCY);  // From definitions.h, matches clock frequency
+}
 ```
+
+**Harmony3 Template Reference**: 
+- Source: `Harmony3/csp/peripheral/tmr1_02141/templates/plib_tmr1.c.ftl`
+- Header: `Harmony3/csp/peripheral/tmr1_02141/templates/plib_tmr1.h.ftl`
+- Interrupts: `Harmony3/csp/arch/templates/interrupts_xc32_mips.c.ftl`
 
 ### 5. GPIO Peripheral Complete Implementation
 
