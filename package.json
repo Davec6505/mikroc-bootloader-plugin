@@ -1,0 +1,98 @@
+{
+  "name": "mikroc-pic32-bootloader",
+  "displayName": "MikroC PIC32 Bootloader",
+  "description": "Flash PIC32 microcontrollers using MikroC HID bootloader directly from VS Code",
+  "version": "1.0.0",
+  "publisher": "DavidCoetzee",
+  "icon": "images/icon.png",
+  "author": {
+    "name": "Dave C"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Davec6505/mikroc-bootloader-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/Davec6505/mikroc-bootloader-plugin/issues"
+  },
+  "homepage": "https://github.com/Davec6505/mikroc-bootloader-plugin#readme",
+  "keywords": [
+    "mikroc",
+    "pic32",
+    "bootloader",
+    "flash",
+    "microcontroller",
+    "embedded",
+    "hid",
+    "usb"
+  ],
+  "engines": {
+    "vscode": "^1.106.1"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mikroc-pic32-bootloader.flash",
+        "title": "MikroC PIC32: Flash Device"
+      },
+      {
+        "command": "mikroc-pic32-bootloader.testConfigEditor",
+        "title": "MikroC PIC32: Test Config Editor (Dev)"
+      },
+      {
+        "command": "mikroc-pic32-bootloader.createXC32Project",
+        "title": "PIC32: Create XC32 Project"
+      },
+      {
+        "command": "mikroc-pic32-bootloader.createMikroCProject",
+        "title": "PIC32: Create MikroC Project"
+      }
+    ],
+    "configuration": {
+      "title": "MikroC PIC32 Bootloader",
+      "properties": {
+        "mikroc-pic32-bootloader.bootloaderPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the mikro_hb.exe bootloader executable (download from https://github.com/Davec6505/MikroC_bootloader)"
+        },
+        "mikroc-pic32-bootloader.hexFilePattern": {
+          "type": "string",
+          "default": "**/*.hex",
+          "description": "Glob pattern to find .hex files in workspace"
+        },
+        "mikroc-pic32-bootloader.showStatusBarButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Flash PIC32' button in the status bar for quick access"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./ && npm run copy-templates",
+    "copy-templates": "node -e \"require('fs').cpSync('src/templates', 'out/templates', {recursive: true})\" && node -e \"require('fs').cpSync('src/webview', 'out/webview', {recursive: true})\"",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.106.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.46.3",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

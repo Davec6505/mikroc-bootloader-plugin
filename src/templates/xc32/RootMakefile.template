@@ -1,0 +1,91 @@
+# Root Makefile - XC32 Project for {{DEVICE_NAME}}
+# Simple Makefile for PIC32MZ project
+# Name of the project binary
+MODULE     := {{PROJECT_NAME}}
+
+# Default target when running 'make' with no arguments
+.DEFAULT_GOAL := build
+
+# Device configuration
+DEVICE     := {{DEVICE_PART}}
+
+# Optimization level control (optional override)
+# Usage: make all OPT_LEVEL=2    (use -O2 instead of default -O1)
+OPT_LEVEL ?= 1
+
+# Memory configuration for dynamic allocation
+# These control heap and stack sizes for the PIC32 application
+HEAP_SIZE  := {{HEAP_SIZE}}    # Heap for dynamic memory allocation
+STACK_SIZE := {{STACK_SIZE}}   # Stack for function calls and local variables
+
+# Compiler location and DFP (Device Family Pack) location
+# Cross-platform compiler and DFP paths
+ifeq ($(OS),Windows_NT)
+    COMPILER_LOCATION := C:/Program Files/Microchip/xc32/v5.00/bin
+    DFP_LOCATION := C:/Program Files/Microchip/MPLABX/v6.25/packs
+else
+    COMPILER_LOCATION := /opt/microchip/xc32/v5.00/bin
+    DFP_LOCATION := /opt/microchip/mplabx/v6.25/packs
+endif
+DFP := $(DFP_LOCATION)/Microchip/PIC32MZ-EF_DFP/1.4.168
+
+# Simple Unix-style build system
+BUILD=make
+BUILD_DIR=make build_dir
+
+# Default target: incremental build (only rebuilds changed files)
+build:
+	@echo "######  INCREMENTAL BUILD  ########"
+	cd srcs && $(BUILD) COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE) OPT_LEVEL=$(OPT_LEVEL)
+	@echo "######  BUILD COMPLETE (bins/$(MODULE).hex)  ########"
+
+# Clean + full rebuild
+all: clean build
+	@echo "######  FULL REBUILD COMPLETE  ########"
+
+build_dir:
+	@echo "###### BUILDING DIRECTORIES FOR OUTPUT BINARIES #######"
+	cd srcs && $(BUILD_DIR)
+	@echo "############ BUILDING DIRECTORIES COMPLETED ###########"
+
+debug:
+	@echo "####### DEBUGGING OUTPUTS #######"
+	cd srcs && $(BUILD) debug COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE)
+
+platform:
+	@echo "####### PLATFORM INFO #######"
+	cd srcs && $(BUILD) platform COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE)
+
+clean:
+	@echo "####### CLEANING OUTPUTS #######"
+ifeq ($(OS),Windows_NT)
+	@powershell -NoProfile -Command "cd srcs; make clean DRY_RUN=$(DRY_RUN)"
+else
+	cd srcs && $(MAKE) clean DRY_RUN=$(DRY_RUN)
+endif
+
+help:
+	@echo "=========================================="
+	@echo "  XC32 Makefile - $(MODULE)"
+	@echo "=========================================="
+	@echo "Available targets:"
+	@echo "  make build       - Incremental build (fast)"
+	@echo "  make all         - Clean + rebuild"
+	@echo "  make build_dir   - Create directory structure"
+	@echo "  make clean       - Remove build artifacts"
+	@echo "  make debug       - Show debug information"
+	@echo "  make platform    - Show platform info"
+	@echo "  make help        - Show this help"
+	@echo ""
+	@echo "Optimization:"
+	@echo "  make OPT_LEVEL=1 - Optimize for size/speed balance (default)"
+	@echo "  make OPT_LEVEL=2 - Optimize for speed"
+	@echo "  make OPT_LEVEL=3 - Aggressive optimization"
+	@echo ""
+	@echo "Project Info:"
+	@echo "  Device:      $(DEVICE)"
+	@echo "  Heap:        $(HEAP_SIZE) bytes"
+	@echo "  Stack:       $(STACK_SIZE) bytes"
+	@echo "=========================================="
+
+.PHONY: build all build_dir clean debug platform help

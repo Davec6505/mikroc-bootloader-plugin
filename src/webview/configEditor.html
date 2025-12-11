@@ -1,0 +1,2351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIC32 Configuration Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 16px 16px 0 16px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background-color: transparent;
+            color: var(--vscode-tab-inactiveForeground);
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--vscode-tab-activeForeground);
+        }
+
+        .tab.active {
+            color: var(--vscode-tab-activeForeground);
+            border-bottom-color: var(--vscode-tab-activeBorder);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .device-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            border-right: 1px solid var(--vscode-panel-border);
+        }
+
+        .right-panel {
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 16px;
+            background-color: var(--vscode-sideBar-background);
+        }
+
+        .category-section {
+            margin-bottom: 24px;
+        }
+
+        .category-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .setting-group {
+            margin-bottom: 16px;
+        }
+
+        .setting-label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .setting-select {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .setting-select:hover {
+            background-color: var(--vscode-input-background);
+            border-color: var(--vscode-inputOption-activeBorder);
+        }
+
+        .setting-select:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+            outline-offset: -1px;
+        }
+
+        .build-type {
+            margin-bottom: 16px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .radio-label input[type="radio"] {
+            cursor: pointer;
+        }
+
+        .register-preview {
+            margin-top: 16px;
+        }
+
+        .register-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .register-list {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            background-color: var(--vscode-editor-background);
+            padding: 12px;
+            border-radius: 3px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+
+        .register-line {
+            display: flex;
+            margin-bottom: 4px;
+            color: var(--vscode-editor-foreground);
+        }
+
+        .register-name {
+            width: 80px;
+            color: var(--vscode-symbolIcon-variableForeground);
+        }
+
+        .register-address {
+            width: 120px;
+            color: var(--vscode-symbolIcon-numberForeground);
+        }
+
+        .register-value {
+            color: var(--vscode-symbolIcon-constantForeground);
+        }
+
+        .footer {
+            padding: 12px 16px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border-top: 1px solid var(--vscode-panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Timer Calculator Styles */
+        .timer-calc-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .timer-left-panel {
+            flex: 0 0 400px;
+            padding: 20px;
+            border-right: 1px solid var(--vscode-panel-border);
+            overflow-y: auto;
+        }
+
+        .timer-right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .timer-section {
+            margin-bottom: 24px;
+        }
+
+        .timer-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .timer-input-group {
+            margin-bottom: 16px;
+        }
+
+        .timer-label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .timer-checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: var(--vscode-input-foreground);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .timer-checkbox-label input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .timer-select,
+        .timer-input {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .timer-inline-group {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .timer-inline-group .timer-input-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .timer-inline-group .timer-unit {
+            padding: 6px 12px;
+            background-color: var(--vscode-button-secondaryBackground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .timer-calc-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 3px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .timer-calc-btn:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .timer-result-header {
+            padding: 12px 16px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-result-title {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .timer-copy-btn {
+            padding: 6px 12px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 2px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .timer-copy-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .timer-code-output {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background-color: var(--vscode-editor-background);
+        }
+
+        .timer-code-block {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--vscode-editor-foreground);
+            white-space: pre;
+        }
+
+        .timer-comment {
+            color: var(--vscode-editorCodeLens-foreground);
+        }
+
+        .timer-info-box {
+            padding: 12px;
+            background-color: var(--vscode-textBlockQuote-background);
+            border-left: 3px solid var(--vscode-textBlockQuote-border);
+            border-radius: 3px;
+            margin-top: 16px;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .timer-info-label {
+            font-weight: 600;
+            color: var(--vscode-foreground);
+        }
+
+        /* PBCLK Button Styles */
+        .pbclk-btn {
+            padding: 8px 16px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border);
+            border-radius: 3px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .pbclk-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .pbclk-btn.active {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border-color: var(--vscode-button-background);
+        }
+
+        .pbclk-panel {
+            display: none;
+        }
+
+        .pbclk-panel.active {
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 6px 14px;
+            font-size: 12px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-family: var(--vscode-font-family);
+        }
+
+        .btn-primary {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .btn-secondary {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .clock-display {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--vscode-charts-green);
+        }
+
+        .heap-input {
+            width: 100px;
+            padding: 4px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-family: var(--vscode-font-family);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .heap-input:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .compiler-select {
+            min-width: 150px;
+            padding: 4px 8px;
+            background-color: var(--vscode-dropdown-background);
+            color: var(--vscode-dropdown-foreground);
+            border: 1px solid var(--vscode-dropdown-border);
+            border-radius: 2px;
+            font-family: var(--vscode-font-family);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .compiler-select:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .bootloader-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--vscode-button-background);
+        }
+
+        /* Pin Manager Styles */
+        .pin-manager-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        .pin-manager-toolbar {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            padding: 12px;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+        }
+
+        .pin-manager-toolbar label {
+            font-size: 12px;
+            color: var(--vscode-input-foreground);
+            margin-right: 8px;
+        }
+
+        .pin-manager-toolbar select {
+            padding: 4px 8px;
+            background-color: var(--vscode-dropdown-background);
+            color: var(--vscode-dropdown-foreground);
+            border: 1px solid var(--vscode-dropdown-border);
+            border-radius: 2px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .pin-filter-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .pin-table-container {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+        }
+
+        .pin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .pin-table thead {
+            position: sticky;
+            top: 0;
+            background-color: var(--vscode-editorGroupHeader-tabsBackground);
+            z-index: 10;
+        }
+
+        .pin-table th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--vscode-panel-border);
+            color: var(--vscode-foreground);
+        }
+
+        .pin-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .pin-table tbody tr:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+
+        .pin-table tbody tr.configured {
+            background-color: var(--vscode-list-activeSelectionBackground);
+            color: var(--vscode-list-activeSelectionForeground);
+        }
+
+        .pin-number {
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: var(--vscode-symbolIcon-numberForeground);
+        }
+
+        .pin-id {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--vscode-symbolIcon-variableForeground);
+        }
+
+        .pin-function {
+            color: var(--vscode-symbolIcon-functionForeground);
+        }
+
+        .pin-custom-name {
+            font-style: italic;
+            color: var(--vscode-symbolIcon-stringForeground);
+        }
+
+        .pin-direction {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+        }
+
+        .pin-state {
+            font-size: 11px;
+        }
+
+        .config-btn {
+            padding: 4px 10px;
+            font-size: 11px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .config-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .config-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Pin Configuration Dialog */
+        .dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dialog-overlay.active {
+            display: flex;
+        }
+
+        .dialog {
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .dialog-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .dialog-content {
+            padding: 16px;
+        }
+
+        .dialog-section {
+            margin-bottom: 16px;
+        }
+
+        .dialog-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--vscode-foreground);
+        }
+
+        .dialog-radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .dialog-input-group {
+            margin-bottom: 12px;
+        }
+
+        .dialog-input-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .dialog-input-group input[type="text"],
+        .dialog-input-group select {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .dialog-checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .dialog-footer {
+            padding: 16px;
+            border-top: 1px solid var(--vscode-panel-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--vscode-scrollbarSlider-background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-activeBackground);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Edit Project Configuration</h1>
+            <div class="device-info">
+                <div class="info-item">
+                    <span class="info-label">MCU Name</span>
+                    <span class="info-value" id="deviceName">P32MZ2048EFH100</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">MCU Clock Frequency [MHz]</span>
+                    <span class="info-value clock-display" id="clockFreq">200.000000</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Heap Size [bytes]</span>
+                    <input type="number" class="heap-input" id="heapSize" value="4096" min="512" max="524288" step="512" />
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Flash Size</span>
+                    <span class="info-value" id="flashSize">2048 KB</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Pin Count</span>
+                    <span class="info-value" id="pinCount">100</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">XC32 Compiler Version</span>
+                    <select class="compiler-select" id="xc32Version">
+                        <option value="">Detecting...</option>
+                    </select>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Device Family Pack (DFP)</span>
+                    <select class="compiler-select" id="dfpVersion">
+                        <option value="">Detecting...</option>
+                    </select>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Use MikroE Bootloader</span>
+                    <input type="checkbox" class="bootloader-checkbox" id="useMikroeBootloader" />
+                </div>
+            </div>
+            <div class="tabs">
+                <button class="tab active" data-tab="config">Configuration</button>
+                <button class="tab" data-tab="system">System</button>
+                <button class="tab" data-tab="timer">Timer Calculator</button>
+                <button class="tab" data-tab="pins">Pin Manager</button>
+            </div>
+        </div>
+
+        <!-- Configuration Tab -->
+        <div class="tab-content active" id="configTab">
+            <div class="left-panel" id="settingsPanel">
+                <!-- Settings will be dynamically generated here -->
+            </div>
+
+            <div class="right-panel">
+                <div class="build-type">
+                    <label class="setting-label">Build Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="buildType" value="release" checked>
+                            Release
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="buildType" value="debug">
+                            ICD Debug
+                        </label>
+                    </div>
+                </div>
+
+                <div class="register-preview">
+                    <div class="register-title">Configuration Registers</div>
+                    <div class="register-list" id="registerList">
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG3</span>
+                            <span class="register-address">: $1FC0FFC0 :</span>
+                            <span class="register-value">0x43000000</span>
+                        </div>
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG2</span>
+                            <span class="register-address">: $1FC0FFC4 :</span>
+                            <span class="register-value">0x40013122</span>
+                        </div>
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG1</span>
+                            <span class="register-address">: $1FC0FFC8 :</span>
+                            <span class="register-value">0x5F74C4F9</span>
+                        </div>
+                        <div class="register-line">
+                            <span class="register-name">DEVCFG0</span>
+                            <span class="register-address">: $1FC0FFCC :</span>
+                            <span class="register-value">0x403FF75B</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Tab -->
+        <div class="tab-content" id="systemTab">
+            <div class="timer-calc-container">
+                <div class="timer-left-panel" style="flex: 0 0 300px;">
+                    <div class="timer-section">
+                        <div class="timer-section-title">System Clock Configuration</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">SYSCLK Frequency</label>
+                            <div class="timer-inline-group">
+                                <input type="number" class="timer-input" id="sysclkFreq" value="200" min="1" max="252" step="1" />
+                                <div class="timer-unit">MHz</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">Peripheral Bus Clocks</div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <button class="pbclk-btn active" data-pbclk="1">PBCLK1</button>
+                            <button class="pbclk-btn" data-pbclk="2">PBCLK2</button>
+                            <button class="pbclk-btn" data-pbclk="3">PBCLK3</button>
+                            <button class="pbclk-btn" data-pbclk="4">PBCLK4</button>
+                            <button class="pbclk-btn" data-pbclk="5">PBCLK5</button>
+                            <button class="pbclk-btn" data-pbclk="7">PBCLK7</button>
+                            <button class="pbclk-btn" data-pbclk="8">PBCLK8</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timer-right-panel" style="padding: 20px;">
+                    <!-- PBCLK1 -->
+                    <div class="pbclk-panel active" id="pbclk1Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 1</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk1Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB1DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk1Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK1: <span id="pbclk1Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                OSC2
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK2 -->
+                    <div class="pbclk-panel" id="pbclk2Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 2</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk2Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB2DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk2Div" value="4" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK2: <span id="pbclk2Freq">50.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                PMP, I2C,<br/>UART, SPI
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK3 -->
+                    <div class="pbclk-panel" id="pbclk3Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 3</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk3Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB3DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk3Div" value="4" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK3: <span id="pbclk3Freq">50.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                ADC, CMP,<br/>Timers,<br/>Output Compare,<br/>Input Capture
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK4 -->
+                    <div class="pbclk-panel" id="pbclk4Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 4</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk4Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB4DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk4Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK4: <span id="pbclk4Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                Ports
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK5 -->
+                    <div class="pbclk-panel" id="pbclk5Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 5</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk5Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB5DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk5Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK5: <span id="pbclk5Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                Flash, Crypto,<br/>RNG, USB, CAN,<br/>Ethernet, SQI
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK7 -->
+                    <div class="pbclk-panel" id="pbclk7Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 7</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk7Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB7DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk7Div" value="1" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK7: <span id="pbclk7Freq">200.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                CPU,<br/>Deadman Timer
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK8 -->
+                    <div class="pbclk-panel" id="pbclk8Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 8</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk8Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB8DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk8Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK8: <span id="pbclk8Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                EBI
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer Calculator Tab -->
+        <div class="tab-content" id="timerTab">
+            <div class="timer-calc-container">
+                <div class="timer-left-panel">
+                    <div class="timer-section">
+                        <div class="timer-section-title">1. Select Device</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">MCU Family</label>
+                            <select class="timer-select" id="timerMcuFamily">
+                                <option value="PIC32MZ_EC">PIC32MZ EC</option>
+                                <option value="PIC32MZ_EF">PIC32MZ EF</option>
+                                <option value="PIC32MX">PIC32MX</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">2. Choose Timer</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">Timer</label>
+                            <select class="timer-select" id="timerNumber">
+                                <option value="1">Timer1 (16-bit Type A)</option>
+                                <optgroup label="Type B - 16-bit Mode">
+                                    <option value="2">Timer2 (16-bit)</option>
+                                    <option value="3">Timer3 (16-bit)</option>
+                                    <option value="4">Timer4 (16-bit)</option>
+                                    <option value="5">Timer5 (16-bit)</option>
+                                    <option value="6">Timer6 (16-bit)</option>
+                                    <option value="7">Timer7 (16-bit)</option>
+                                    <option value="8">Timer8 (16-bit)</option>
+                                    <option value="9">Timer9 (16-bit)</option>
+                                </optgroup>
+                                <optgroup label="Type B - 32-bit Mode">
+                                    <option value="23">Timer2/3 (32-bit)</option>
+                                    <option value="45">Timer4/5 (32-bit)</option>
+                                    <option value="67">Timer6/7 (32-bit)</option>
+                                    <option value="89">Timer8/9 (32-bit)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">5. Prescaler Configuration</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">Prescaler</label>
+                            <select class="timer-select" id="timerPrescaler">
+                                <option value="auto" selected>Auto (Calculate Best)</option>
+                                <option value="1">1:1</option>
+                                <option value="2">1:2</option>
+                                <option value="4">1:4</option>
+                                <option value="8">1:8</option>
+                                <option value="16">1:16</option>
+                                <option value="32">1:32</option>
+                                <option value="64">1:64</option>
+                                <option value="256">1:256</option>
+                            </select>
+                        </div>
+                        <div class="timer-note" style="margin-top: 8px; font-size: 11px; color: #888;">
+                            Note: Timer1 supports 1,8,64,256. Timer2-9 support all values.
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">6. Interrupt Configuration</div>
+                        <div class="timer-input-group" style="margin-bottom: 12px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="timerEnableInterrupt" checked />
+                                Enable Timer Interrupt
+                            </label>
+                        </div>
+                        <div id="timerInterruptSettings">
+                            <div class="timer-input-group">
+                                <label class="timer-label">Interrupt Priority (1-7)</label>
+                                <input type="number" class="timer-input" id="timerPriority" value="7" min="1" max="7" step="1" />
+                            </div>
+                            <div class="timer-input-group" style="margin-top: 12px;">
+                                <label class="timer-label">Interrupt Subpriority (0-3)</label>
+                                <input type="number" class="timer-input" id="timerSubPriority" value="0" min="0" max="3" step="1" />
+                            </div>
+                            <div class="timer-input-group" style="margin-top: 12px;">
+                                <label class="timer-label">Shadow Register Set (SRS)</label>
+                                <select class="timer-select" id="timerShadowSet">
+                                    <option value="auto" selected>Auto (Use Priority)</option>
+                                    <option value="0">SRS 0 (Main)</option>
+                                    <option value="1">SRS 1</option>
+                                    <option value="2">SRS 2</option>
+                                    <option value="3">SRS 3</option>
+                                    <option value="4">SRS 4</option>
+                                    <option value="5">SRS 5</option>
+                                    <option value="6">SRS 6</option>
+                                    <option value="7">SRS 7</option>
+                                </select>
+                            </div>
+                            <div class="timer-note" style="margin-top: 8px; font-size: 11px; color: #888;">
+                                Note: Auto uses ipl{priority}SRS, Manual uses ipl{priority}SOFT for custom SRS selection
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">7. Interrupt Time</div>
+                        <div class="timer-inline-group">
+                            <div class="timer-input-group">
+                                <label class="timer-label">Period</label>
+                                <input type="number" class="timer-input" id="timerPeriod" value="1" min="0.001" max="3600" step="0.001" />
+                            </div>
+                            <select class="timer-select" id="timerPeriodUnit" style="flex: 0 0 80px;">
+                                <option value="us">μs</option>
+                                <option value="ms" selected>ms</option>
+                                <option value="s">s</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="timer-calc-btn" id="calculateTimerBtn">
+                        ⚡ Calculate
+                    </button>
+
+                    <div class="timer-info-box" id="timerInfo" style="display: none;">
+                        <div><span class="timer-info-label">Prescaler:</span> <span id="infoPrescaler"></span></div>
+                        <div><span class="timer-info-label">PR Value:</span> <span id="infoPR"></span></div>
+                        <div><span class="timer-info-label">Actual Period:</span> <span id="infoActual"></span></div>
+                        <div><span class="timer-info-label">Error:</span> <span id="infoError"></span></div>
+                    </div>
+                </div>
+
+                <div class="timer-right-panel">
+                    <div class="timer-result-header">
+                        <div class="timer-result-title">Generated Code</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select class="timer-select" id="codeFormat" style="width: auto; min-width: 120px;">
+                                <option value="mikroc">mikroC</option>
+                                <option value="harmony">Harmony (XC32)</option>
+                            </select>
+                            <button class="timer-copy-btn" id="copyTimerCodeBtn">📋 Copy to Clipboard</button>
+                        </div>
+                    </div>
+                    <div class="timer-code-output">
+                        <div class="timer-code-block" id="timerCodeOutput">// Configure timer settings and click Calculate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pin Manager Tab -->
+        <div class="tab-content" id="pinsTab">
+            <div class="pin-manager-container">
+                <div class="pin-manager-toolbar">
+                    <label>Package:</label>
+                    <select id="pinPackageSelect">
+                        <option value="64-pin">64-pin QFN/TQFP</option>
+                        <option value="100-pin" selected>100-pin TQFP</option>
+                        <option value="124-pin">124-pin VTLA</option>
+                        <option value="144-pin">144-pin TQFP/LQFP</option>
+                    </select>
+                    
+                    <div class="pin-filter-group">
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterGPIO" checked>
+                            Show GPIO
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterAnalog" checked>
+                            Show Analog
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterPPS" checked>
+                            Show PPS
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterConfigured">
+                            Configured Only
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pin-table-container">
+                    <table class="pin-table">
+                        <thead>
+                            <tr>
+                                <th>Pin #</th>
+                                <th>Pin ID</th>
+                                <th>Custom Name</th>
+                                <th>Function</th>
+                                <th>Direction</th>
+                                <th>State</th>
+                                <th>Mode</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="pinTableBody">
+                            <!-- Pin rows will be dynamically generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pin Configuration Dialog -->
+        <div class="dialog-overlay" id="pinConfigDialog">
+            <div class="dialog">
+                <div class="dialog-header" id="dialogPinName">Configure Pin: RB8</div>
+                <div class="dialog-content">
+                    <div class="dialog-section">
+                        <div class="dialog-section-title">Pin Function</div>
+                        <div class="dialog-radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="pinMode" value="GPIO" checked>
+                                GPIO
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="pinMode" value="Analog">
+                                Analog
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="pinMode" value="Peripheral">
+                                Peripheral (PPS)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- GPIO Configuration -->
+                    <div class="dialog-section" id="gpioConfigSection">
+                        <div class="dialog-section-title">GPIO Configuration</div>
+                        
+                        <div class="dialog-input-group">
+                            <label>Custom Name:</label>
+                            <input type="text" id="pinCustomName" placeholder="e.g., LED1, SW1" maxlength="20">
+                        </div>
+
+                        <div class="dialog-input-group">
+                            <label>Direction:</label>
+                            <div class="dialog-radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="pinDirection" value="Output" checked>
+                                    Output
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="pinDirection" value="Input">
+                                    Input
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="dialog-input-group" id="initialStateGroup">
+                            <label>Initial State:</label>
+                            <div class="dialog-radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="pinInitState" value="Low" checked>
+                                    Low
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="pinInitState" value="High">
+                                    High
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="dialog-input-group">
+                            <label>Options:</label>
+                            <div class="dialog-checkbox-group">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinOpenDrain">
+                                    Open Drain
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinPullUp">
+                                    Pull-up Resistor
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinPullDown">
+                                    Pull-down Resistor
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="pinChangeNotification">
+                                    Change Notification Interrupt
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analog Configuration -->
+                    <div class="dialog-section" id="analogConfigSection" style="display: none;">
+                        <div class="dialog-section-title">Analog Configuration</div>
+                        <div class="dialog-input-group">
+                            <label>Analog Channel:</label>
+                            <select id="analogChannel">
+                                <option value="">Select channel...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Peripheral/PPS Configuration -->
+                    <div class="dialog-section" id="ppsConfigSection" style="display: none;">
+                        <div class="dialog-section-title">Peripheral Pin Select</div>
+                        <div class="dialog-input-group">
+                            <label>Peripheral Function:</label>
+                            <select id="ppsPeripheral">
+                                <option value="">Select peripheral...</option>
+                            </select>
+                        </div>
+                        <div id="ppsInfo" style="font-size: 11px; color: var(--vscode-descriptionForeground); margin-top: 8px;">
+                            <!-- PPS mapping info will be shown here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="dialog-footer">
+                    <button class="btn-secondary" id="dialogCancelBtn">Cancel</button>
+                    <button class="btn-primary" id="dialogOkBtn">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="button-group">
+                <button class="btn-secondary" id="loadSchemeBtn">Load Scheme</button>
+                <button class="btn-secondary" id="saveSchemeBtn">Save Scheme</button>
+                <button class="btn-secondary" id="defaultBtn">Default</button>
+            </div>
+            <div class="button-group">
+                <button class="btn-secondary" id="cancelBtn">Cancel</button>
+                <button class="btn-primary" id="okBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        // Initialize with device data
+        let currentConfig = {};
+        let uiSchema = [];
+        let deviceInfo = {};
+        let timerConfig = {
+            frequency: 200,
+            pbclk3Div: 2,
+            timer: '1',
+            period: 1,
+            unit: 'ms',
+            prescaler: 8,
+            prValue: 12500,
+            actualPeriod: 1.0,
+            error: 0,
+            priority: 7,
+            subPriority: 0,
+            enableInterrupt: true,
+            shadowSet: 'auto'
+        };
+
+        // System Tab - PBCLK Management
+        function updateAllPBCLKFrequencies() {
+            const sysclk = parseFloat(document.getElementById('sysclkFreq').value);
+            
+            // Update all PBCLK frequencies
+            for (let i of [1, 2, 3, 4, 5, 7, 8]) {
+                const divider = parseInt(document.getElementById(`pbclk${i}Div`).value);
+                const freq = sysclk / divider;
+                document.getElementById(`pbclk${i}Freq`).textContent = `${freq.toFixed(3)} MHz`;
+            }
+        }
+
+        // PBCLK button switching
+        document.querySelectorAll('.pbclk-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pbclkNum = btn.dataset.pbclk;
+                
+                // Update button states
+                document.querySelectorAll('.pbclk-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update panel visibility
+                document.querySelectorAll('.pbclk-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById(`pbclk${pbclkNum}Panel`).classList.add('active');
+            });
+        });
+
+        // Add event listeners for SYSCLK and all PBCLK dividers
+        document.getElementById('sysclkFreq')?.addEventListener('input', updateAllPBCLKFrequencies);
+        for (let i of [1, 2, 3, 4, 5, 7, 8]) {
+            document.getElementById(`pbclk${i}Div`)?.addEventListener('input', updateAllPBCLKFrequencies);
+        }
+
+        // Initialize PBCLK displays
+        setTimeout(updateAllPBCLKFrequencies, 100);
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                // Update tab buttons
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(targetTab + 'Tab').classList.add('active');
+            });
+        });
+
+        // Timer Calculator Functions
+        function calculateTimer() {
+            // Get PBCLK3 from System tab
+            const sysclk = parseFloat(document.getElementById('sysclkFreq')?.value || 200) * 1000000; // Convert MHz to Hz
+            const pbclk3Div = parseInt(document.getElementById('pbclk3Div')?.value || 4);
+            const frequency = sysclk / pbclk3Div; // PBCLK3 frequency in Hz
+            
+            const timerNum = document.getElementById('timerNumber').value;
+            const period = parseFloat(document.getElementById('timerPeriod').value);
+            const unit = document.getElementById('timerPeriodUnit').value;
+            const priority = parseInt(document.getElementById('timerPriority').value);
+            const subPriority = parseInt(document.getElementById('timerSubPriority').value);
+            const prescalerSelection = document.getElementById('timerPrescaler').value;
+            
+            // Convert period to seconds
+            let periodSeconds = period;
+            if (unit === 'us') periodSeconds = period / 1000000;
+            else if (unit === 'ms') periodSeconds = period / 1000;
+            
+            // Timer runs at PBCLK3 (SYSCLK / pbclk3Div)
+            const timerClock = frequency / pbclk3Div;
+            
+            // Calculate required ticks
+            const requiredTicks = timerClock * periodSeconds;
+            
+            // Determine if 16-bit or 32-bit timer
+            const is16Bit = timerNum.length === 1; // Single digit = 16-bit
+            const is32Bit = timerNum.length === 2; // Two digits = 32-bit paired
+            
+            let bestPrescaler = 1;
+            let bestPR = 0;
+            let bestError = Infinity;
+            
+            // Check if manual prescaler is selected
+            if (prescalerSelection !== 'auto') {
+                // Use manually selected prescaler
+                const manualPrescaler = parseInt(prescalerSelection);
+                
+                // Validate prescaler for timer type
+                const validPrescalers = timerNum === '1' ? [1, 8, 64, 256] : [1, 2, 4, 8, 16, 32, 64, 256];
+                if (!validPrescalers.includes(manualPrescaler)) {
+                    alert(`Prescaler ${manualPrescaler} is not valid for Timer${timerNum}. Valid values: ${validPrescalers.join(', ')}`);
+                    return;
+                }
+                
+                const pr = Math.round(requiredTicks / manualPrescaler);
+                const maxPR = is16Bit ? 65536 : 4294967296;
+                
+                if (pr > 0 && pr <= maxPR) {
+                    bestPrescaler = manualPrescaler;
+                    bestPR = pr;
+                    const actualTicks = pr * manualPrescaler;
+                    const actualPeriod = actualTicks / timerClock;
+                    bestError = Math.abs((actualPeriod - periodSeconds) / periodSeconds) * 100;
+                } else {
+                    alert(`Period value ${pr} exceeds maximum for ${is16Bit ? '16-bit' : '32-bit'} timer (max: ${maxPR})`);
+                    return;
+                }
+            } else {
+                // Auto-calculate best prescaler
+                // Timer1 Type A: 1, 8, 64, 256
+                // Timer2-9 Type B: 1, 2, 4, 8, 16, 32, 64, 256
+                const prescalers = timerNum === '1' ? [1, 8, 64, 256] : [1, 2, 4, 8, 16, 32, 64, 256];
+                
+                for (const presc of prescalers) {
+                    const pr = Math.round(requiredTicks / presc);
+                    const maxPR = is16Bit ? 65536 : 4294967296; // 16-bit: 65536, 32-bit: 4294967296
+                    
+                    if (pr > 0 && pr <= maxPR) {
+                        const actualTicks = pr * presc;
+                        const actualPeriod = actualTicks / timerClock;
+                        const error = Math.abs((actualPeriod - periodSeconds) / periodSeconds) * 100;
+                    
+                    if (error < bestError) {
+                        bestError = error;
+                        bestPrescaler = presc;
+                        bestPR = pr;
+                    }
+                }
+            }
+            } // End of auto-calculation
+            
+            // Calculate actual period
+            const actualTicks = bestPR * bestPrescaler;
+            const actualPeriodSeconds = actualTicks / timerClock;
+            let actualPeriodDisplay, actualUnit;
+            
+            if (actualPeriodSeconds < 0.001) {
+                actualPeriodDisplay = (actualPeriodSeconds * 1000000).toFixed(3);
+                actualUnit = 'μs';
+            } else if (actualPeriodSeconds < 1) {
+                actualPeriodDisplay = (actualPeriodSeconds * 1000).toFixed(6);
+                actualUnit = 'ms';
+            } else {
+                actualPeriodDisplay = actualPeriodSeconds.toFixed(6);
+                actualUnit = 's';
+            }
+            
+            // Update timer config
+            timerConfig.frequency = frequency;
+            timerConfig.pbclk3Div = pbclk3Div;
+            timerConfig.timer = timerNum;
+            timerConfig.period = periodSeconds;
+            timerConfig.prescaler = bestPrescaler;
+            timerConfig.prValue = bestPR;
+            timerConfig.actualPeriod = actualPeriodSeconds;
+            timerConfig.error = bestError;
+            timerConfig.priority = priority;
+            timerConfig.subPriority = subPriority;
+            timerConfig.enableInterrupt = document.getElementById('timerEnableInterrupt').checked;
+            timerConfig.shadowSet = document.getElementById('timerShadowSet').value;
+            
+            // Update info box
+            document.getElementById('timerInfo').style.display = 'block';
+            document.getElementById('infoPrescaler').textContent = `1:${bestPrescaler}`;
+            document.getElementById('infoPR').textContent = bestPR;
+            document.getElementById('infoActual').textContent = `${actualPeriodDisplay} ${actualUnit}`;
+            document.getElementById('infoError').textContent = `${bestError.toFixed(4)}%`;
+            
+            // Generate code
+            generateTimerCode();
+        }
+
+        function generateTimerCode() {
+            const { timer, prescaler, prValue, actualPeriod, priority, subPriority, pbclk3Div } = timerConfig;
+            const codeFormat = document.getElementById('codeFormat').value;
+            let code = '';
+            
+            // Format actual period display
+            let actualDisplay;
+            if (actualPeriod < 0.001) {
+                actualDisplay = `${(actualPeriod * 1000000).toFixed(3)} us`;
+            } else if (actualPeriod < 1) {
+                actualDisplay = `${(actualPeriod * 1000).toFixed(3)} ms`;
+            } else {
+                actualDisplay = `${actualPeriod.toFixed(6)} s`;
+            }
+            
+            // Determine prescaler value for TCKPS bits
+            const prescalerMap = {
+                1: 0,    // 000
+                2: 1,    // 001
+                4: 2,    // 010
+                8: 3,    // 011
+                16: 4,   // 100
+                32: 5,   // 101
+                64: 6,   // 110
+                256: 7   // 111
+            };
+            const tckps = prescalerMap[prescaler];
+            
+            if (codeFormat === 'mikroc') {
+                code = generateMikroCCode(timer, prescaler, prValue, actualDisplay, tckps, priority);
+            } else {
+                code = generateHarmonyCode(timer, prescaler, prValue, actualDisplay, tckps, priority, subPriority, pbclk3Div);
+            }
+            
+            document.getElementById('timerCodeOutput').innerHTML = code;
+        }
+
+        function generateMikroCCode(timer, prescaler, prValue, actualDisplay, tckps, priority) {
+            let code = '';
+            
+            if (timer === '1') {
+                // Timer1 Type A (16-bit only)
+                const tckpsHex = (tckps << 4).toString(16).padStart(2, '0');
+                const tconValue = `0x80${tckpsHex}`;
+                
+                code = `<span class="timer-comment">//Timer1</span>
+<span class="timer-comment">//Prescaler 1:${prescaler}; PR1 Preload = ${prValue}; Actual Interrupt Time = ${actualDisplay}</span>
+ 
+<span class="timer-comment">//Place/Copy this part in declaration section</span>
+void InitTimer1(){
+  T1CON\t\t = ${tconValue};
+  T1IP0_bit\t = ${(priority & 1) ? 1 : 0};
+  T1IP1_bit\t = ${(priority & 2) ? 1 : 0};
+  T1IP2_bit\t = ${(priority & 4) ? 1 : 0};
+  T1IF_bit\t = 0;
+  T1IE_bit\t = 1;
+  PR1\t\t = ${prValue};
+  TMR1\t\t = 0;
+}
+ 
+void Timer1Interrupt() iv IVT_TIMER_1 ilevel ${priority} ics ICS_SRS {
+  T1IF_bit\t = 0;
+  <span class="timer-comment">//Enter your code here</span> 
+}`;
+            } else if (timer.length === 2) {
+                // 32-bit paired timer
+                const evenTimer = timer[0];
+                const timerName = `Timer${timer[0]}_${timer[1]}`;
+                const tckpsHex = (tckps << 4).toString(16).padStart(2, '0');
+                const tconValue = `0x${(0x80 | (tckps << 4) | 0x08).toString(16)}`; // ON + TCKPS + T32
+                
+                code = `<span class="timer-comment">//${timerName} (32-bit mode)</span>
+<span class="timer-comment">//Prescaler 1:${prescaler}; PR${evenTimer} Preload = ${prValue}; Actual Interrupt Time = ${actualDisplay}</span>
+ 
+<span class="timer-comment">//Place/Copy this part in declaration section</span>
+void Init${timerName}(){
+  T${evenTimer}CON\t\t = ${tconValue};
+  T${evenTimer}IP0_bit\t = ${(priority & 1) ? 1 : 0};
+  T${evenTimer}IP1_bit\t = ${(priority & 2) ? 1 : 0};
+  T${evenTimer}IP2_bit\t = ${(priority & 4) ? 1 : 0};
+  T${evenTimer}IF_bit\t = 0;
+  T${evenTimer}IE_bit\t = 1;
+  PR${evenTimer}\t\t = ${prValue};
+  TMR${evenTimer}\t\t = 0;
+}
+ 
+void ${timerName}Interrupt() iv IVT_TIMER_${evenTimer} ilevel ${priority} ics ICS_SRS {
+  T${evenTimer}IF_bit\t = 0;
+  <span class="timer-comment">//Enter your code here</span> 
+}`;
+            } else {
+                // 16-bit Type B timer
+                const tckpsHex = (tckps << 4).toString(16).padStart(2, '0');
+                const tconValue = `0x80${tckpsHex}`;
+                
+                code = `<span class="timer-comment">//Timer${timer} (16-bit mode)</span>
+<span class="timer-comment">//Prescaler 1:${prescaler}; PR${timer} Preload = ${prValue}; Actual Interrupt Time = ${actualDisplay}</span>
+ 
+<span class="timer-comment">//Place/Copy this part in declaration section</span>
+void InitTimer${timer}(){
+  T${timer}CON\t\t = ${tconValue};
+  T${timer}IP0_bit\t = ${(priority & 1) ? 1 : 0};
+  T${timer}IP1_bit\t = ${(priority & 2) ? 1 : 0};
+  T${timer}IP2_bit\t = ${(priority & 4) ? 1 : 0};
+  T${timer}IF_bit\t = 0;
+  T${timer}IE_bit\t = 1;
+  PR${timer}\t\t = ${prValue};
+  TMR${timer}\t\t = 0;
+}
+ 
+void Timer${timer}Interrupt() iv IVT_TIMER_${timer} ilevel ${priority} ics ICS_SRS {
+  T${timer}IF_bit\t = 0;
+  <span class="timer-comment">//Enter your code here</span> 
+}`;
+            }
+            
+            return code;
+        }
+
+        function generateHarmonyCode(timer, prescaler, prValue, actualDisplay, tckps, priority, subPriority, pbclk3Div) {
+            let code = '';
+            const is32Bit = timer.length === 2;
+            const timerNum = is32Bit ? timer[0] : timer;
+            const timerName = is32Bit ? `${timer[0]}_${timer[1]}` : timer;
+            
+            // Calculate IPC register and bit positions
+            const ipcNum = Math.floor((parseInt(timerNum) - 1) / 4) + 1;
+            const ipcShift = ((parseInt(timerNum) - 1) % 4) * 8;
+            const priorityBits = (priority << 2) | subPriority;
+            const ipcValue = `0x${(priorityBits << ipcShift).toString(16)}`;
+            
+            // Generate TCON value
+            let tconValue;
+            if (timer === '1') {
+                tconValue = `0x${((tckps << 4)).toString(16)}`;
+            } else if (is32Bit) {
+                tconValue = `0x${((tckps << 4) | 0x08).toString(16)}`; // T32 bit set
+            } else {
+                tconValue = `0x${((tckps << 4)).toString(16)}`;
+            }
+            
+            code = `<span class="timer-comment">/* ========= plib_clk.c - Add to CLK_Initialize() ========= */</span>
+<span class="timer-comment">/* Peripheral Bus 3 divisor (for timers) */</span>
+PB3DIVbits.PBDIV = ${pbclk3Div - 1};
+
+<span class="timer-comment">/* ========= plib_tmr${timerNum}.c ========= */</span>
+<span class="timer-comment">// Timer${timerName} Configuration</span>
+<span class="timer-comment">// Prescaler 1:${prescaler}; PR${timerNum} = ${prValue}; Period = ${actualDisplay}</span>
+
+void TMR${timer === '1' ? '1' : timerNum}_Initialize(void)
+{
+    <span class="timer-comment">/* Disable Timer */</span>
+    T${timerNum}CONCLR = _T${timerNum}CON_ON_MASK;
+
+    <span class="timer-comment">/* TCKPS = ${tckps}${is32Bit ? ', T32 = 1' : ''} */</span>
+    T${timerNum}CONSET = ${tconValue};
+
+    <span class="timer-comment">/* Clear counter */</span>
+    TMR${timerNum} = 0x0;
+
+    <span class="timer-comment">/* Set period */</span>
+    PR${timerNum} = ${prValue}U;
+
+    <span class="timer-comment">/* Enable TMR Interrupt */</span>
+    IEC0SET = _IEC0_T${timerNum}IE_MASK;
+}
+
+<span class="timer-comment">/* ========= plib_evic.c - Add to EVIC_Initialize() ========= */</span>
+IPC${ipcNum}SET = ${ipcValue}U;  <span class="timer-comment">/* TIMER_${timerNum}: Priority ${priority} / Subpriority ${subPriority} */</span>
+
+<span class="timer-comment">/* ========= interrupts.c ========= */</span>
+void __attribute__((used)) TIMER_${timerNum}_InterruptHandler(void)
+{
+    uint32_t status = IFS0bits.T${timerNum}IF;
+    IFS0CLR = _IFS0_T${timerNum}IF_MASK;
+
+    <span class="timer-comment">/* Your code here */</span>
+}
+
+<span class="timer-comment">/* Handler declaration */</span>
+void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) TIMER_${timerNum}_Handler(void)
+{
+    TIMER_${timerNum}_InterruptHandler();
+}`;
+            
+            return code;
+        }
+
+        function copyTimerCode() {
+            const codeElement = document.getElementById('timerCodeOutput');
+            const codeText = codeElement.innerText;
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                const btn = document.getElementById('copyTimerCodeBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Timer button event listeners
+        document.getElementById('calculateTimerBtn')?.addEventListener('click', calculateTimer);
+        document.getElementById('copyTimerCodeBtn')?.addEventListener('click', copyTimerCode);
+        document.getElementById('codeFormat')?.addEventListener('change', generateTimerCode);
+        
+        // Toggle interrupt settings visibility
+        document.getElementById('timerEnableInterrupt')?.addEventListener('change', function() {
+            const interruptSettings = document.getElementById('timerInterruptSettings');
+            if (this.checked) {
+                interruptSettings.style.display = 'block';
+            } else {
+                interruptSettings.style.display = 'none';
+            }
+        });
+        
+        // Auto-update system SYSCLK when frequency changes (from main config)
+        function updateTimerFrequency() {
+            const clockFreq = document.getElementById('clockFreq')?.textContent;
+            if (clockFreq) {
+                const freq = parseFloat(clockFreq);
+                document.getElementById('sysclkFreq').value = freq;
+                updateAllPBCLKFrequencies();
+            }
+        }
+
+        // Listen for messages from extension
+        // Populate XC32 compiler versions dropdown
+        function populateXC32Dropdown(versions) {
+            const select = document.getElementById('xc32Version');
+            select.innerHTML = '';
+            
+            // Add versions (already sorted latest first)
+            versions.forEach((version, index) => {
+                const option = document.createElement('option');
+                option.value = version;
+                option.textContent = version + (index === 0 ? ' (Latest)' : '');
+                if (index === 0) {
+                    option.selected = true; // Select latest by default
+                }
+                select.appendChild(option);
+            });
+        }
+
+        // Populate DFP versions dropdown
+        function populateDFPDropdown(versions) {
+            const select = document.getElementById('dfpVersion');
+            select.innerHTML = '';
+            
+            // Add versions (already sorted latest first)
+            versions.forEach((version, index) => {
+                const option = document.createElement('option');
+                option.value = version;
+                option.textContent = version + (index === 0 ? ' (Latest)' : '');
+                if (index === 0) {
+                    option.selected = true; // Select latest by default
+                }
+                select.appendChild(option);
+            });
+        }
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.type) {
+                case 'init':
+                    deviceInfo = message.deviceInfo;
+                    uiSchema = message.uiSchema;
+                    currentConfig = message.config || {};
+                    initializeUI();
+                    break;
+                case 'updateRegisters':
+                    updateRegisterPreview(message.registers);
+                    break;
+                case 'populateXC32Versions':
+                    populateXC32Dropdown(message.versions);
+                    break;
+                case 'populateDFPVersions':
+                    populateDFPDropdown(message.versions);
+                    break;
+                case 'pinTableData':
+                    // Update pin table with real data from backend
+                    console.log('Received pin table data:', message.data);
+                    pinTableData = message.data;
+                    renderPinTable();
+                    break;
+                case 'generatedPinCode':
+                    // Handle generated code display (could show in a new tab/panel)
+                    console.log('Generated code:', message.code);
+                    break;
+            }
+        });
+
+        function initializeUI() {
+            // Update header info
+            document.getElementById('deviceName').textContent = deviceInfo.name;
+            document.getElementById('flashSize').textContent = `${deviceInfo.flashKB} KB`;
+            document.getElementById('pinCount').textContent = deviceInfo.pins;
+            
+            // Request XC32 and DFP versions from extension
+            vscode.postMessage({ type: 'getXC32Versions' });
+            vscode.postMessage({ type: 'getDFPVersions', deviceFamily: deviceInfo.family });
+            
+            // Generate settings by category
+            const categories = [...new Set(uiSchema.map(s => s.category))];
+            const settingsPanel = document.getElementById('settingsPanel');
+            settingsPanel.innerHTML = '';
+
+            categories.forEach(category => {
+                const section = document.createElement('div');
+                section.className = 'category-section';
+                
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = category;
+                section.appendChild(title);
+
+                const settings = uiSchema.filter(s => s.category === category);
+                settings.forEach(setting => {
+                    const group = document.createElement('div');
+                    group.className = 'setting-group';
+
+                    const label = document.createElement('label');
+                    label.className = 'setting-label';
+                    label.textContent = setting.name;
+                    label.htmlFor = `setting${setting.index}`;
+                    group.appendChild(label);
+
+                    const select = document.createElement('select');
+                    select.className = 'setting-select';
+                    select.id = `setting${setting.index}`;
+                    select.dataset.index = setting.index;
+
+                    setting.options.forEach(option => {
+                        const opt = document.createElement('option');
+                        opt.value = option;
+                        opt.textContent = option;
+                        if (option === (currentConfig[setting.index] || setting.defaultValue)) {
+                            opt.selected = true;
+                        }
+                        select.appendChild(opt);
+                    });
+
+                    select.addEventListener('change', handleSettingChange);
+                    group.appendChild(select);
+                    section.appendChild(group);
+                });
+
+                settingsPanel.appendChild(section);
+            });
+
+            // Request initial register calculation
+            calculateRegisters();
+        }
+
+        function handleSettingChange(event) {
+            const index = parseInt(event.target.dataset.index);
+            const value = event.target.value;
+            currentConfig[index] = value;
+            calculateRegisters();
+        }
+
+        function calculateRegisters() {
+            // Send current config to extension for register calculation
+            vscode.postMessage({
+                type: 'calculateRegisters',
+                config: currentConfig
+            });
+        }
+
+        function updateRegisterPreview(registers) {
+            const registerList = document.getElementById('registerList');
+            registerList.innerHTML = Object.entries(registers)
+                .map(([name, data]) => `
+                    <div class="register-line">
+                        <span class="register-name">${name}</span>
+                        <span class="register-address">: ${data.address} :</span>
+                        <span class="register-value">${data.value}</span>
+                    </div>
+                `).join('');
+
+            // Update clock frequency if calculated
+            if (registers.calculatedClock) {
+                document.getElementById('clockFreq').textContent = 
+                    registers.calculatedClock.toFixed(6);
+                // Update system tab SYSCLK frequency
+                document.getElementById('sysclkFreq').value = registers.calculatedClock;
+                updateAllPBCLKFrequencies();
+            }
+        }
+
+        // Button handlers
+        document.getElementById('okBtn').addEventListener('click', () => {
+            const heapSize = parseInt(document.getElementById('heapSize').value) || 4096;
+            const xc32Version = document.getElementById('xc32Version').value;
+            const dfpVersion = document.getElementById('dfpVersion').value;
+            const useMikroeBootloader = document.getElementById('useMikroeBootloader').checked;
+            
+            // Include timer configuration if it has been calculated
+            let timerConfigurations = undefined;
+            if (timerConfig.prValue > 0) {
+                // Get PBCLK3 frequency from System tab
+                const sysclk = parseFloat(document.getElementById('sysclkFreq')?.value || 200) * 1000000;
+                const pbclk3Div = parseInt(document.getElementById('pbclk3Div')?.value || 4);
+                const pbclk3Freq = sysclk / pbclk3Div;
+                
+                const is32Bit = timerConfig.timer.length === 2;
+                timerConfigurations = [{
+                    timer: timerConfig.timer,
+                    prescaler: timerConfig.prescaler,
+                    prValue: timerConfig.prValue,
+                    priority: timerConfig.priority,
+                    subPriority: timerConfig.subPriority,
+                    period: timerConfig.actualPeriod,
+                    pbclk3Freq: pbclk3Freq,
+                    mode32Bit: is32Bit,
+                    enableInterrupt: timerConfig.enableInterrupt,
+                    shadowSet: timerConfig.shadowSet
+                }];
+            }
+            
+            vscode.postMessage({
+                type: 'ok',
+                config: currentConfig,
+                heapSize: heapSize,
+                xc32Version: xc32Version,
+                dfpVersion: dfpVersion,
+                useMikroeBootloader: useMikroeBootloader,
+                timerConfigurations: timerConfigurations
+            });
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'cancel' });
+        });
+
+        document.getElementById('saveSchemeBtn').addEventListener('click', () => {
+            vscode.postMessage({
+                type: 'saveScheme',
+                config: currentConfig
+            });
+        });
+
+        document.getElementById('loadSchemeBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'loadScheme' });
+        });
+
+        document.getElementById('defaultBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'loadDefaults' });
+        });
+
+        // ===========================
+        // PIN MANAGER
+        // ===========================
+
+        let pinTableData = [];
+        let currentPackage = '100-pin';
+        let currentEditingPin = null;
+
+        function renderPinTable() {
+            const tbody = document.getElementById('pinTableBody');
+            if (!tbody) {
+                console.error('Pin table body not found');
+                return;
+            }
+
+            const filterGPIO = document.getElementById('filterGPIO')?.checked ?? true;
+            const filterAnalog = document.getElementById('filterAnalog')?.checked ?? true;
+            const filterPPS = document.getElementById('filterPPS')?.checked ?? true;
+            const filterConfigured = document.getElementById('filterConfigured')?.checked ?? false;
+
+            tbody.innerHTML = '';
+
+            if (!pinTableData || pinTableData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No pin data available. Waiting for backend...</td></tr>';
+                return;
+            }
+
+            pinTableData.forEach(pin => {
+                // Apply "Configured Only" filter
+                if (filterConfigured && pin.mode === 'Not Configured') {
+                    return;
+                }
+
+                // Apply type filters - if filter is unchecked, skip that type
+                let showPin = false;
+                
+                // Show if GPIO filter is checked and pin is GPIO-capable
+                if (filterGPIO && !pin.analogChannel && pin.rpNumber === undefined) {
+                    showPin = true;
+                }
+                
+                // Show if Analog filter is checked and pin has analog capability
+                if (filterAnalog && pin.analogChannel) {
+                    showPin = true;
+                }
+                
+                // Show if PPS filter is checked and pin has PPS capability
+                if (filterPPS && pin.rpNumber !== undefined) {
+                    showPin = true;
+                }
+
+                if (!showPin) {
+                    return;
+                }
+
+                const row = document.createElement('tr');
+                if (pin.mode !== 'Not Configured') {
+                    row.classList.add('configured');
+                }
+
+                row.innerHTML = `
+                    <td class="pin-number">${pin.pinNum}</td>
+                    <td class="pin-id">${pin.pinId}</td>
+                    <td class="pin-custom-name">${pin.customName || '-'}</td>
+                    <td class="pin-function">${pin.function}</td>
+                    <td><span class="pin-direction">${pin.direction || '-'}</span></td>
+                    <td class="pin-state">${pin.state || '-'}</td>
+                    <td>${pin.mode}</td>
+                    <td>
+                        <button class="config-btn" onclick="openPinConfig('${pin.pinId}')">⚙</button>
+                        ${pin.mode !== 'Not Configured' ? `<button class="config-btn" onclick="removePinConfig('${pin.pinId}')" title="Clear Configuration">✖</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No pins match the current filters</td></tr>';
+            }
+        }
+
+        function removePinConfig(pinId) {
+            if (confirm(`Clear configuration for pin ${pinId}?`)) {
+                vscode.postMessage({
+                    type: 'removePinConfiguration',
+                    pinName: pinId
+                });
+            }
+        }
+
+        function openPinConfig(pinId) {
+            currentEditingPin = pinId;
+            const pin = pinTableData.find(p => p.pinId === pinId);
+            if (!pin) return;
+
+            document.getElementById('dialogPinName').textContent = `Configure Pin: ${pinId}`;
+            document.getElementById('pinCustomName').value = pin.customName || '';
+            
+            // Populate analog channel if available
+            const analogChannelSelect = document.getElementById('analogChannel');
+            analogChannelSelect.innerHTML = '<option value="">Select channel...</option>';
+            if (pin.analog) {
+                analogChannelSelect.innerHTML += `<option value="${pin.analog}">${pin.analog}</option>`;
+            }
+
+            // Populate PPS peripherals if available
+            const ppsPeripheralSelect = document.getElementById('ppsPeripheral');
+            ppsPeripheralSelect.innerHTML = '<option value="">Select peripheral...</option>';
+            if (pin.rpNumber !== undefined) {
+                ppsPeripheralSelect.innerHTML += `
+                    <option value="U1RX">UART1 Receive (U1RX)</option>
+                    <option value="U1TX">UART1 Transmit (U1TX)</option>
+                    <option value="SDI1">SPI1 Data Input (SDI1)</option>
+                    <option value="SDO1">SPI1 Data Output (SDO1)</option>
+                    <option value="IC1">Input Capture 1 (IC1)</option>
+                    <option value="OC1">Output Compare 1 (OC1)</option>
+                `;
+            }
+
+            document.getElementById('pinConfigDialog').classList.add('active');
+        }
+
+        // Pin mode radio buttons
+        document.querySelectorAll('input[name="pinMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const mode = e.target.value;
+                document.getElementById('gpioConfigSection').style.display = mode === 'GPIO' ? 'block' : 'none';
+                document.getElementById('analogConfigSection').style.display = mode === 'Analog' ? 'block' : 'none';
+                document.getElementById('ppsConfigSection').style.display = mode === 'Peripheral' ? 'block' : 'none';
+            });
+        });
+
+        // Direction radio buttons - show/hide initial state
+        document.querySelectorAll('input[name="pinDirection"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isOutput = e.target.value === 'Output';
+                document.getElementById('initialStateGroup').style.display = isOutput ? 'block' : 'none';
+            });
+        });
+
+        // Dialog buttons
+        document.getElementById('dialogCancelBtn').addEventListener('click', () => {
+            document.getElementById('pinConfigDialog').classList.remove('active');
+        });
+
+        document.getElementById('dialogOkBtn').addEventListener('click', () => {
+            if (!currentEditingPin) {
+                console.error('No pin selected for editing');
+                return;
+            }
+
+            const pin = pinTableData.find(p => p.pinId === currentEditingPin);
+            if (!pin) {
+                console.error('Pin not found:', currentEditingPin);
+                return;
+            }
+
+            const modeRadio = document.querySelector('input[name="pinMode"]:checked');
+            if (!modeRadio) {
+                console.error('No pin mode selected');
+                return;
+            }
+
+            const mode = modeRadio.value;
+            const customName = document.getElementById('pinCustomName').value;
+
+            // Build configuration object matching backend PinConfiguration interface
+            const config = {
+                pinName: currentEditingPin,
+                mode: mode
+            };
+
+            if (mode === 'GPIO') {
+                const directionRadio = document.querySelector('input[name="pinDirection"]:checked');
+                if (!directionRadio) {
+                    console.error('No direction selected');
+                    return;
+                }
+                const direction = directionRadio.value;
+                const initialStateRadio = direction === 'Output' 
+                    ? document.querySelector('input[name="pinInitState"]:checked')
+                    : null;
+                const initialState = initialStateRadio ? initialStateRadio.value : undefined;
+                
+                // Get checkbox states
+                const pullUp = document.getElementById('pinPullUp')?.checked || false;
+                const pullDown = document.getElementById('pinPullDown')?.checked || false;
+                const openDrain = document.getElementById('pinOpenDrain')?.checked || false;
+
+                config.gpio = {
+                    direction: direction,
+                    customName: customName,
+                    initialState: initialState,
+                    pullUp: pullUp,
+                    pullDown: pullDown,
+                    openDrain: openDrain
+                };
+
+                console.log('GPIO config:', config);
+            } else if (mode === 'Analog') {
+                const channelName = document.getElementById('analogChannel').value;
+                if (!channelName) {
+                    console.error('No analog channel selected');
+                    return;
+                }
+                config.analog = {
+                    channelName: channelName
+                };
+
+                console.log('Analog config:', config);
+            } else if (mode === 'Peripheral') {
+                const peripheral = document.getElementById('ppsPeripheral').value;
+                if (!peripheral) {
+                    console.error('No peripheral selected');
+                    return;
+                }
+                const isInput = peripheral.includes('RX') || peripheral.includes('SDI') || peripheral.includes('IC');
+                
+                config.peripheral = {
+                    function: peripheral,
+                    ppsInputSignal: isInput ? peripheral : undefined,
+                    ppsOutputSignal: !isInput ? peripheral : undefined
+                };
+
+                console.log('Peripheral config:', config);
+            }
+
+            // Send configuration to backend
+            console.log('Sending setPinConfiguration:', config);
+            vscode.postMessage({
+                type: 'setPinConfiguration',
+                config: config
+            });
+
+            document.getElementById('pinConfigDialog').classList.remove('active');
+        });
+
+        // Package selection
+        const packageSelect = document.getElementById('pinPackageSelect');
+        if (packageSelect) {
+            packageSelect.addEventListener('change', (e) => {
+                currentPackage = e.target.value;
+                console.log('Package changed to:', currentPackage);
+                // Send package change to backend
+                vscode.postMessage({
+                    type: 'changePackage',
+                    packageType: currentPackage
+                });
+            });
+        } else {
+            console.error('Package select element not found');
+        }
+
+        // Filter checkboxes
+        ['filterGPIO', 'filterAnalog', 'filterPPS', 'filterConfigured'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', () => {
+                    console.log(`Filter ${id} changed to:`, element.checked);
+                    renderPinTable();
+                });
+            } else {
+                console.error(`Filter element ${id} not found`);
+            }
+        });
+
+        // Close dialog when clicking overlay
+        document.getElementById('pinConfigDialog').addEventListener('click', (e) => {
+            if (e.target.id === 'pinConfigDialog') {
+                document.getElementById('pinConfigDialog').classList.remove('active');
+            }
+        });
+
+        // Initialize pin table
+        renderPinTable();
+
+        // Signal ready
+        vscode.postMessage({ type: 'ready' });
+    </script>
+</body>
+</html>

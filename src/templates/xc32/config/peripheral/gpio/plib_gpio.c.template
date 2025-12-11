@@ -1,0 +1,122 @@
+/*******************************************************************************
+  SYS PORTS Static Functions for PORTS System Service
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+    plib_gpio.c
+
+  Summary:
+    GPIO function implementations for the GPIO PLIB.
+
+  Description:
+    The GPIO PLIB provides a simple interface to manage peripheral
+    input-output controller.
+
+*******************************************************************************/
+
+//DOM-IGNORE-BEGIN
+/*******************************************************************************
+* Copyright (C) 2019 Microchip Technology Inc. and its subsidiaries.
+*
+* Subject to your compliance with these terms, you may use Microchip software
+* and any derivatives exclusively with Microchip products. It is your
+* responsibility to comply with third party license terms applicable to your
+* use of third party software (including open source software) that may
+* accompany Microchip software.
+*
+* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+* PARTICULAR PURPOSE.
+*
+* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
+* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
+* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
+* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
+* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
+* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
+*******************************************************************************/
+//DOM-IGNORE-END
+
+#include "peripheral/gpio/plib_gpio.h"
+#include "interrupts.h"
+
+/******************************************************************************
+  Function:
+    GPIO_Initialize ( void )
+
+  Summary:
+    Initialize the GPIO library.
+
+  Remarks:
+    See plib_gpio.h for more details.
+*/
+void GPIO_Initialize ( void )
+{
+    /* Initialize GPIO ports - customize as needed for your application */
+    
+    /* Configure LED pins as outputs */
+    ANSELB = 0x0;  /* Disable analog on PORTB */
+    TRISBCLR = (1U<<9) | (1U<<10);  /* LED1 (RB9), LED2 (RB10) as outputs */
+    LATBCLR = (1U<<9) | (1U<<10);   /* Start with LEDs off */
+    
+    /* Configure button pins as inputs */
+    TRISBSET = (1U<<8) | (1U<<11);  /* SW1 (RB8), SW2 (RB11) as inputs */
+    
+    /* PPS Input Remapping - add as needed */
+
+    /* PPS Output Remapping - add as needed */
+}
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: GPIO APIs which operates on multiple pins of a port
+// *****************************************************************************
+// *****************************************************************************
+
+uint32_t GPIO_PortRead(GPIO_PORT port)
+{
+    return (*(volatile uint32_t *)(&PORTB + (port * 0x40U)));
+}
+
+void GPIO_PortWrite(GPIO_PORT port, uint32_t mask, uint32_t value)
+{
+    *(volatile uint32_t *)(&LATB + (port * 0x40U)) = (*(volatile uint32_t *)(&LATB + (port * 0x40U)) & (~mask)) | (mask & value);
+}
+
+uint32_t GPIO_PortLatchRead(GPIO_PORT port)
+{
+    return (*(volatile uint32_t *)(&LATB + (port * 0x40U)));
+}
+
+void GPIO_PortSet(GPIO_PORT port, uint32_t mask)
+{
+    *(volatile uint32_t *)(&LATBSET + (port * 0x40U)) = mask;
+}
+
+void GPIO_PortClear(GPIO_PORT port, uint32_t mask)
+{
+    *(volatile uint32_t *)(&LATBCLR + (port * 0x40U)) = mask;
+}
+
+void GPIO_PortToggle(GPIO_PORT port, uint32_t mask)
+{
+    *(volatile uint32_t *)(&LATBINV + (port * 0x40U))= mask;
+}
+
+void GPIO_PortInputEnable(GPIO_PORT port, uint32_t mask)
+{
+    *(volatile uint32_t *)(&TRISBSET + (port * 0x40U)) = mask;
+}
+
+void GPIO_PortOutputEnable(GPIO_PORT port, uint32_t mask)
+{
+    *(volatile uint32_t *)(&TRISBCLR + (port * 0x40U)) = mask;
+}
+
+/*******************************************************************************
+ End of File
+*/
