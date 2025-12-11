@@ -5,10 +5,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { generateInitializationC, generateInitializationH, generatePlibClkC } from './xc32ConfigGen';
+import { generateInitializationC, generateInitializationH } from './xc32ConfigGen';
 import { generateHarmonyGpioHeader, generateHarmonyGpioSource } from './harmonyGpioGen';
 import { generateHarmonyPPSCode } from './ppsCodeGen';
 import { PinConfiguration } from '../devices/pic32mz/types';
+import { HarmonyClkGenerator } from './harmonyClkGen';
 import { 
     TimerConfiguration, 
     generateTimer1Header, 
@@ -301,13 +302,15 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     writeFile(path.join(projectRoot, 'srcs/config/default/interrupts.c'), interruptsCContent);
     writeFile(path.join(projectRoot, 'srcs/config/default/exceptions.c'), exceptionsCContent);
     
-    // Generate clock peripheral library files (plib_clk.c and plib_clk.h)
-    const settingsObj: { [key: number]: string } = {};
-    settings.forEach((value, key) => settingsObj[key] = value);
-    const plibClkC = generatePlibClkC(settingsObj);
-    const plibClkH = loadTemplate('config/peripheral/clk/plib_clk.h.template');
-    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/clk/plib_clk.c'), plibClkC);
-    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/clk/plib_clk.h'), plibClkH);
+    // Generate clock peripheral library files using HarmonyClkGenerator
+    const clkGenerator = new HarmonyClkGenerator('');
+    const clkConfig = HarmonyClkGenerator.getDefaultConfig();
+    clkConfig.cpuClockFrequency = systemClock * 1000000;  // Convert MHz to Hz
+    const pmdConfig = HarmonyClkGenerator.getDefaultPMDConfig();
+    const clkFiles = clkGenerator.generate(clkConfig, pmdConfig);
+    
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/clk/plib_clk.c'), clkFiles.source);
+    writeFile(path.join(projectRoot, 'srcs/config/default/peripheral/clk/plib_clk.h'), clkFiles.header);
     
     // Generate core timer peripheral files
     const plibCoretimerC = loadTemplate('config/peripheral/coretimer/plib_coretimer.c.template');
