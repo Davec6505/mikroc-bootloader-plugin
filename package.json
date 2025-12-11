@@ -2,7 +2,7 @@
   "name": "mikroc-pic32-bootloader",
   "displayName": "MikroC PIC32 Bootloader",
   "description": "Flash PIC32 microcontrollers using MikroC HID bootloader directly from VS Code",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
