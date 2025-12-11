@@ -310,8 +310,37 @@ export function generateInitializationC(
         timerNumbers?: number[];  // List of configured timer numbers (1-9)
     }
 ): string {
-    // Generate user-selected configuration bits
-    let configBits = '';
+    // Organize config bits by DEVCFG register
+    const devcfg0: string[] = [];
+    const devcfg1: string[] = [];
+    const devcfg2: string[] = [];
+    const devcfg3: string[] = [];
+    
+    // Map pragma names to DEVCFG registers (based on PIC32MZ datasheet)
+    const devcfgMap: { [key: string]: string[] } = {
+        'DEVCFG0': ['DEBUG', 'JTAGEN', 'ICESEL', 'TRCEN', 'BOOTISA', 'FECCCON', 'FSLEEP', 
+                    'DBGPER', 'SMCLR', 'SOSCGAIN', 'SOSCBOOST', 'POSCGAIN', 'POSCBOOST', 
+                    'EJTAGBEN', 'CP'],
+        'DEVCFG1': ['FNOSC', 'DMTINTV', 'FSOSCEN', 'IESO', 'POSCMOD', 'OSCIOFNC', 'FCKSM',
+                    'WDTPS', 'WDTSPGM', 'FWDTEN', 'WINDIS', 'FWDTWINSZ', 'DMTCNT', 'FDMTEN'],
+        'DEVCFG2': ['FPLLIDIV', 'FPLLRNG', 'FPLLICLK', 'FPLLMULT', 'FPLLODIV', 'UPLLFSEL'],
+        'DEVCFG3': ['USERID', 'FMIIEN', 'FETHIO', 'PGL1WAY', 'PMDL1WAY', 'IOL1WAY', 
+                    'FUSBIDIO', 'TSEQ', 'CSEQ']
+    };
+    
+    // Helper function to add pragma to appropriate DEVCFG array
+    const addToDevcfg = (pragmaName: string, pragmaValue: string) => {
+        const pragma = `#pragma config ${pragmaName.padEnd(12)} ${pragmaValue}`;
+        if (devcfgMap.DEVCFG0.includes(pragmaName)) {
+            devcfg0.push(pragma);
+        } else if (devcfgMap.DEVCFG1.includes(pragmaName)) {
+            devcfg1.push(pragma);
+        } else if (devcfgMap.DEVCFG2.includes(pragmaName)) {
+            devcfg2.push(pragma);
+        } else if (devcfgMap.DEVCFG3.includes(pragmaName)) {
+            devcfg3.push(pragma);
+        }
+    };
     
     // Generate pragmas from user settings
     XC32_PRAGMA_MAP.forEach(mapping => {
@@ -333,33 +362,50 @@ export function generateInitializationC(
         }
         
         if (pragmaValue) {
-            configBits += `#pragma config ${mapping.pragmaName} = ${pragmaValue}\n`;
+            addToDevcfg(mapping.pragmaName, `= ${pragmaValue}`);
         }
     });
     
     // Add essential configuration bits not in UI (with safe defaults)
-    const additionalConfigs = `
-// Additional essential configuration bits (safe defaults)
-#pragma config FECCCON =    OFF_UNLOCKED
-#pragma config FSLEEP =     OFF
-#pragma config DBGPER =     PG_ALL
-#pragma config SMCLR =      MCLR_NORM
-#pragma config SOSCGAIN =   GAIN_LEVEL_3
-#pragma config SOSCBOOST =  ON
-#pragma config POSCGAIN =   GAIN_LEVEL_3
-#pragma config POSCBOOST =  ON
-#pragma config EJTAGBEN =   NORMAL
-#pragma config CP =         OFF
-#pragma config DMTINTV =    WIN_127_128
-#pragma config WDTPS =      PS1048576
-#pragma config WDTSPGM =    STOP
-#pragma config WINDIS =     NORMAL
-#pragma config FWDTWINSZ =  WINSZ_25
-#pragma config DMTCNT =     DMT31
-#pragma config USERID =     0xffff
-#pragma config TSEQ =       0xffff
-#pragma config CSEQ =       0x0
-`;
+    // DEVCFG0 defaults
+    if (!devcfg0.find(p => p.includes('FECCCON'))) addToDevcfg('FECCCON', '=    OFF_UNLOCKED');
+    if (!devcfg0.find(p => p.includes('FSLEEP'))) addToDevcfg('FSLEEP', '=     OFF');
+    if (!devcfg0.find(p => p.includes('DBGPER'))) addToDevcfg('DBGPER', '=     PG_ALL');
+    if (!devcfg0.find(p => p.includes('SMCLR'))) addToDevcfg('SMCLR', '=      MCLR_NORM');
+    if (!devcfg0.find(p => p.includes('SOSCGAIN'))) addToDevcfg('SOSCGAIN', '=   GAIN_LEVEL_3');
+    if (!devcfg0.find(p => p.includes('SOSCBOOST'))) addToDevcfg('SOSCBOOST', '=  ON');
+    if (!devcfg0.find(p => p.includes('POSCGAIN'))) addToDevcfg('POSCGAIN', '=   GAIN_LEVEL_3');
+    if (!devcfg0.find(p => p.includes('POSCBOOST'))) addToDevcfg('POSCBOOST', '=  ON');
+    if (!devcfg0.find(p => p.includes('EJTAGBEN'))) addToDevcfg('EJTAGBEN', '=   NORMAL');
+    if (!devcfg0.find(p => p.includes('CP'))) addToDevcfg('CP', '=         OFF');
+    
+    // DEVCFG1 defaults
+    if (!devcfg1.find(p => p.includes('DMTINTV'))) addToDevcfg('DMTINTV', '=    WIN_127_128');
+    if (!devcfg1.find(p => p.includes('WDTPS'))) addToDevcfg('WDTPS', '=      PS1048576');
+    if (!devcfg1.find(p => p.includes('WDTSPGM'))) addToDevcfg('WDTSPGM', '=    STOP');
+    if (!devcfg1.find(p => p.includes('WINDIS'))) addToDevcfg('WINDIS', '=     NORMAL');
+    if (!devcfg1.find(p => p.includes('FWDTWINSZ'))) addToDevcfg('FWDTWINSZ', '=  WINSZ_25');
+    if (!devcfg1.find(p => p.includes('DMTCNT'))) addToDevcfg('DMTCNT', '=     DMT31');
+    
+    // DEVCFG3 defaults
+    if (!devcfg3.find(p => p.includes('USERID'))) addToDevcfg('USERID', '=     0xffff');
+    if (!devcfg3.find(p => p.includes('TSEQ'))) addToDevcfg('TSEQ', '=       0xffff');
+    if (!devcfg3.find(p => p.includes('CSEQ'))) addToDevcfg('CSEQ', '=       0x0');
+    
+    // Build formatted config bits string with DEVCFG sections
+    let configBits = '';
+    if (devcfg0.length > 0) {
+        configBits += '/*** DEVCFG0 ***/\n' + devcfg0.join('\n') + '\n\n';
+    }
+    if (devcfg1.length > 0) {
+        configBits += '/*** DEVCFG1 ***/\n' + devcfg1.join('\n') + '\n\n';
+    }
+    if (devcfg2.length > 0) {
+        configBits += '/*** DEVCFG2 ***/\n' + devcfg2.join('\n') + '\n\n';
+    }
+    if (devcfg3.length > 0) {
+        configBits += '/*** DEVCFG3 ***/\n' + devcfg3.join('\n') + '\n';
+    }
 
     return `/*******************************************************************************
   System Initialization File
@@ -373,8 +419,33 @@ export function generateInitializationC(
   Description:
     This file contains source code necessary to initialize the system.  It
     implements the "SYS_Initialize" function, defines the configuration bits,
-    and allocates any necessary global system resources.
+    and allocates any necessary global system resources,
  *******************************************************************************/
+
+// DOM-IGNORE-BEGIN
+/*******************************************************************************
+* Copyright (C) 2025 Microchip Technology Inc. and its subsidiaries.
+*
+* Subject to your compliance with these terms, you may use Microchip software
+* and any derivatives exclusively with Microchip products. It is your
+* responsibility to comply with third party license terms applicable to your
+* use of third party software (including open source software) that may
+* accompany Microchip software.
+*
+* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+* PARTICULAR PURPOSE.
+*
+* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
+* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
+* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
+* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
+* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
+* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
+ *******************************************************************************/
+// DOM-IGNORE-END
 
 // *****************************************************************************
 // *****************************************************************************
@@ -384,13 +455,14 @@ export function generateInitializationC(
 #include "definitions.h"
 #include "device.h"
 
+
 // ****************************************************************************
 // ****************************************************************************
 // Section: Configuration Bits
 // ****************************************************************************
 // ****************************************************************************
 
-${configBits}${additionalConfigs}
+${configBits}
 
 // *****************************************************************************
 // *****************************************************************************

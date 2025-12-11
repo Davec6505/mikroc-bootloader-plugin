@@ -17,6 +17,7 @@ export interface TimerConfiguration {
     priority: number;       // Interrupt priority (1-7)
     subPriority: number;    // Interrupt sub-priority (0-3)
     period: number;         // Actual period in seconds
+    pbclk3Freq: number;     // PBCLK3 frequency in Hz (e.g., 50000000)
     mode32Bit?: boolean;    // True if 32-bit paired mode (Timer2-9 only)
     enableInterrupt?: boolean;  // Enable interrupt (default: true)
     shadowSet?: string;     // 'auto' or '0'-'7' for manual SRS selection
@@ -272,7 +273,7 @@ void TMR1_CounterSet(uint16_t count)
 
 uint32_t TMR1_FrequencyGet(void)
 {
-    return (CPU_CLOCK_FREQUENCY / ${prescaler}U);
+    return (${config.pbclk3Freq}U / ${prescaler}U);
 }
 
 void __attribute__((used)) TIMER_1_InterruptHandler (void)
@@ -579,7 +580,7 @@ void TMR${timerNum}_CounterSet(${timerType} count)
 
 uint32_t TMR${timerNum}_FrequencyGet(void)
 {
-    return (CPU_CLOCK_FREQUENCY / ${prescaler}U);
+    return (${config.pbclk3Freq}U / ${prescaler}U);
 }
 
 void __attribute__((used)) TIMER_${timerNum}_InterruptHandler (void)

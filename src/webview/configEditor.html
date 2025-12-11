@@ -408,10 +408,38 @@
             font-weight: 600;
             color: var(--vscode-foreground);
         }
-            justify-content: space-between;
-            align-items: center;
+
+        /* PBCLK Button Styles */
+        .pbclk-btn {
+            padding: 8px 16px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border);
+            border-radius: 3px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
         }
 
+        .pbclk-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .pbclk-btn.active {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border-color: var(--vscode-button-background);
+        }
+
+        .pbclk-panel {
+            display: none;
+        }
+
+        .pbclk-panel.active {
+            display: block;
+        }
 
         .button-group {
             display: flex;
@@ -793,6 +821,7 @@
             </div>
             <div class="tabs">
                 <button class="tab active" data-tab="config">Configuration</button>
+                <button class="tab" data-tab="system">System</button>
                 <button class="tab" data-tab="timer">Timer Calculator</button>
                 <button class="tab" data-tab="pins">Pin Manager</button>
             </div>
@@ -847,6 +876,221 @@
             </div>
         </div>
 
+        <!-- System Tab -->
+        <div class="tab-content" id="systemTab">
+            <div class="timer-calc-container">
+                <div class="timer-left-panel" style="flex: 0 0 300px;">
+                    <div class="timer-section">
+                        <div class="timer-section-title">System Clock Configuration</div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">SYSCLK Frequency</label>
+                            <div class="timer-inline-group">
+                                <input type="number" class="timer-input" id="sysclkFreq" value="200" min="1" max="252" step="1" />
+                                <div class="timer-unit">MHz</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timer-section">
+                        <div class="timer-section-title">Peripheral Bus Clocks</div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <button class="pbclk-btn active" data-pbclk="1">PBCLK1</button>
+                            <button class="pbclk-btn" data-pbclk="2">PBCLK2</button>
+                            <button class="pbclk-btn" data-pbclk="3">PBCLK3</button>
+                            <button class="pbclk-btn" data-pbclk="4">PBCLK4</button>
+                            <button class="pbclk-btn" data-pbclk="5">PBCLK5</button>
+                            <button class="pbclk-btn" data-pbclk="7">PBCLK7</button>
+                            <button class="pbclk-btn" data-pbclk="8">PBCLK8</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timer-right-panel" style="padding: 20px;">
+                    <!-- PBCLK1 -->
+                    <div class="pbclk-panel active" id="pbclk1Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 1</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk1Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB1DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk1Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK1: <span id="pbclk1Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                OSC2
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK2 -->
+                    <div class="pbclk-panel" id="pbclk2Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 2</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk2Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB2DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk2Div" value="4" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK2: <span id="pbclk2Freq">50.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                PMP, I2C,<br/>UART, SPI
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK3 -->
+                    <div class="pbclk-panel" id="pbclk3Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 3</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk3Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB3DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk3Div" value="4" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK3: <span id="pbclk3Freq">50.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                ADC, CMP,<br/>Timers,<br/>Output Compare,<br/>Input Capture
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK4 -->
+                    <div class="pbclk-panel" id="pbclk4Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 4</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk4Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB4DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk4Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK4: <span id="pbclk4Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                Ports
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK5 -->
+                    <div class="pbclk-panel" id="pbclk5Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 5</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk5Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB5DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk5Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK5: <span id="pbclk5Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                Flash, Crypto,<br/>RNG, USB, CAN,<br/>Ethernet, SQI
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK7 -->
+                    <div class="pbclk-panel" id="pbclk7Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 7</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk7Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB7DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk7Div" value="1" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK7: <span id="pbclk7Freq">200.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                CPU,<br/>Deadman Timer
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PBCLK8 -->
+                    <div class="pbclk-panel" id="pbclk8Panel">
+                        <h2 style="font-size: 16px; margin-bottom: 20px;">Peripheral Bus Clock # 8</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label class="timer-checkbox-label">
+                                <input type="checkbox" id="pbclk8Enable" checked />
+                                ON
+                            </label>
+                        </div>
+                        <div class="timer-input-group">
+                            <label class="timer-label">PB8DIV (Postscaler)</label>
+                            <input type="number" class="timer-input" id="pbclk8Div" value="2" min="1" max="128" style="width: 100px;" />
+                        </div>
+                        <div class="timer-info-box" style="margin-top: 16px;">
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                PBCLK8: <span id="pbclk8Freq">100.000 MHz</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">To Peripherals:</div>
+                            <div style="padding: 12px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px;">
+                                EBI
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Timer Calculator Tab -->
         <div class="tab-content" id="timerTab">
             <div class="timer-calc-container">
@@ -864,36 +1108,7 @@
                     </div>
 
                     <div class="timer-section">
-                        <div class="timer-section-title">2. Clock Configuration</div>
-                        <div class="timer-inline-group">
-                            <div class="timer-input-group">
-                                <label class="timer-label">SYSCLK Frequency</label>
-                                <input type="number" class="timer-input" id="timerFrequency" value="200" min="1" max="400" step="1" />
-                            </div>
-                            <div class="timer-unit">MHz</div>
-                        </div>
-                        <div class="timer-input-group" style="margin-top: 12px;">
-                            <label class="timer-label">PBCLK3 Divider (Timers use PBCLK3)</label>
-                            <select class="timer-select" id="timerPBCLK3Div">
-                                <option value="1">÷1 (PBCLK3 = SYSCLK)</option>
-                                <option value="2" selected>÷2 (PBCLK3 = SYSCLK/2)</option>
-                                <option value="3">÷3 (PBCLK3 = SYSCLK/3)</option>
-                                <option value="4">÷4 (PBCLK3 = SYSCLK/4)</option>
-                                <option value="5">÷5 (PBCLK3 = SYSCLK/5)</option>
-                                <option value="8">÷8 (PBCLK3 = SYSCLK/8)</option>
-                                <option value="16">÷16 (PBCLK3 = SYSCLK/16)</option>
-                                <option value="32">÷32 (PBCLK3 = SYSCLK/32)</option>
-                                <option value="64">÷64 (PBCLK3 = SYSCLK/64)</option>
-                                <option value="128">÷128 (PBCLK3 = SYSCLK/128)</option>
-                            </select>
-                        </div>
-                        <div class="timer-info-box" style="display: block; margin-top: 8px;">
-                            <div><span class="timer-info-label">PBCLK3:</span> <span id="pbclk3Display">100.000 MHz</span></div>
-                        </div>
-                    </div>
-
-                    <div class="timer-section">
-                        <div class="timer-section-title">4. Choose Timer</div>
+                        <div class="timer-section-title">2. Choose Timer</div>
                         <div class="timer-input-group">
                             <label class="timer-label">Timer</label>
                             <select class="timer-select" id="timerNumber">
@@ -1226,20 +1441,41 @@
             shadowSet: 'auto'
         };
 
-        // Update PBCLK3 display when frequency or divider changes
-        function updatePBCLK3Display() {
-            const sysclk = parseFloat(document.getElementById('timerFrequency').value);
-            const divider = parseInt(document.getElementById('timerPBCLK3Div').value);
-            const pbclk3 = sysclk / divider;
-            document.getElementById('pbclk3Display').textContent = `${pbclk3.toFixed(3)} MHz`;
+        // System Tab - PBCLK Management
+        function updateAllPBCLKFrequencies() {
+            const sysclk = parseFloat(document.getElementById('sysclkFreq').value);
+            
+            // Update all PBCLK frequencies
+            for (let i of [1, 2, 3, 4, 5, 7, 8]) {
+                const divider = parseInt(document.getElementById(`pbclk${i}Div`).value);
+                const freq = sysclk / divider;
+                document.getElementById(`pbclk${i}Freq`).textContent = `${freq.toFixed(3)} MHz`;
+            }
         }
 
-        // Event listeners for PBCLK3 updates
-        document.getElementById('timerFrequency')?.addEventListener('input', updatePBCLK3Display);
-        document.getElementById('timerPBCLK3Div')?.addEventListener('change', updatePBCLK3Display);
+        // PBCLK button switching
+        document.querySelectorAll('.pbclk-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pbclkNum = btn.dataset.pbclk;
+                
+                // Update button states
+                document.querySelectorAll('.pbclk-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update panel visibility
+                document.querySelectorAll('.pbclk-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById(`pbclk${pbclkNum}Panel`).classList.add('active');
+            });
+        });
 
-        // Update display on load
-        setTimeout(updatePBCLK3Display, 100);
+        // Add event listeners for SYSCLK and all PBCLK dividers
+        document.getElementById('sysclkFreq')?.addEventListener('input', updateAllPBCLKFrequencies);
+        for (let i of [1, 2, 3, 4, 5, 7, 8]) {
+            document.getElementById(`pbclk${i}Div`)?.addEventListener('input', updateAllPBCLKFrequencies);
+        }
+
+        // Initialize PBCLK displays
+        setTimeout(updateAllPBCLKFrequencies, 100);
 
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
@@ -1260,8 +1496,11 @@
 
         // Timer Calculator Functions
         function calculateTimer() {
-            const frequency = parseFloat(document.getElementById('timerFrequency').value) * 1000000; // Convert MHz to Hz
-            const pbclk3Div = parseInt(document.getElementById('timerPBCLK3Div').value);
+            // Get PBCLK3 from System tab
+            const sysclk = parseFloat(document.getElementById('sysclkFreq')?.value || 200) * 1000000; // Convert MHz to Hz
+            const pbclk3Div = parseInt(document.getElementById('pbclk3Div')?.value || 4);
+            const frequency = sysclk / pbclk3Div; // PBCLK3 frequency in Hz
+            
             const timerNum = document.getElementById('timerNumber').value;
             const period = parseFloat(document.getElementById('timerPeriod').value);
             const unit = document.getElementById('timerPeriodUnit').value;
@@ -1595,12 +1834,13 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
             }
         });
         
-        // Auto-update timer when frequency changes (from main config)
+        // Auto-update system SYSCLK when frequency changes (from main config)
         function updateTimerFrequency() {
             const clockFreq = document.getElementById('clockFreq')?.textContent;
             if (clockFreq) {
                 const freq = parseFloat(clockFreq);
-                document.getElementById('timerFrequency').value = freq;
+                document.getElementById('sysclkFreq').value = freq;
+                updateAllPBCLKFrequencies();
             }
         }
 
@@ -1762,8 +2002,9 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
             if (registers.calculatedClock) {
                 document.getElementById('clockFreq').textContent = 
                     registers.calculatedClock.toFixed(6);
-                // Update timer calculator frequency
-                document.getElementById('timerFrequency').value = registers.calculatedClock;
+                // Update system tab SYSCLK frequency
+                document.getElementById('sysclkFreq').value = registers.calculatedClock;
+                updateAllPBCLKFrequencies();
             }
         }
 

@@ -478,42 +478,6 @@ export const EFH_UI_SCHEMA: ConfigSetting[] = [
         defaultValue: "Normal EJTAG functionality"
     },
     
-    // Peripheral Clock Configuration (Runtime - not config bits)
-    {
-        index: 40,
-        name: "Peripheral Bus 2 Clock Divisor",
-        category: "Peripheral Clocks",
-        options: [
-            "PBCLK2 is SYSCLK/1",
-            "PBCLK2 is SYSCLK/2",
-            "PBCLK2 is SYSCLK/3",
-            "PBCLK2 is SYSCLK/4",
-            "PBCLK2 is SYSCLK/5",
-            "PBCLK2 is SYSCLK/6",
-            "PBCLK2 is SYSCLK/7",
-            "PBCLK2 is SYSCLK/8"
-        ],
-        defaultValue: "PBCLK2 is SYSCLK/4",
-        description: "Peripheral Bus 2 services UART, SPI, I2C peripherals"
-    },
-    {
-        index: 41,
-        name: "Peripheral Bus 3 Clock Divisor",
-        category: "Peripheral Clocks",
-        options: [
-            "PBCLK3 is SYSCLK/1",
-            "PBCLK3 is SYSCLK/2",
-            "PBCLK3 is SYSCLK/3",
-            "PBCLK3 is SYSCLK/4",
-            "PBCLK3 is SYSCLK/5",
-            "PBCLK3 is SYSCLK/6",
-            "PBCLK3 is SYSCLK/7",
-            "PBCLK3 is SYSCLK/8"
-        ],
-        defaultValue: "PBCLK3 is SYSCLK/4",
-        description: "Peripheral Bus 3 services Timer, ADC, Comparator peripherals"
-    },
-    
     // Peripheral Module Disable (PMD) Configuration
     {
         index: 42,
