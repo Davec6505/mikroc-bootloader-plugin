@@ -512,6 +512,8 @@ ${options.timerNumbers.map(n => `    TMR${n}_Initialize();`).join('\n')}
     EVIC_Initialize();
 
     /* MISRAC 2012 deviation block end */
+
+    (void)__builtin_enable_interrupts();
 }
 
 /*******************************************************************************

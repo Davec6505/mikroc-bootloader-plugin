@@ -16,6 +16,8 @@ export interface UartConfig {
     uenSelect: number;          // 0-3 for different pin configurations
     baudRate: number;           // e.g., 115200
     clockFreq: number;          // From PBCLK2 (e.g., 50000000)
+    rxRingBufferSize?: number;  // RX buffer size for ring-buffer mode (default: 256)
+    txRingBufferSize?: number;  // TX buffer size for ring-buffer mode (default: 256)
 }
 
 export interface BaudRateResult {
@@ -151,6 +153,8 @@ export class HarmonyUartGenerator {
             'UART_RX_IEC_REG': intRegs.rxIEC,
             'UART_TX_IFS_REG': intRegs.txIFS,
             'UART_TX_IEC_REG': intRegs.txIEC,
+            'UART_RX_RING_BUFFER_SIZE': (config.rxRingBufferSize || 256).toString(),
+            'UART_TX_RING_BUFFER_SIZE': (config.txRingBufferSize || 256).toString(),
         };
 
         let result = template;
@@ -241,14 +245,22 @@ export class HarmonyUartGenerator {
     } {
         const templateBase = path.join(this.templateDir, 'mz', 'uart');
         
+        // Select templates based on operating mode
+        const headerTemplate = config.operatingMode === 'ring-buffer'
+            ? 'plib_uart_ring_buffer.h.template'
+            : 'plib_uart.h.template';
+        const sourceTemplate = config.operatingMode === 'ring-buffer'
+            ? 'plib_uart_ring_buffer.c.template'
+            : 'plib_uart.c.template';
+        
         return {
             header: this.generateUartHeader(
                 config,
-                path.join(templateBase, 'plib_uart.h.template')
+                path.join(templateBase, headerTemplate)
             ),
             source: this.generateUartSource(
                 config,
-                path.join(templateBase, 'plib_uart.c.template')
+                path.join(templateBase, sourceTemplate)
             ),
             commonHeader: this.generateUartCommonHeader(
                 path.join(templateBase, 'plib_uart_common.h.template')
@@ -282,7 +294,8 @@ export class HarmonyUartGenerator {
      * Generate interrupt handler declarations for interrupts.h
      */
     public generateInterruptDeclarations(config: UartConfig): string {
-        if (config.operatingMode !== 'non-blocking') {
+        // Both non-blocking and ring-buffer modes use interrupts
+        if (config.operatingMode === 'blocking') {
             return '';
         }
 
@@ -295,23 +308,24 @@ void ${config.instanceName}_TX_InterruptHandler( void );`;
      * Generate interrupt vector assignments for interrupts.c
      */
     public generateInterruptVectors(config: UartConfig): string {
-        if (config.operatingMode !== 'non-blocking') {
+        // Both non-blocking and ring-buffer modes use interrupts
+        if (config.operatingMode === 'blocking') {
             return '';
         }
 
         const instanceLower = config.instanceName.toLowerCase();
         
-        return `void __ISR(_UART_${config.instanceNum}_FAULT_VECTOR, ipl1SRS) UART_${config.instanceNum}_FAULT_Handler(void)
+        return `void __attribute__((used)) __ISR(_UART_${config.instanceNum}_FAULT_VECTOR, ipl1SRS) UART_${config.instanceNum}_FAULT_Handler(void)
 {
     ${config.instanceName}_FAULT_InterruptHandler();
 }
 
-void __ISR(_UART_${config.instanceNum}_RX_VECTOR, ipl1SRS) UART_${config.instanceNum}_RX_Handler(void)
+void __attribute__((used)) __ISR(_UART_${config.instanceNum}_RX_VECTOR, ipl1SRS) UART_${config.instanceNum}_RX_Handler(void)
 {
     ${config.instanceName}_RX_InterruptHandler();
 }
 
-void __ISR(_UART_${config.instanceNum}_TX_VECTOR, ipl1SRS) UART_${config.instanceNum}_TX_Handler(void)
+void __attribute__((used)) __ISR(_UART_${config.instanceNum}_TX_VECTOR, ipl1SRS) UART_${config.instanceNum}_TX_Handler(void)
 {
     ${config.instanceName}_TX_InterruptHandler();
 }`;

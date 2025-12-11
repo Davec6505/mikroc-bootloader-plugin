@@ -2018,6 +2018,11 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
             // Include timer configuration if it has been calculated
             let timerConfigurations = undefined;
             if (timerConfig.prValue > 0) {
+                // Get PBCLK3 frequency from System tab
+                const sysclk = parseFloat(document.getElementById('sysclkFreq')?.value || 200) * 1000000;
+                const pbclk3Div = parseInt(document.getElementById('pbclk3Div')?.value || 4);
+                const pbclk3Freq = sysclk / pbclk3Div;
+                
                 const is32Bit = timerConfig.timer.length === 2;
                 timerConfigurations = [{
                     timer: timerConfig.timer,
@@ -2026,6 +2031,7 @@ void __attribute__((used)) __ISR(_TIMER_${timerNum}_VECTOR, ipl${priority}SRS) T
                     priority: timerConfig.priority,
                     subPriority: timerConfig.subPriority,
                     period: timerConfig.actualPeriod,
+                    pbclk3Freq: pbclk3Freq,
                     mode32Bit: is32Bit,
                     enableInterrupt: timerConfig.enableInterrupt,
                     shadowSet: timerConfig.shadowSet

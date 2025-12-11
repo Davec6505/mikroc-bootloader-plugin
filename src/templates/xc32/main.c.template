@@ -11,21 +11,17 @@
 #include <sys/attribs.h>
 #include "definitions.h"
 
-
-
 /**
  * Main application entry point
  */
 int main(void) {
-    // Initialize system
+    // Initialize all configured peripherals
     SYS_Initialize(NULL);
     
-
-    // Main loop - blink LED
+    // TODO: Add your application code here
+    
     while (1) {
-        LED1_Toggle();       // Toggle LED
-        CORETIMER_DelayMs(500);
-
+        // Main application loop
     }
     
     return 0;
