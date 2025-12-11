@@ -1,5 +1,109 @@
 # Professional Publishing Checklist
 
+## Publishing to VS Code Marketplace
+
+### Prerequisites
+
+1. **Create Publisher Account**
+   - Go to https://marketplace.visualstudio.com/manage
+   - Sign in with Microsoft/GitHub account
+   - Create a publisher (e.g., "DavidCoetzee")
+
+2. **Generate Personal Access Token (PAT)**
+   - Go to https://dev.azure.com/
+   - User Settings → Personal Access Tokens
+   - Create new token:
+     - Name: "VS Code Marketplace Publishing"
+     - Organization: All accessible organizations
+     - Scopes: **Marketplace** → **Manage**
+   - Copy the token (you won't see it again!)
+
+3. **Add Token to GitHub Secrets**
+   - GitHub repository → Settings → Secrets and variables → Actions
+   - New repository secret:
+     - Name: `VSCE_TOKEN`
+     - Value: Your PAT from step 2
+
+### Option 1: Automatic Publishing via GitHub Actions
+
+When you create a GitHub release, the extension automatically publishes:
+
+```bash
+# 1. Update version in package.json
+npm version patch  # or minor, major
+
+# 2. Push changes
+git push && git push --tags
+
+# 3. Create GitHub release
+gh release create v1.0.2 --title "Version 1.0.2" --notes "Bug fixes and improvements"
+```
+
+The GitHub Actions workflow (`.github/workflows/publish.yml`) will:
+- Build the extension
+- Package to .vsix
+- Publish to VS Code Marketplace
+- Attach .vsix to GitHub release
+
+### Option 2: Manual Publishing
+
+```bash
+# 1. Install vsce
+npm install -g @vscode/vsce
+
+# 2. Compile and package
+npm run compile
+vsce package
+
+# 3. Login (first time only)
+vsce login DavidCoetzee
+# Enter your PAT when prompted
+
+# 4. Publish
+vsce publish
+
+# Or publish with version bump
+vsce publish patch  # 1.0.0 → 1.0.1
+vsce publish minor  # 1.0.0 → 1.1.0
+vsce publish major  # 1.0.0 → 2.0.0
+```
+
+---
+
+## Binary Distribution Strategies
+
+### Current Approach: Bundled Binaries (~7 MB)
+
+✅ **Pros:**
+- Works offline
+- No download step for users
+- Instant availability
+
+❌ **Cons:**
+- Larger extension size
+- Must update extension to update tools
+- Platform-specific (Windows only currently)
+
+**Included in `bin/win32/`:**
+- GNU Make + dependencies (~6 MB)
+- MikroC bootloader (~1 MB)
+
+### Alternative: Download-on-Demand (Future)
+
+Extension downloads tools on first use from GitHub releases.
+
+✅ **Pros:**
+- Smaller initial download (~2-3 MB)
+- Update tools without updating extension
+- Easier multi-platform support
+
+❌ **Cons:**
+- Requires internet on first use
+- Initial setup delay
+- More complex error handling
+
+---
+
 ## ✅ Completed
 
 ### Core Files
