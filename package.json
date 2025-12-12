@@ -34,7 +34,13 @@
     "Programming Languages",
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+  "onCommand:mikroc-pic32-bootloader.flash",
+  "onCommand:mikroc-pic32-bootloader.testConfigEditor",
+  "onCommand:mikroc-pic32-bootloader.createXC32Project",
+  "onCommand:mikroc-pic32-bootloader.createMikroCProject",
+  "onStartupFinished"
+],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
