@@ -2,7 +2,7 @@
   "name": "mikroc-pic32-bootloader",
   "displayName": "MikroC PIC32 Bootloader",
   "description": "Flash PIC32 microcontrollers using MikroC HID bootloader directly from VS Code",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
@@ -40,19 +40,19 @@
     "commands": [
       {
         "command": "mikroc-pic32-bootloader.flash",
-        "title": "MikroC PIC32: Flash Device"
+        "title": "PIC32M: Flash with Bootloader"
       },
       {
         "command": "mikroc-pic32-bootloader.testConfigEditor",
-        "title": "MikroC PIC32: Test Config Editor (Dev)"
+        "title": "PIC32M: Device Configuration Editor"
       },
       {
         "command": "mikroc-pic32-bootloader.createXC32Project",
-        "title": "PIC32: Create XC32 Project"
+        "title": "PIC32M: Generate XC32 Project"
       },
       {
         "command": "mikroc-pic32-bootloader.createMikroCProject",
-        "title": "PIC32: Create MikroC Project"
+        "title": "PIC32M: Generate MikroC Project"
       }
     ],
     "configuration": {
