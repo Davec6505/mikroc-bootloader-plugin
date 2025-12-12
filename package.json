@@ -2,7 +2,7 @@
   "name": "mikroc-pic32-bootloader",
   "displayName": "PIC32M Development Tools",
   "description": "Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager",
-  "version": "1.1.4-beta.0",
+  "version": "1.1.4-beta.1",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
