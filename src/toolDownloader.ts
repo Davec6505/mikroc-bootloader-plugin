@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import * as vscode from 'vscode';
-import * as AdmZip from 'adm-zip';
+import AdmZip from 'adm-zip';
 
 export interface ToolsManifest {
     version: string;

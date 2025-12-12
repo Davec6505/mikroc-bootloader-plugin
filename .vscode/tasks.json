@@ -16,5 +16,22 @@
 				"isDefault": true
 			}
 		}
+		{
+			"label": "npm: compile",
+			"type": "shell",
+			"command": "npm run compile",
+			"problemMatcher": ["$tsc"],
+			"group": {
+				"kind": "build"
+			}
+		},
+		{
+			"label": "vsce: package",
+			"type": "shell",
+			"command": "npx vsce package",
+			"group": {
+				"kind": "build"
+			}
+		}
 	]
 }
