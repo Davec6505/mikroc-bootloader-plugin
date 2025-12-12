@@ -1,6 +1,6 @@
 # PIC32M Development Tools
 
-[![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/Davec6505/mikroc-bootloader-plugin)
+[![Version](https://img.shields.io/badge/version-1.1.3-blue.svg)](https://github.com/Davec6505/mikroc-bootloader-plugin)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager, and peripheral configuration.
