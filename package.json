@@ -69,6 +69,21 @@
           "default": "",
           "description": "Path to the mikro_hb.exe bootloader executable (download from https://github.com/Davec6505/MikroC_bootloader)"
         },
+        "mikroc-pic32-bootloader.xc32CompilerBinDir": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional: Override auto-detection. Set to the XC32 bin directory, for example: C:/Program Files/Microchip/xc32/v5.00/bin"
+        },
+        "mikroc-pic32-bootloader.dfpPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional: Override auto-detection. Set to the PIC32MZ-EF DFP folder, for example: C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168 or C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168"
+        },
+        "mikroc-pic32-bootloader.autoInstallBootloaderTool": {
+          "type": "boolean",
+          "default": true,
+          "description": "Offer to download a bootloader CLI tool if no bootloaderPath is configured."
+        },
         "mikroc-pic32-bootloader.hexFilePattern": {
           "type": "string",
           "default": "**/*.hex",

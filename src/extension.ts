@@ -159,7 +159,15 @@ async function flashToDevice() {
 
 	// Validate bootloader path
 	if (!bootloaderPath) {
-		vscode.window.showErrorMessage('Bootloader path not configured. Please set mikroc-pic32-bootloader.bootloaderPath in settings.');
+		const choice = await vscode.window.showWarningMessage(
+			'Bootloader path not configured. Configure path or download the tool.',
+			'Open Settings', 'Download Tool'
+		);
+		if (choice === 'Open Settings') {
+			await vscode.commands.executeCommand('workbench.action.openSettings', 'mikroc-pic32-bootloader.bootloaderPath');
+		} else if (choice === 'Download Tool') {
+			vscode.env.openExternal(vscode.Uri.parse('https://github.com/Davec6505/MikroC_bootloader/releases'));
+		}
 		return;
 	}
 
@@ -335,22 +343,29 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 async function verifyToolchainPrereqs(): Promise<void> {
 	const isWindows = process.platform === 'win32';
 	const missingItems: string[] = [];
+	const cfg = vscode.workspace.getConfiguration('mikroc-pic32-bootloader');
+	const userXc32Bin = (cfg.get<string>('xc32CompilerBinDir') || '').trim();
+	const userDfp = (cfg.get<string>('dfpPath') || '').trim();
 
 	// Check XC32 install
 	let xc32Found = false;
+	if (userXc32Bin) {
+		const exe = path.join(userXc32Bin, isWindows ? 'xc32-gcc.exe' : 'xc32-gcc');
+		xc32Found = fs.existsSync(exe);
+	}
 	if (isWindows) {
-		const xc32Base = 'C:\\Program Files\\Microchip\\xc32';
+		const xc32Base = 'C\\Program Files\\Microchip\\xc32';
 		try {
-			const dirs = await fs.promises.readdir(xc32Base, { withFileTypes: true } as any);
-			xc32Found = (dirs as any[]).some((d: any) => d.isDirectory && d.isDirectory() && /^v\d+\.\d+/.test(d.name));
+			if (!xc32Found) {
+				const dirs = await fs.promises.readdir(xc32Base, { withFileTypes: true } as any);
+				xc32Found = (dirs as any[]).some((d: any) => d.isDirectory && d.isDirectory() && /^v\d+\.\d+/.test(d.name));
+			}
 		} catch {
 			xc32Found = false;
 		}
 	} else {
-		try {
-			xc32Found = fs.existsSync('/opt/microchip/xc32');
-		} catch {
-			xc32Found = false;
+		if (!xc32Found) {
+			try { xc32Found = fs.existsSync('/opt/microchip/xc32'); } catch { xc32Found = false; }
 		}
 	}
 
@@ -360,20 +375,23 @@ async function verifyToolchainPrereqs(): Promise<void> {
 
 	// Check DFP presence (via MPLABX packs folder or common packs location)
 	let dfpFound = false;
+	if (userDfp) {
+		dfpFound = fs.existsSync(userDfp);
+	}
 	if (isWindows) {
-		const mplabxBase = 'C:\\Program Files\\Microchip\\MPLABX';
-		const altPacks = 'C:\\Microchip\\packs\\Microchip\\PIC32MZ-EF_DFP';
+		const mplabxBase = 'C\\Program Files\\Microchip\\MPLABX';
+		const altPacks = 'C\\Microchip\\packs\\Microchip\\PIC32MZ-EF_DFP';
 		try {
-			if (fs.existsSync(mplabxBase)) {
+			if (!dfpFound && fs.existsSync(mplabxBase)) {
 				dfpFound = true;
-			} else if (fs.existsSync(altPacks)) {
+			} else if (!dfpFound && fs.existsSync(altPacks)) {
 				dfpFound = true;
 			}
 		} catch {
 			dfpFound = false;
 		}
 	} else {
-		dfpFound = fs.existsSync('/opt/microchip/mplabx');
+		if (!dfpFound) { dfpFound = fs.existsSync('/opt/microchip/mplabx'); }
 	}
 
 	if (!dfpFound) {
@@ -386,13 +404,16 @@ async function verifyToolchainPrereqs(): Promise<void> {
 
 	const detail = missingItems.join(' and ');
 	const action = await vscode.window.showWarningMessage(
-		`${detail} not detected. Build tools are required to compile XC32 projects.`,
+		`${detail} not detected. You can set custom locations in Settings or install tools.`,
+		'Open Settings',
 		'Get XC32',
 		'Get DFP',
 		'Proceed Anyway'
 	);
 
-	if (action === 'Get XC32') {
+	if (action === 'Open Settings') {
+		await vscode.commands.executeCommand('workbench.action.openSettings', 'mikroc-pic32-bootloader.xc32CompilerBinDir');
+	} else if (action === 'Get XC32') {
 		vscode.env.openExternal(vscode.Uri.parse('https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers/xc32'));
 	} else if (action === 'Get DFP') {
 		// MPLAB X packs installer or direct packs location; advise manual placement if MPLAB X not installed
