@@ -1,9 +1,9 @@
-# MikroC PIC32 Bootloader Extension
+# PIC32M Development Tools
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Davec6505/mikroc-bootloader-plugin)
+[![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/Davec6505/mikroc-bootloader-plugin)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Flash PIC32 microcontrollers using the MikroC HID bootloader directly from Visual Studio Code.
+Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager, and peripheral configuration.
 
 ![Demo](https://via.placeholder.com/600x300?text=Add+Demo+GIF+Here)
 
@@ -24,12 +24,19 @@ Flash PIC32 microcontrollers using the MikroC HID bootloader directly from Visua
 - **XC32/DFP Version Selection**: Choose compiler and device pack versions
 - **Mikroelektronika Bootloader Option**: Enable bootloader-compatible configuration
 
-### 🕐 Timer Calculator
+### 🕐 Timer Configuration
 - **All Timer Types**: Configure Timer1 (Type A 16-bit) and Timer2-9 (Type B 16/32-bit)
 - **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible code
 - **PBCLK3 Integration**: Automatically uses system clock configuration
 - **Interrupt Support**: Configure interrupt priorities and enable flags
 - **16/32-bit Mode**: Timer2-9 can operate as 16-bit or combined 32-bit timers
+
+### 📡 UART Configuration *(Under Development)*
+- **All UART Modules**: Configure UART1-6 with baud rate calculator
+- **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible code
+- **PBCLK2 Integration**: Automatic baud rate calculation from peripheral clock
+- **Interrupt Support**: Configure interrupt priorities and enable flags
+- **PPS Integration**: Automatic peripheral pin select for TX/RX pins
 
 ### 📌 Pin Manager (PIC32MZ EC/EF)
 - **Complete Pin Database**: 100+ GPIO pins across PORTA-PORTK
@@ -40,108 +47,58 @@ Flash PIC32 microcontrollers using the MikroC HID bootloader directly from Visua
 - **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible GPIO code
 - **Visual Table**: Filter by GPIO, Analog, PPS, or configured pins
 
-### 🏗️ Project Generator (In Development)
+### 🏗️ Project Generator *(Under Development)*
 - **XC32 Projects**: Generate complete buildable XC32 projects with Makefiles
 - **mikroC Projects**: Generate mikroC PRO for PIC32 projects (planned)
 - **Device Configuration**: Automatic integration of DEVCFG settings
-- **Peripheral Code**: Integration of Timer and GPIO initialization code
+- **Peripheral Code**: Integration of Timer, UART, and GPIO initialization code
 - **VS Code Tasks**: Build, clean, and flash tasks pre-configured
+- **Bundled XC32 Tools**: No external compiler installation required
 
-## Usage
+## Requirements
 
-### Required
+### What's Included (Bundled)
+✅ **MikroC HID Bootloader** (`mikro_hb.exe`) - No download needed!  
+✅ **XC32 Compiler Tools** - Essential compiler binaries bundled  
+✅ **Device Support Files** - PIC32MZ configuration and headers
 
-#### 1. MikroC HID Bootloader
-Download and install the MikroC HID bootloader executable:
+### What You Need
 
-**Repository:** [MikroC_bootloader](https://github.com/Davec6505/MikroC_bootloader)
+#### 1. Hardware
+- **PIC32MZ Device** (EC/EF series supported)
+- **USB Connection** for bootloader flashing
+- Device must have MikroC bootloader firmware installed (for flashing feature)
 
-**Download Options:**
-- Clone the repository: `git clone https://github.com/Davec6505/MikroC_bootloader.git`
-- Download the [latest release](https://github.com/Davec6505/MikroC_bootloader/releases)
-- Direct download: `mikro_hb.exe` from the `bins/` folder
-
-Save `mikro_hb.exe` to a location on your computer (e.g., `C:\Tools\mikro_hb.exe`)
-
-#### 2. PIC32 Device Requirements
-- **PIC32 Device** with MikroC bootloader firmware already installed
-- **USB Connection** (or serial connection depending on bootloader mode)
-- Device must be in bootloader mode when flashing
-
-#### 3. Compiled Firmware
-- `.hex` file generated from your MikroC project
-
-### Recommended
-- VS Code 1.106.1 or later
-- Windows OS (tested on Windows 10/11)
+#### 2. Software
+- **VS Code** 1.106.1 or later
+- **Windows OS** (tested on Windows 10/11)
+- No external compiler installation required - tools are bundled!
 
 ## Installation
 
-### Step 1: Install the Bootloader Tool
-
-Before using this extension, you need the MikroC HID bootloader:
-
-1. Go to [MikroC_bootloader releases](https://github.com/Davec6505/MikroC_bootloader/releases)
-2. Download the latest `mikro_hb.exe`
-3. Save it to a permanent location (e.g., `C:\Tools\mikro_hb.exe`)
-4. Note this path - you'll need it for VS Code configuration
-
-### Step 2: Install the VS Code Extension
-
-#### From VS Code Marketplace
+### From VS Code Marketplace (Recommended)
 1. Open VS Code
 2. Press `Ctrl+Shift+X` to open Extensions
-3. Search for "MikroC PIC32 Bootloader"
+3. Search for "**PIC32M Development Tools**"
 4. Click **Install**
 
-#### From VSIX File
+That's it! All tools are bundled - no additional setup required.
+
+### From VSIX File
 1. Download the latest `.vsix` from [Releases](https://github.com/Davec6505/mikroc-bootloader-plugin/releases)
 2. Open VS Code
 3. Press `Ctrl+Shift+P`
 4. Type "Install from VSIX"
 5. Select the downloaded file
 
-#### From Source
+### From Source (Development)
 ```bash
 git clone https://github.com/Davec6505/mikroc-bootloader-plugin.git
 cd mikroc-bootloader-plugin
 npm install
 npm run compile
 npx @vscode/vsce package
-code --install-extension mikroc-pic32-bootloader-1.0.0.vsix
-```
-
-### Step 3: Configure the Extension
-
-After installing, configure the bootloader path:
-
-1. Open VS Code Settings (`File > Preferences > Settings` or `Ctrl+,`)
-2. Search for "MikroC PIC32"
-3. Set **Bootloader Path** to where you saved `mikro_hb.exe`
-
-Example:
-```json
-{
-  "mikroc-pic32-bootloader.bootloaderPath": "C:\\Tools\\mikro_hb.exe"
-}
-```
-
-## Configuration
-
-1. Open VS Code Settings (`File > Preferences > Settings`)
-2. Search for "MikroC PIC32"
-3. Configure:
-   - **Bootloader Path**: Path to your `mikro_hb.exe` location
-   - **Hex File Pattern**: Glob pattern for finding .hex files (default: `**/*.hex`)
-   - **Show Status Bar Button**: Show/hide the quick access button (default: enabled)
-
-**Example:**
-```json
-{
-  "mikroc-pic32-bootloader.bootloaderPath": "C:\\Tools\\mikro_hb.exe",
-  "mikroc-pic32-bootloader.hexFilePattern": "**/*.hex",
-  "mikroc-pic32-bootloader.showStatusBarButton": true
-}
+code --install-extension mikroc-pic32-bootloader-1.1.2.vsix
 ```
 
 ## Usage
