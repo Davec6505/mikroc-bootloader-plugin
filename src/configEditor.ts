@@ -90,7 +90,7 @@ export class ConfigEditor {
                     enableScripts: true,
                     retainContextWhenHidden: true,
                     localResourceRoots: [
-                        vscode.Uri.file(path.join(this.context.extensionPath, 'src', 'webview'))
+                        vscode.Uri.file(path.join(this.context.extensionPath, 'out', 'webview'))
                     ]
                 }
             );
@@ -554,7 +554,7 @@ export class ConfigEditor {
      * Get webview HTML content
      */
     private getWebviewContent(): string {
-        const htmlPath = path.join(this.context.extensionPath, 'src', 'webview', 'configEditor.html');
+        const htmlPath = path.join(this.context.extensionPath, 'out', 'webview', 'configEditor.html');
         let html = fs.readFileSync(htmlPath, 'utf8');
 
         // No resource replacements needed - HTML is self-contained
