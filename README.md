@@ -5,6 +5,8 @@
 
 Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager, and peripheral configuration.
 
+MikroC requires a purchased license for MikroC Pro for PIC32 from Mikroelektronik, and the application fully installed on the device.
+
 ![Demo](https://via.placeholder.com/600x300?text=Add+Demo+GIF+Here)
 
 ## Features
