@@ -1,9 +1,74 @@
 # Change Log
 
-All notable changes to the "MikroC PIC32 Bootloader" extension will be documented in this file.
+All notable changes to the "PIC32M Development Tools" extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.1.3] - 2025-12-12
+
+### Changed
+- **Updated README**: Added UART section with development status
+- **Documentation**: Emphasized bundled tools - no external downloads required
+- **Documentation**: Removed confusing external bootloader download instructions
+- **Installation**: Simplified to just "install from marketplace"
+
+## [1.1.2] - 2025-12-12
+
+### Changed
+- **Rebranded** to "PIC32M Development Tools" (from "MikroC PIC32 Bootloader")
+- **Updated description**: Now highlights complete toolkit (config editor, project generator, pin manager)
+- Extension ID unchanged for seamless updates
+
+## [1.1.1] - 2025-12-12
+
+### Changed
+- **Standardized command names** with `PIC32M:` prefix for consistency
+  - `PIC32M: Flash with Bootloader`
+  - `PIC32M: Device Configuration Editor`
+  - `PIC32M: Generate XC32 Project`
+  - `PIC32M: Generate MikroC Project`
+- Removed "(Dev)" suffix from command titles
+
+## [1.1.0] - 2025-12-12
+
+### Added
+- **Bundled Tools** (37MB) - No external installations required!
+  - MikroC HID Bootloader (`mikro_hb.exe`)
+  - XC32 Compiler Tools (gcc, ld, as, objcopy, bin2hex)
+  - Device Support Files (PIC32MZ headers and configurations)
+- **XC32 Project Generator** - Complete buildable project scaffolding
+  - Interactive device selection (PIC32MZ EC/EF family)
+  - Visual configuration editor with register preview
+  - Automatic XC32/DFP version detection
+  - MikroE bootloader integration (startup.S, -nostartfiles)
+  - Cross-platform Makefile support
+  - Integrated peripheral code (Timers, GPIO, interrupts)
+  - VS Code build/flash tasks pre-configured
+- **Device Configuration Editor** - Visual DEVCFG0-3 configuration
+  - 40+ configuration options with dropdowns
+  - Real-time register preview
+  - Clock calculator with PLL settings
+  - Save/load configuration schemes
+  - XC32/DFP version selection
+- **Timer Configuration** - All Timer1-9 modules
+  - Timer1 (Type A 16-bit) and Timer2-9 (Type B 16/32-bit)
+  - Dual code generation (mikroC/Harmony XC32)
+  - PBCLK3 integration
+  - Interrupt support with priority configuration
+  - 16/32-bit mode selection
+- **Pin Manager** - Complete GPIO configuration
+  - 100+ GPIO pins (PORTA-PORTK)
+  - Package support (64/100/124/144-pin)
+  - GPIO configuration (input/output, pull-up/down, open-drain)
+  - 36 analog inputs (AN0-AN35)
+  - Full PPS (Peripheral Pin Select) support
+  - Dual code generation (mikroC/Harmony XC32)
+  - Visual table with filtering
+
+### Changed
+- Extension now provides complete embedded development environment
+- All tools bundled - zero external dependencies
 
 ## [1.0.0] - 2025-12-04
 

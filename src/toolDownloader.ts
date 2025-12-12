@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import * as vscode from 'vscode';
-import * as AdmZip from 'adm-zip';
+// import * as AdmZip from 'adm-zip'; // TODO: Add adm-zip dependency when implementing
 
 export interface ToolsManifest {
     version: string;
@@ -176,7 +176,13 @@ export class ToolDownloader {
      * Extract ZIP file
      */
     private async extractZip(zipPath: string, destDir: string): Promise<void> {
+        // TODO: Implement ZIP extraction (requires adm-zip package)
+        // npm install adm-zip @types/adm-zip
+        throw new Error('ZIP extraction not yet implemented. Install adm-zip package.');
+        
+        /* Implementation for future:
         fs.mkdirSync(destDir, { recursive: true });
+        const AdmZip = require('adm-zip');
         const zip = new AdmZip(zipPath);
         zip.extractAllTo(destDir, true);
 
@@ -189,6 +195,7 @@ export class ToolDownloader {
                 }
             }
         }
+        */
     }
 
     /**
