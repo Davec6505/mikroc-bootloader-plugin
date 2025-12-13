@@ -5,7 +5,11 @@
 
 Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager, and peripheral configuration.
 
-MikroC requires a purchased license for MikroC Pro for PIC32 from Mikroelektronik, and the application fully installed on the device.
+MSYS GNU Make is required - installation will be guided when first using this plugin if it does not exist.
+
+XC32 compiler is required together with the DFP (Device Family Pack) downloaded from Microchip.
+
+MikroC requires a purchased license for MikroC Pro for PIC32 from Mikroelektronika, with the application fully installed on the device.
 
 ![Demo](https://via.placeholder.com/600x300?text=Add+Demo+GIF+Here)
 

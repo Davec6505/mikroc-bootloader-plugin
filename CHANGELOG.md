@@ -5,6 +5,13 @@ All notable changes to the "PIC32M Development Tools" extension will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2025-12-13
+
+### Changed
+- **Documentation**: Improved README grammar and clarity
+- **Documentation**: Corrected capitalization (XC32, GNU Make, DFP)
+- **Documentation**: Added DFP acronym expansion (Device Family Pack)
+
 ## [1.2.1] - 2025-12-13
 
 ### Fixed
