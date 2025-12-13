@@ -5,6 +5,24 @@ All notable changes to the "PIC32M Development Tools" extension will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-12-13
+
+### Fixed
+- **Timer Configuration**: Timer peripheral files (TMR1) now only generate when user clicks Calculate button
+- **Configuration UI**: Initialize timer prValue to 0 instead of default 12500 to prevent unwanted file generation
+
+## [1.2.0] - 2025-12-13
+
+### Fixed
+- **XC32 Toolchain Detection**: Dynamic multi-drive search for XC32 compiler and DFP paths
+- **Path Compatibility**: Convert Windows backslashes to forward slashes for Git Bash make compatibility
+- **Build System**: Remove buggy PowerShell auto-detection from Makefile template
+- **Error Handling**: Halt project generation with modal error if toolchain not found
+
+### Changed
+- **Project Generation**: Toolchain paths now detected at generation time and hardcoded in Makefile
+- **Path Detection**: Search across C:, D:, E: drives for XC32 and DFP installations
+
 ## [1.1.3] - 2025-12-12
 
 ### Changed
