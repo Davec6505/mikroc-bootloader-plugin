@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { ConfigEditor } from './configEditor';
@@ -158,7 +159,15 @@ async function flashToDevice() {
 
 	// Validate bootloader path
 	if (!bootloaderPath) {
-		vscode.window.showErrorMessage('Bootloader path not configured. Please set mikroc-pic32-bootloader.bootloaderPath in settings.');
+		const choice = await vscode.window.showWarningMessage(
+			'Bootloader path not configured. Configure path or download the tool.',
+			'Open Settings', 'Download Tool'
+		);
+		if (choice === 'Open Settings') {
+			await vscode.commands.executeCommand('workbench.action.openSettings', 'mikroc-pic32-bootloader.bootloaderPath');
+		} else if (choice === 'Download Tool') {
+			vscode.env.openExternal(vscode.Uri.parse('https://github.com/Davec6505/MikroC_bootloader/releases'));
+		}
 		return;
 	}
 
@@ -300,7 +309,10 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 		throw new Error(`Validation failed: ${errors.join(', ')}`);
 	}
 
-	// Step 6: Generate project
+	// Step 6: Verify toolchain availability and guide user if missing
+	await verifyToolchainPrereqs();
+
+	// Step 7: Generate project
 	await vscode.window.withProgress({
 		location: vscode.ProgressLocation.Notification,
 		title: 'Creating XC32 Project',
@@ -311,7 +323,7 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 		progress.report({ message: 'Project created successfully!' });
 	});
 
-	// Step 7: Show success and offer to open project
+	// Step 8: Show success and offer to open project
 	const openAction = await vscode.window.showInformationMessage(
 		`XC32 project "${projectName}" created successfully at ${path.join(outputPath, projectName)}`,
 		'Open Project',
@@ -322,6 +334,93 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 		await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(path.join(outputPath, projectName)), false);
 	} else if (openAction === 'Open in New Window') {
 		await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(path.join(outputPath, projectName)), true);
+	}
+}
+
+/**
+ * Verify XC32 compiler and DFP presence and guide the user if missing
+ */
+async function verifyToolchainPrereqs(): Promise<void> {
+	const isWindows = process.platform === 'win32';
+	const missingItems: string[] = [];
+	const cfg = vscode.workspace.getConfiguration('mikroc-pic32-bootloader');
+	const userXc32Bin = (cfg.get<string>('xc32CompilerBinDir') || '').trim();
+	const userDfp = (cfg.get<string>('dfpPath') || '').trim();
+
+	// Check XC32 install
+	let xc32Found = false;
+	if (userXc32Bin) {
+		const exe = path.join(userXc32Bin, isWindows ? 'xc32-gcc.exe' : 'xc32-gcc');
+		xc32Found = fs.existsSync(exe);
+	}
+	if (isWindows) {
+		const xc32Base = 'C\\Program Files\\Microchip\\xc32';
+		try {
+			if (!xc32Found) {
+				const dirs = await fs.promises.readdir(xc32Base, { withFileTypes: true } as any);
+				xc32Found = (dirs as any[]).some((d: any) => d.isDirectory && d.isDirectory() && /^v\d+\.\d+/.test(d.name));
+			}
+		} catch {
+			xc32Found = false;
+		}
+	} else {
+		if (!xc32Found) {
+			try { xc32Found = fs.existsSync('/opt/microchip/xc32'); } catch { xc32Found = false; }
+		}
+	}
+
+	if (!xc32Found) {
+		missingItems.push('XC32 compiler');
+	}
+
+	// Check DFP presence (via MPLABX packs folder or common packs location)
+	let dfpFound = false;
+	if (userDfp) {
+		dfpFound = fs.existsSync(userDfp);
+	}
+	if (isWindows) {
+		const mplabxBase = 'C\\Program Files\\Microchip\\MPLABX';
+		const altPacks = 'C\\Microchip\\packs\\Microchip\\PIC32MZ-EF_DFP';
+		try {
+			if (!dfpFound && fs.existsSync(mplabxBase)) {
+				dfpFound = true;
+			} else if (!dfpFound && fs.existsSync(altPacks)) {
+				dfpFound = true;
+			}
+		} catch {
+			dfpFound = false;
+		}
+	} else {
+		if (!dfpFound) { dfpFound = fs.existsSync('/opt/microchip/mplabx'); }
+	}
+
+	if (!dfpFound) {
+		missingItems.push('PIC32MZ-EF Device Family Pack (DFP)');
+	}
+
+	if (missingItems.length === 0) {
+		return;
+	}
+
+	const detail = missingItems.join(' and ');
+	const action = await vscode.window.showWarningMessage(
+		`${detail} not detected. You can set custom locations in Settings or install tools.`,
+		'Open Settings',
+		'Get XC32',
+		'Get DFP',
+		'Proceed Anyway'
+	);
+
+	if (action === 'Open Settings') {
+		await vscode.commands.executeCommand('workbench.action.openSettings', 'mikroc-pic32-bootloader.xc32CompilerBinDir');
+	} else if (action === 'Get XC32') {
+		vscode.env.openExternal(vscode.Uri.parse('https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers/xc32'));
+	} else if (action === 'Get DFP') {
+		// MPLAB X packs installer or direct packs location; advise manual placement if MPLAB X not installed
+		vscode.env.openExternal(vscode.Uri.parse('https://packs.download.microchip.com/'));
+		vscode.window.showInformationMessage(
+			'If you do not install MPLAB X, create C:\\Microchip\\packs\\Microchip\\PIC32MZ-EF_DFP\\<version> and extract the DFP there. Then pass DFP="<that path>" to make.'
+		);
 	}
 }
 

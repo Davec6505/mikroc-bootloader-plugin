@@ -19,15 +19,13 @@ HEAP_SIZE  := {{HEAP_SIZE}}    # Heap for dynamic memory allocation
 STACK_SIZE := {{STACK_SIZE}}   # Stack for function calls and local variables
 
 # Compiler location and DFP (Device Family Pack) location
-# Cross-platform compiler and DFP paths
-ifeq ($(OS),Windows_NT)
-    COMPILER_LOCATION := C:/Program Files/Microchip/xc32/v5.00/bin
-    DFP_LOCATION := C:/Program Files/Microchip/MPLABX/v6.25/packs
-else
-    COMPILER_LOCATION := /opt/microchip/xc32/v5.00/bin
-    DFP_LOCATION := /opt/microchip/mplabx/v6.25/packs
-endif
-DFP := $(DFP_LOCATION)/Microchip/PIC32MZ-EF_DFP/1.4.168
+# Leave these empty to allow srcs/Makefile to auto-detect installed XC32 and DFP.
+# You can override on the command line:
+#   make build COMPILER_LOCATION="C:/Program Files/Microchip/xc32/v5.00/bin" \
+#               DFP="C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168"
+COMPILER_LOCATION :=
+DFP_LOCATION :=
+DFP :=
 
 # Simple Unix-style build system
 BUILD=make

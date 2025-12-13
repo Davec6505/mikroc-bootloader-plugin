@@ -1,9 +1,11 @@
 # PIC32M Development Tools
 
-[![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/Davec6505/mikroc-bootloader-plugin)
+[![Version](https://img.shields.io/badge/version-1.1.3-blue.svg)](https://github.com/Davec6505/mikroc-bootloader-plugin)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager, and peripheral configuration.
+
+MikroC requires a purchased license for MikroC Pro for PIC32 from Mikroelektronik, and the application fully installed on the device.
 
 ![Demo](https://via.placeholder.com/600x300?text=Add+Demo+GIF+Here)
 
@@ -148,21 +150,23 @@ code --install-extension mikroc-pic32-bootloader-1.1.2.vsix
 
 ## Development
 
-See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for:
+See [readme/DEVELOPER_GUIDE.md](readme/DEVELOPER_GUIDE.md) for:
 - Code architecture
 - API documentation
 - Building from source
 - Contributing guidelines
 
-See [PIN_MANAGER_DESIGN.md](PIN_MANAGER_DESIGN.md) for:
-- Pin Manager implementation details
-- PPS mapping architecture
-- Code generation formats
+## Documentation Index
 
-See [FEATURE_PROJECT_GENERATOR.md](FEATURE_PROJECT_GENERATOR.md) for:
-- XC32 project generator architecture
-- Makefile template system
-- Project structure details
+Design and internal docs are under the readme/ folder:
+
+- [readme/BUNDLING_GUIDE.md](readme/BUNDLING_GUIDE.md) – Bundling XC32 tools and MikroC bootloader
+- [readme/PIN_MANAGER_DESIGN.md](readme/PIN_MANAGER_DESIGN.md) – Pin Manager design and codegen
+- [readme/FEATURE_PROJECT_GENERATOR.md](readme/FEATURE_PROJECT_GENERATOR.md) – XC32 project generator design
+- [readme/MCC_INTERRUPT_ARCHITECTURE.md](readme/MCC_INTERRUPT_ARCHITECTURE.md) – MCC-style interrupt layering
+- [readme/PROJECT_STATUS.md](readme/PROJECT_STATUS.md) – Overall project status and roadmap
+- [readme/PUBLISHING.md](readme/PUBLISHING.md) – Publishing and Marketplace notes
+- [readme/UART_IMPLEMENTATION_PLAN.md](readme/UART_IMPLEMENTATION_PLAN.md) – UART and PBCLK implementation plan
 
 ## Contributing
 

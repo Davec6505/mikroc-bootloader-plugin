@@ -199,6 +199,34 @@ CFLAGS += -DMY_DEFINE=1
 
 ---
 
+## Toolchain Paths
+
+This project auto-detects installed toolchains. If XC32 or the DFP are installed in non-default locations, use one of these options:
+
+1) Pass paths on the make command line (one-off):
+
+```bash
+make COMPILER_LOCATION="C:/Program Files/Microchip/xc32/v5.00/bin" \
+	DFP="C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168"
+```
+
+2) Set VS Code settings (global) so tasks pick them up automatically:
+
+- `mikroc-pic32-bootloader.xc32CompilerBinDir` → e.g. `C:/Program Files/Microchip/xc32/v5.00/bin`
+- `mikroc-pic32-bootloader.dfpPath` → e.g. `C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168`
+
+3) No MPLAB X installed? Place the DFP standalone here and point DFP to it:
+
+- `C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/<version>`
+
+Then build as usual:
+
+```bash
+make
+```
+
+---
+
 ## Resources
 
 - [XC32 User Guide](https://www.microchip.com/xc32)

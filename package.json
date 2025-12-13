@@ -2,7 +2,7 @@
   "name": "mikroc-pic32-bootloader",
   "displayName": "PIC32M Development Tools",
   "description": "Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager",
-  "version": "1.1.3",
+  "version": "1.1.5",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
@@ -34,7 +34,13 @@
     "Programming Languages",
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:mikroc-pic32-bootloader.flash",
+    "onCommand:mikroc-pic32-bootloader.testConfigEditor",
+    "onCommand:mikroc-pic32-bootloader.createXC32Project",
+    "onCommand:mikroc-pic32-bootloader.createMikroCProject",
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -63,6 +69,21 @@
           "default": "",
           "description": "Path to the mikro_hb.exe bootloader executable (download from https://github.com/Davec6505/MikroC_bootloader)"
         },
+        "mikroc-pic32-bootloader.xc32CompilerBinDir": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional: Override auto-detection. Set to the XC32 bin directory, for example: C:/Program Files/Microchip/xc32/v5.00/bin"
+        },
+        "mikroc-pic32-bootloader.dfpPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional: Override auto-detection. Set to the PIC32MZ-EF DFP folder, for example: C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168 or C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168"
+        },
+        "mikroc-pic32-bootloader.autoInstallBootloaderTool": {
+          "type": "boolean",
+          "default": true,
+          "description": "Offer to download a bootloader CLI tool if no bootloaderPath is configured."
+        },
         "mikroc-pic32-bootloader.hexFilePattern": {
           "type": "string",
           "default": "**/*.hex",
@@ -86,13 +107,17 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.106.1",
+    "@types/adm-zip": "^0.5.7",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "typescript-eslint": "^8.46.3",
+    "@types/vscode": "^1.106.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "typescript-eslint": "^8.46.3"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
   }
 }
