@@ -104,6 +104,18 @@ export interface XC32ProjectOptions {
     heapSize?: number;         // Optional heap size (defaults to 4096)
     xc32Version?: string;      // Optional XC32 version (auto-detect if not specified)
     dfpVersion?: string;       // Optional DFP version (auto-detect if not specified)
+    /**
+     * Fully-qualified path to the XC32 bin directory, e.g. C:/Program Files/Microchip/xc32/v5.00/bin.
+     * When provided, this is baked into the generated Root Makefile as COMPILER_LOCATION so users
+     * don't need to pass COMPILER_LOCATION on the make command line.
+     */
+    xc32CompilerBinDir?: string;
+    /**
+     * Fully-qualified path to the PIC32MZ-EF DFP folder, e.g.
+     * C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168. When provided, this is baked into the
+     * generated Root Makefile as DFP so users don't need to pass DFP on the make command line.
+     */
+    dfpPath?: string;
     useMikroeBootloader?: boolean;  // Use MikroE bootloader (adds -nostartfiles and startup.S)
     pinConfigurations?: PinConfiguration[];  // Pin Manager configurations
     timerConfigurations?: TimerConfiguration[];  // Timer configurations
@@ -113,7 +125,20 @@ export interface XC32ProjectOptions {
  * Generate complete XC32 project
  */
 export async function generateXC32Project(options: XC32ProjectOptions): Promise<void> {
-    const { projectName, deviceName, outputPath, settings, heapSize, xc32Version, dfpVersion, useMikroeBootloader, pinConfigurations, timerConfigurations } = options;
+    const {
+        projectName,
+        deviceName,
+        outputPath,
+        settings,
+        heapSize,
+        xc32Version,
+        dfpVersion,
+        xc32CompilerBinDir,
+        dfpPath,
+        useMikroeBootloader,
+        pinConfigurations,
+        timerConfigurations
+    } = options;
     
     // Remove 'P' prefix for device part number
     const devicePart = deviceName.replace(/^P/, '');
@@ -128,6 +153,14 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     const coreTimerCompare = '0x186a0'; // 100,000 decimal for 1ms interrupts at 100MHz
     
     // Template variables
+    // Derive DFP version from explicit path when provided so SrcsMakefile can show friendly info.
+    const normalizedDfpPath = dfpPath ? dfpPath.replace(/[\\/]+$/, '') : '';
+    const dfpVersionFromPath = normalizedDfpPath ? path.basename(normalizedDfpPath) : (dfpVersion || '');
+
+    // Convert Windows backslashes to forward slashes for Makefile compatibility (Git Bash make requires /)
+    const makefileDfpPath = normalizedDfpPath.replace(/\\/g, '/');
+    const makefileXc32Bin = xc32CompilerBinDir ? xc32CompilerBinDir.replace(/\\/g, '/') : '';
+
     const vars = {
         PROJECT_NAME: projectName,
         DEVICE_NAME: deviceName,
@@ -138,8 +171,10 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
         CORETIMER_COMPARE_VALUE: coreTimerCompare,
         HEAP_SIZE: heap.toString(),
         STACK_SIZE: stack.toString(),
-        XC32_VERSION: xc32Version || '',    // Empty string = auto-detect in Makefile
-        DFP_VERSION: dfpVersion || '',       // Empty string = auto-detect in Makefile
+        XC32_VERSION: xc32Version || '',    // Empty string = auto-detect in SrcsMakefile
+        DFP_VERSION: dfpVersionFromPath,     // Prefer version derived from explicit DFP path when set
+        XC32_COMPILER_BIN: makefileXc32Bin,
+        DFP_PATH: makefileDfpPath,
         USE_MIKROE_BOOTLOADER: useMikroeBootloader ? 'yes' : 'no'
     };
     

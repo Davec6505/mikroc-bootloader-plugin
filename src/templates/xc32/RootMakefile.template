@@ -19,22 +19,30 @@ HEAP_SIZE  := {{HEAP_SIZE}}    # Heap for dynamic memory allocation
 STACK_SIZE := {{STACK_SIZE}}   # Stack for function calls and local variables
 
 # Compiler location and DFP (Device Family Pack) location
-# Leave these empty to allow srcs/Makefile to auto-detect installed XC32 and DFP.
-# You can override on the command line:
-#   make build COMPILER_LOCATION="C:/Program Files/Microchip/xc32/v5.00/bin" \
-#               DFP="C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168"
-COMPILER_LOCATION :=
-DFP_LOCATION :=
-DFP :=
+# Leave empty to enable auto-detection in srcs/Makefile
+# Set these to override auto-detection:
+#   COMPILER_LOCATION := C:/Program Files/Microchip/xc32/v5.00/bin
+#   DFP := C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168
+COMPILER_LOCATION := {{XC32_COMPILER_BIN}}
+DFP := {{DFP_PATH}}
 
 # Simple Unix-style build system
 BUILD=make
 BUILD_DIR=make build_dir
 
+# Build the make command with optional path overrides
+MAKE_ARGS := DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE) OPT_LEVEL=$(OPT_LEVEL)
+ifneq ($(COMPILER_LOCATION),)
+	MAKE_ARGS += COMPILER_LOCATION="$(COMPILER_LOCATION)"
+endif
+ifneq ($(DFP),)
+	MAKE_ARGS += DFP="$(DFP)"
+endif
+
 # Default target: incremental build (only rebuilds changed files)
 build:
 	@echo "######  INCREMENTAL BUILD  ########"
-	cd srcs && $(BUILD) COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE) OPT_LEVEL=$(OPT_LEVEL)
+	cd srcs && $(BUILD) $(MAKE_ARGS)
 	@echo "######  BUILD COMPLETE (bins/$(MODULE).hex)  ########"
 
 # Clean + full rebuild

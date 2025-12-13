@@ -55,13 +55,15 @@ endif
 
 # Auto-detect XC32 and DFP if not passed from root Makefile
 ifeq ($(COMPILER_LOCATION),)
-	ifeq ($(detected_OS),Windows)
-		XC32_BASE := C:/Program Files/Microchip/xc32
-		XC32_VERSION := $(shell powershell -Command "Get-ChildItem '$(XC32_BASE)' -Directory | Where-Object { $$_.Name -match '^v\d+\.\d+$$' } | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name")
+	# Try Windows path first
+	XC32_BASE := C:/Program Files/Microchip/xc32
+	XC32_VERSION := $(shell ls -d "$(XC32_BASE)"/v* 2>/dev/null | sort | tail -n1 | sed 's#.*/##')
+	ifneq ($(XC32_VERSION),)
 		COMPILER_LOCATION := $(XC32_BASE)/$(XC32_VERSION)/bin
 	else
+		# Try Linux/Mac path
 		XC32_BASE := /opt/microchip/xc32
-		XC32_VERSION := $(shell ls -d $(XC32_BASE)/v* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+		XC32_VERSION := $(shell ls -d $(XC32_BASE)/v* 2>/dev/null | sort | tail -n1 | sed 's#.*/##')
 		COMPILER_LOCATION := $(XC32_BASE)/$(XC32_VERSION)/bin
 	endif
 endif
@@ -85,15 +87,26 @@ endif
 # Use DFP from root Makefile if provided, otherwise auto-detect
 ifeq ($(DFP),)
 	ifeq ($(detected_OS),Windows)
+		# Native Windows PowerShell
 		MPLABX_BASE := C:/Program Files/Microchip/MPLABX
 		MPLABX_VERSION := $(shell powershell -Command "Get-ChildItem '$(MPLABX_BASE)' -Directory | Where-Object { $$_.Name -match '^v\d+\.\d+$$' } | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name")
 		DFP_BASE := $(MPLABX_BASE)/$(MPLABX_VERSION)/packs/Microchip/PIC32MZ-EF_DFP
 		DFP_VERSION := $(shell powershell -Command "Get-ChildItem '$(DFP_BASE)' -Directory | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name")
 	else
-		MPLABX_BASE := /opt/microchip/mplabx
-		MPLABX_VERSION := $(shell ls -d $(MPLABX_BASE)/v* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+		# Unix or MSYS/Git Bash - use Unix commands
+		MPLABX_BASE := C:/Program Files/Microchip/MPLABX
+		MPLABX_VERSION := $(shell ls -d "$(MPLABX_BASE)"/v* 2>/dev/null | sort -V | tail -n1 | basename)
 		DFP_BASE := $(MPLABX_BASE)/$(MPLABX_VERSION)/packs/Microchip/PIC32MZ-EF_DFP
-		DFP_VERSION := $(shell ls -d $(DFP_BASE)/* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+		DFP_VERSION := $(shell ls -d "$(DFP_BASE)"/* 2>/dev/null | sort -V | tail -n1 | basename)
+		ifneq ($(DFP_VERSION),)
+			# Found Windows path via MSYS
+		else
+			# Try Linux/Mac path
+			MPLABX_BASE := /opt/microchip/mplabx
+			MPLABX_VERSION := $(shell ls -d $(MPLABX_BASE)/v* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+			DFP_BASE := $(MPLABX_BASE)/$(MPLABX_VERSION)/packs/Microchip/PIC32MZ-EF_DFP
+			DFP_VERSION := $(shell ls -d $(DFP_BASE)/* 2>/dev/null | sort -V | tail -n1 | xargs basename)
+		endif
 	endif
 	DFP := $(DFP_BASE)/$(DFP_VERSION)
 endif
