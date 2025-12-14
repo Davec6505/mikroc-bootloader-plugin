@@ -1,5 +1,5 @@
 {
-  "name": "mikroc-pic32-bootloader",
+  "name": "pic32m-dev",
   "displayName": "PIC32M Development Tools",
   "description": "Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager",
   "version": "1.2.3",
@@ -35,61 +35,61 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:mikroc-pic32-bootloader.flash",
-    "onCommand:mikroc-pic32-bootloader.testConfigEditor",
-    "onCommand:mikroc-pic32-bootloader.createXC32Project",
-    "onCommand:mikroc-pic32-bootloader.createMikroCProject",
+    "onCommand:pic32m-dev.flash",
+    "onCommand:pic32m-dev.configureDevice",
+    "onCommand:pic32m-dev.createXC32Project",
+    "onCommand:pic32m-dev.createMikroCProject",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "mikroc-pic32-bootloader.flash",
+        "command": "pic32m-dev.flash",
         "title": "PIC32M: Flash with Bootloader"
       },
       {
-        "command": "mikroc-pic32-bootloader.testConfigEditor",
+        "command": "pic32m-dev.configureDevice",
         "title": "PIC32M: Device Configuration Editor"
       },
       {
-        "command": "mikroc-pic32-bootloader.createXC32Project",
-        "title": "PIC32M: Generate XC32 Project"
+        "command": "pic32m-dev.createXC32Project",
+        "title": "PIC32M: Create XC32 Project"
       },
       {
-        "command": "mikroc-pic32-bootloader.createMikroCProject",
+        "command": "pic32m-dev.createMikroCProject",
         "title": "PIC32M: Generate MikroC Project"
       }
     ],
     "configuration": {
-      "title": "MikroC PIC32 Bootloader",
+      "title": "PIC32M Development Tools",
       "properties": {
-        "mikroc-pic32-bootloader.bootloaderPath": {
+        "pic32m-dev.bootloaderPath": {
           "type": "string",
           "default": "",
           "description": "Path to the mikro_hb.exe bootloader executable (download from https://github.com/Davec6505/MikroC_bootloader)"
         },
-        "mikroc-pic32-bootloader.xc32CompilerBinDir": {
+        "pic32m-dev.xc32CompilerBinDir": {
           "type": "string",
           "default": "",
           "markdownDescription": "Optional: Override auto-detection. Set to the XC32 bin directory, for example: C:/Program Files/Microchip/xc32/v5.00/bin"
         },
-        "mikroc-pic32-bootloader.dfpPath": {
+        "pic32m-dev.dfpPath": {
           "type": "string",
           "default": "",
           "markdownDescription": "Optional: Override auto-detection. Set to the PIC32MZ-EF DFP folder, for example: C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168 or C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168"
         },
-        "mikroc-pic32-bootloader.autoInstallBootloaderTool": {
+        "pic32m-dev.autoInstallBootloaderTool": {
           "type": "boolean",
           "default": true,
           "description": "Offer to download a bootloader CLI tool if no bootloaderPath is configured."
         },
-        "mikroc-pic32-bootloader.hexFilePattern": {
+        "pic32m-dev.hexFilePattern": {
           "type": "string",
           "default": "**/*.hex",
           "description": "Glob pattern to find .hex files in workspace"
         },
-        "mikroc-pic32-bootloader.showStatusBarButton": {
+        "pic32m-dev.showStatusBarButton": {
           "type": "boolean",
           "default": true,
           "description": "Show 'Flash PIC32' button in the status bar for quick access"

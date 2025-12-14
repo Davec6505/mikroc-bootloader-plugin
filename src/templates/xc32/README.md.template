@@ -212,8 +212,8 @@ make COMPILER_LOCATION="C:/Program Files/Microchip/xc32/v5.00/bin" \
 
 2) Set VS Code settings (global) so tasks pick them up automatically:
 
-- `mikroc-pic32-bootloader.xc32CompilerBinDir` → e.g. `C:/Program Files/Microchip/xc32/v5.00/bin`
-- `mikroc-pic32-bootloader.dfpPath` → e.g. `C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168`
+- `pic32m-dev.xc32CompilerBinDir` → e.g. `C:/Program Files/Microchip/xc32/v5.00/bin`
+- `pic32m-dev.dfpPath` → e.g. `C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168`
 
 3) No MPLAB X installed? Place the DFP standalone here and point DFP to it:
 

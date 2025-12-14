@@ -103,7 +103,7 @@ cd mikroc-bootloader-plugin
 npm install
 npm run compile
 npx @vscode/vsce package
-code --install-extension mikroc-pic32-bootloader-1.1.2.vsix
+code --install-extension pic32m-dev-1.2.3.vsix
 ```
 
 ## Usage

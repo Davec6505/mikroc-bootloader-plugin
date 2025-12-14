@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('MikroC PIC32 Bootloader extension is now active!');
 
 	// Register flash command
-	const flashDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.flash', async () => {
+	const flashDisposable = vscode.commands.registerCommand('pic32m-dev.flash', async () => {
 		try {
 			await flashToDevice();
 		} catch (error) {
@@ -32,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	// Register config editor test command
-	const configDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.testConfigEditor', async () => {
+	const configDisposable = vscode.commands.registerCommand('pic32m-dev.configureDevice', async () => {
 		try {
 			await testConfigEditor(context);
 		} catch (error) {
@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	// Register XC32 project generator command
-	const xc32ProjectDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.createXC32Project', async () => {
+	const xc32ProjectDisposable = vscode.commands.registerCommand('pic32m-dev.createXC32Project', async () => {
 		try {
 			await createXC32Project(context);
 		} catch (error) {
@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	// Register MikroC project generator command
-	const mikrocProjectDisposable = vscode.commands.registerCommand('mikroc-pic32-bootloader.createMikroCProject', async () => {
+	const mikrocProjectDisposable = vscode.commands.registerCommand('pic32m-dev.createMikroCProject', async () => {
 		try {
 			await createMikroCProject(context);
 		} catch (error) {
@@ -60,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Create status bar button
 	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-	statusBarItem.command = 'mikroc-pic32-bootloader.flash';
+	statusBarItem.command = 'pic32m-dev.flash';
 	statusBarItem.text = '$(zap) Flash PIC32';
 	statusBarItem.tooltip = 'Flash .hex file to PIC32 device using MikroC bootloader';
 	
@@ -70,7 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Watch for configuration changes
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('mikroc-pic32-bootloader.showStatusBarButton')) {
+			if (e.affectsConfiguration('pic32m-dev.showStatusBarButton')) {
 				updateStatusBarVisibility();
 			}
 		})
@@ -143,7 +143,7 @@ function calculateClockFromConfig(config: Map<number, string>): number {
 }
 
 function updateStatusBarVisibility() {
-	const config = vscode.workspace.getConfiguration('mikroc-pic32-bootloader');
+	const config = vscode.workspace.getConfiguration('pic32m-dev');
 	const showButton = config.get<boolean>('showStatusBarButton', true);
 	
 	if (showButton) {
@@ -154,7 +154,7 @@ function updateStatusBarVisibility() {
 }
 
 async function flashToDevice() {
-	const config = vscode.workspace.getConfiguration('mikroc-pic32-bootloader');
+	const config = vscode.workspace.getConfiguration('pic32m-dev');
 	const bootloaderPath = config.get<string>('bootloaderPath');
 	const hexFilePattern = config.get<string>('hexFilePattern', '**/*.hex');
 
@@ -165,7 +165,7 @@ async function flashToDevice() {
 			'Open Settings', 'Download Tool'
 		);
 		if (choice === 'Open Settings') {
-			await vscode.commands.executeCommand('workbench.action.openSettings', 'mikroc-pic32-bootloader.bootloaderPath');
+			await vscode.commands.executeCommand('workbench.action.openSettings', 'pic32m-dev.bootloaderPath');
 		} else if (choice === 'Download Tool') {
 			vscode.env.openExternal(vscode.Uri.parse('https://github.com/Davec6505/MikroC_bootloader/releases'));
 		}
@@ -322,7 +322,7 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 		} else if (action === 'Install DFP') {
 			vscode.env.openExternal(vscode.Uri.parse('https://packs.download.microchip.com/'));
 		} else if (action === 'Configure Paths') {
-			await vscode.commands.executeCommand('workbench.action.openSettings', 'mikroc-pic32-bootloader');
+			await vscode.commands.executeCommand('workbench.action.openSettings', 'pic32m-dev');
 		}
 		return; // HALT - don't generate project
 	}
@@ -377,10 +377,10 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 /**
  * Verify XC32 compiler and DFP presence and guide the user if missing
  */
-async function verifyToolchainPrereqs(): Promise<void> {
+	async function verifyToolchainPrereqs(): Promise<void> {
 	const isWindows = process.platform === 'win32';
 	const missingItems: string[] = [];
-	const cfg = vscode.workspace.getConfiguration('mikroc-pic32-bootloader');
+	const cfg = vscode.workspace.getConfiguration('pic32m-dev');
 	const userXc32Bin = (cfg.get<string>('xc32CompilerBinDir') || '').trim();
 	const userDfp = (cfg.get<string>('dfpPath') || '').trim();
 
@@ -449,7 +449,7 @@ async function verifyToolchainPrereqs(): Promise<void> {
 	);
 
 	if (action === 'Open Settings') {
-		await vscode.commands.executeCommand('workbench.action.openSettings', 'mikroc-pic32-bootloader.xc32CompilerBinDir');
+		await vscode.commands.executeCommand('workbench.action.openSettings', 'pic32m-dev.xc32CompilerBinDir');
 	} else if (action === 'Get XC32') {
 		vscode.env.openExternal(vscode.Uri.parse('https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers/xc32'));
 	} else if (action === 'Get DFP') {
@@ -470,7 +470,7 @@ async function verifyToolchainPrereqs(): Promise<void> {
  */
 function resolveXc32ToolchainPaths(): { xc32Bin?: string; dfpPath?: string } {
 	const isWindows = process.platform === 'win32';
-	const cfg = vscode.workspace.getConfiguration('mikroc-pic32-bootloader');
+	const cfg = vscode.workspace.getConfiguration('pic32m-dev');
 	const userXc32Bin = (cfg.get<string>('xc32CompilerBinDir') || '').trim();
 	const userDfp = (cfg.get<string>('dfpPath') || '').trim();
 
