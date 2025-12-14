@@ -1,7 +1,7 @@
 # PIC32M Development Tools
 
-[![Version](https://github.com/Davec6505/mikroc-bootloader-plugin)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENS
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager, and peripheral configuration.
 
 MSYS GNU Make is required - installation will be guided when first using this plugin if it does not exist.
