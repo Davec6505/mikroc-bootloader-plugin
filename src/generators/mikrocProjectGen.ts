@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { BundledToolsManager } from '../bundledTools';
 import { generateMikroCConfig, generateMikroCIni } from './mikrocConfigGen';
 
 /**
@@ -53,6 +54,7 @@ export interface MikroCProjectOptions {
     outputPath: string;
     settings: Map<number, string>;
     heapSize?: number;         // Optional heap size (defaults to 4096)
+    extensionPath?: string;    // Path to extension for bundled tools
 }
 
 /**
@@ -159,7 +161,7 @@ export async function generateMikroCProject(options: MikroCProjectOptions): Prom
     const heap = Math.round(heapSize || 4096); // Default 4KB heap
     
     // Template variables
-    const vars = {
+    const vars: { [key: string]: string } = {
         PROJECT_NAME: projectName,
         DEVICE_NAME: deviceName,
         DEVICE_PART: devicePart,
@@ -207,6 +209,18 @@ export async function generateMikroCProject(options: MikroCProjectOptions): Prom
     writeFile(path.join(projectRoot, 'srcs/Makefile'), srcsMakefile);
     
     // Generate and write VS Code configuration
+    // Get bundled make path if extension path provided
+    let makeCommand = 'make';
+    if (options.extensionPath) {
+        const toolsManager = new BundledToolsManager(options.extensionPath);
+        const bundledMake = toolsManager.getMakePath();
+        if (bundledMake && fs.existsSync(bundledMake)) {
+            // Use forward slashes for cross-platform compatibility
+            makeCommand = bundledMake.replace(/\\\\/g, '/');
+        }
+    }
+    (vars as any).MAKE_COMMAND = makeCommand;
+    
     const tasksTemplate = loadTemplate('tasks.json.template');
     const tasks = replaceTemplateVars(tasksTemplate, vars);
     writeFile(path.join(projectRoot, '.vscode/tasks.json'), tasks);

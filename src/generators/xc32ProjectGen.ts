@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { BundledToolsManager } from '../bundledTools';
 import { generateInitializationC, generateInitializationH } from './xc32ConfigGen';
 import { generateHarmonyGpioHeader, generateHarmonyGpioSource } from './harmonyGpioGen';
 import { generateHarmonyPPSCode } from './ppsCodeGen';
@@ -101,6 +102,7 @@ export interface XC32ProjectOptions {
     deviceName: string;        // e.g., "P32MZ2048EFH100"
     outputPath: string;
     settings: Map<number, string>;
+    extensionPath?: string;    // Path to extension for bundled tools
     heapSize?: number;         // Optional heap size (defaults to 4096)
     xc32Version?: string;      // Optional XC32 version (auto-detect if not specified)
     dfpVersion?: string;       // Optional DFP version (auto-detect if not specified)
@@ -161,7 +163,7 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     const makefileDfpPath = normalizedDfpPath.replace(/\\/g, '/');
     const makefileXc32Bin = xc32CompilerBinDir ? xc32CompilerBinDir.replace(/\\/g, '/') : '';
 
-    const vars = {
+    const vars: { [key: string]: string } = {
         PROJECT_NAME: projectName,
         DEVICE_NAME: deviceName,
         DEVICE_PART: devicePart,
@@ -546,6 +548,18 @@ ${ppsCode}
     }
     
     // Generate and write VS Code configuration
+    // Get bundled make path if extension path provided
+    let makeCommand = 'make';
+    if (options.extensionPath) {
+        const toolsManager = new BundledToolsManager(options.extensionPath);
+        const bundledMake = toolsManager.getMakePath();
+        if (bundledMake && fs.existsSync(bundledMake)) {
+            // Use forward slashes for cross-platform compatibility
+            makeCommand = bundledMake.replace(/\\/g, '/');
+        }
+    }
+    (vars as any).MAKE_COMMAND = makeCommand;
+    
     const tasksTemplate = loadTemplate('tasks.json.template');
     const tasks = replaceTemplateVars(tasksTemplate, vars);
     writeFile(path.join(projectRoot, '.vscode/tasks.json'), tasks);

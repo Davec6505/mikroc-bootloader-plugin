@@ -340,7 +340,8 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 		dfpPath: toolchainPaths.dfpPath,
 		useMikroeBootloader: result.useMikroeBootloader || false,
 		pinConfigurations: result.pinConfigurations,
-		timerConfigurations: result.timerConfigurations
+		timerConfigurations: result.timerConfigurations,
+		extensionPath: context.extensionPath
 	};
 
 	const errors = validateXC32Options(options);
@@ -699,7 +700,8 @@ async function createMikroCProject(context: vscode.ExtensionContext): Promise<vo
 		deviceName: device.name,
 		outputPath,
 		settings: result.config,
-		heapSize: result.heapSize
+		heapSize: result.heapSize,
+		extensionPath: context.extensionPath
 	};
 
 	const errors = validateMikroCProjectOptions(options);
