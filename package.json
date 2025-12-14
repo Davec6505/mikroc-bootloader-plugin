@@ -2,7 +2,7 @@
   "name": "pic32m-dev",
   "displayName": "PIC32M Development Tools",
   "description": "Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
