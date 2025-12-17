@@ -22,6 +22,7 @@ import {
     generateTmr1CommonHeader,
     generateTmrCommonHeader
 } from './harmonyTimerGen';
+import { HarmonyUartGenerator, UartConfig } from './harmonyUartGen';
 
 /**
  * Template variable replacer
@@ -121,6 +122,7 @@ export interface XC32ProjectOptions {
     useMikroeBootloader?: boolean;  // Use MikroE bootloader (adds -nostartfiles and startup.S)
     pinConfigurations?: PinConfiguration[];  // Pin Manager configurations
     timerConfigurations?: TimerConfiguration[];  // Timer configurations
+    uartConfigurations?: UartConfig[];  // UART configurations
 }
 
 /**
@@ -139,7 +141,8 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
         dfpPath,
         useMikroeBootloader,
         pinConfigurations,
-        timerConfigurations
+        timerConfigurations,
+        uartConfigurations
     } = options;
     
     // Remove 'P' prefix for device part number
@@ -233,13 +236,24 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
     // Add timer peripheral includes if configured
     if (timerConfigurations && timerConfigurations.length > 0) {
         const timerIncludes = timerNumbers.map(n => {
-            // Timer1 goes in tmr1/, Timer2-9 go in tmr/
-            const path = n === 1 ? 'peripheral/tmr1' : 'peripheral/tmr';
+            // Timer1 goes in tmr1/, Timer2-9 go in tmr/tmr2/, tmr/tmr3/, etc.
+            const path = n === 1 ? 'peripheral/tmr1' : `peripheral/tmr/tmr${n}`;
             return `#include "${path}/plib_tmr${n}.h"`;
         }).join('\n');
         definitionsContent = definitionsContent.replace(
             '#include "peripheral/evic/plib_evic.h"',
             `#include "peripheral/evic/plib_evic.h"\n${timerIncludes}`
+        );
+    }
+    
+    // Add UART peripheral includes if configured
+    if (uartConfigurations && uartConfigurations.length > 0) {
+        const uartIncludes = uartConfigurations.map(uc => 
+            `#include "peripheral/uart/uart${uc.instanceNum}/plib_uart${uc.instanceNum}.h"`
+        ).join('\n');
+        definitionsContent = definitionsContent.replace(
+            '#include "peripheral/evic/plib_evic.h"',
+            `#include "peripheral/evic/plib_evic.h"\n${uartIncludes}`
         );
     }
     
@@ -280,6 +294,27 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
         }
     } else {
         console.log('No timer configurations found');
+    }
+    
+    // Add UART interrupt handler declarations to interrupts.h
+    if (uartConfigurations && uartConfigurations.length > 0) {
+        console.log(`Adding UART interrupt handlers for ${uartConfigurations.length} UART(s)`);
+        const uartsWithInterrupts = uartConfigurations.filter(uc => uc.operatingMode === 'non-blocking' || uc.operatingMode === 'ring-buffer');
+        console.log(`UARTs with interrupts enabled: ${uartsWithInterrupts.length}`);
+        if (uartsWithInterrupts.length > 0) {
+            const uartHandlerDecls = uartsWithInterrupts.map(uc => 
+                `void UART${uc.instanceNum}_InterruptHandler( void );`
+            ).join('\n');
+            
+            console.log(`UART handler declarations:\n${uartHandlerDecls}`);
+            
+            interruptsHContent = interruptsHContent.replace(
+                '// Section: Handler Routines\n// *****************************************************************************\n// *****************************************************************************',
+                `// Section: Handler Routines\n// *****************************************************************************\n// *****************************************************************************\n${uartHandlerDecls}\n\n`
+            );
+        }
+    } else {
+        console.log('No UART configurations found');
     }
     
     writeFile(path.join(projectRoot, 'srcs/config/default/definitions.h'), definitionsContent);
@@ -331,6 +366,53 @@ export async function generateXC32Project(options: XC32ProjectOptions): Promise<
         }
     } else {
         console.log('No timer configurations found');
+    }
+    
+    // Add UART interrupt handlers if configured
+    if (uartConfigurations && uartConfigurations.length > 0) {
+        console.log(`Adding UART interrupt handlers for ${uartConfigurations.length} UART(s)`);
+        const uartsWithInterrupts = uartConfigurations.filter(uc => uc.operatingMode === 'non-blocking' || uc.operatingMode === 'ring-buffer');
+        console.log(`UARTs with interrupts enabled: ${uartsWithInterrupts.length}`);
+        if (uartsWithInterrupts.length > 0) {
+            // Generate forward declarations
+            const uartDeclarations = uartsWithInterrupts.map(uc => 
+                `void UART_${uc.instanceNum}_Handler (void);`
+            ).join('\n');
+            
+            console.log(`UART ISR declarations:\n${uartDeclarations}`);
+            
+            // Generate ISR definitions
+            const uartHandlers = uartsWithInterrupts.map(uc => {
+                const handlers: string[] = [];
+                
+                // RX interrupt (most common)
+                handlers.push(`void __attribute__((used)) __ISR(_UART${uc.instanceNum}_RX_VECTOR, ipl1SRS) UART_${uc.instanceNum}_RX_Handler(void)\r\n{\r\n    UART${uc.instanceNum}_InterruptHandler();\r\n}`);
+                
+                // Fault interrupt (error handling)
+                handlers.push(`void __attribute__((used)) __ISR(_UART${uc.instanceNum}_FAULT_VECTOR, ipl1SRS) UART_${uc.instanceNum}_FAULT_Handler(void)\r\n{\r\n    UART${uc.instanceNum}_InterruptHandler();\r\n}`);
+                
+                // TX interrupt (for non-blocking/ring-buffer writes)
+                handlers.push(`void __attribute__((used)) __ISR(_UART${uc.instanceNum}_TX_VECTOR, ipl1SRS) UART_${uc.instanceNum}_TX_Handler(void)\r\n{\r\n    UART${uc.instanceNum}_InterruptHandler();\r\n}`);
+                
+                return handlers.join('\r\n\r\n');
+            }).join('\r\n\r\n');
+            
+            console.log(`UART ISR definitions generated`);
+            
+            // Insert declarations
+            interruptsCContent = interruptsCContent.replace(
+                '// Section: System Interrupt Vector declarations\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n',
+                `// Section: System Interrupt Vector declarations\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n${uartDeclarations}\r\n\r\n`
+            );
+            
+            // Insert ISR definitions
+            interruptsCContent = interruptsCContent.replace(
+                '// Section: System Interrupt Vector definitions\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n',
+                `// Section: System Interrupt Vector definitions\r\n// *****************************************************************************\r\n// *****************************************************************************\r\n\r\n${uartHandlers}\r\n\r\n`
+            );
+        }
+    } else {
+        console.log('No UART configurations found');
     }
     
     const exceptionsC = loadTemplate('config/default/exceptions.c.template');
@@ -499,14 +581,14 @@ ${ppsCode}
                 timerPath = path.join(projectRoot, 'srcs/config/default/peripheral/tmr1');
                 needTmr1Common = true;
             } else {
-                // Timer2-9 Type B (16-bit or 32-bit) - goes in peripheral/tmr/
+                // Timer2-9 Type B (16-bit or 32-bit) - goes in peripheral/tmr/tmr{N}/
                 headerContent = generateTimerTypeB_Header(timerNum);
                 sourceContent = generateTimerTypeB_Source(timerConfig);
-                timerPath = path.join(projectRoot, 'srcs/config/default/peripheral/tmr');
+                timerPath = path.join(projectRoot, `srcs/config/default/peripheral/tmr/tmr${timerNum}`);
                 needTmrCommon = true;
             }
             
-            // Write timer peripheral files (flat structure, no subdirectories)
+            // Write timer peripheral files in instance-specific subfolder
             writeFile(path.join(timerPath, `plib_tmr${timerNum}.h`), headerContent);
             writeFile(path.join(timerPath, `plib_tmr${timerNum}.c`), sourceContent);
             
@@ -521,10 +603,45 @@ ${ppsCode}
         }
         
         if (needTmrCommon) {
+            // Common header goes in parent tmr/ folder (not in tmr2/, tmr3/, etc.)
             const tmrCommonPath = path.join(projectRoot, 'srcs/config/default/peripheral/tmr');
             writeFile(path.join(tmrCommonPath, 'plib_tmr_common.h'), generateTmrCommonHeader());
             console.log('Generated plib_tmr_common.h');
         }
+    }
+    
+    // Generate UART peripheral files from UART configurations
+    if (uartConfigurations && uartConfigurations.length > 0) {
+        console.log(`Generating UART files for ${uartConfigurations.length} configured UART(s)`);
+        
+        const uartTemplatePath = path.join(__dirname, '..', 'templates', 'mz', 'uart');
+        const uartGenerator = new HarmonyUartGenerator(uartTemplatePath);
+        
+        for (const uartConfig of uartConfigurations) {
+            const { instanceNum } = uartConfig;
+            
+            // Generate UART header and source files
+            const headerTemplatePath = path.join(uartTemplatePath, 'plib_uartx.h.template');
+            const sourceTemplatePath = path.join(uartTemplatePath, 'plib_uartx.c.template');
+            
+            const headerContent = uartGenerator.generateUartHeader(uartConfig, headerTemplatePath);
+            const sourceContent = uartGenerator.generateUartSource(uartConfig, sourceTemplatePath);
+            
+            // UART files go in peripheral/uart/uart{N}/
+            const uartPath = path.join(projectRoot, `srcs/config/default/peripheral/uart/uart${instanceNum}`);
+            
+            writeFile(path.join(uartPath, `plib_uart${instanceNum}.h`), headerContent);
+            writeFile(path.join(uartPath, `plib_uart${instanceNum}.c`), sourceContent);
+            
+            console.log(`Generated UART${instanceNum} peripheral files (${uartConfig.operatingMode} mode)`);
+        }
+        
+        // Generate common header if any UARTs configured (goes in parent uart/ folder)
+        const commonHeaderTemplatePath = path.join(uartTemplatePath, 'plib_uart_common.h.template');
+        const commonHeaderContent = uartGenerator.generateUartCommonHeader(commonHeaderTemplatePath);
+        const uartCommonPath = path.join(projectRoot, 'srcs/config/default/peripheral/uart');
+        writeFile(path.join(uartCommonPath, 'plib_uart_common.h'), commonHeaderContent);
+        console.log('Generated plib_uart_common.h');
     }
     
     // Generate and write main.c

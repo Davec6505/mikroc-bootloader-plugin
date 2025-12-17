@@ -341,6 +341,7 @@ async function createXC32Project(context: vscode.ExtensionContext): Promise<void
 		useMikroeBootloader: result.useMikroeBootloader || false,
 		pinConfigurations: result.pinConfigurations,
 		timerConfigurations: result.timerConfigurations,
+		uartConfigurations: result.uartConfigurations,
 		extensionPath: context.extensionPath
 	};
 

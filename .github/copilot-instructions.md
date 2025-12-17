@@ -79,17 +79,23 @@ uint32_t TMR1_FrequencyGet(void) {
 1. **interrupts.h** - Forward declarations
    ```c
    void TIMER_1_InterruptHandler( void );
+   void UART1_InterruptHandler( void );
    ```
 
 2. **interrupts.c** - ISR vectors that route to handlers
    ```c
-   void __ISR(_TIMER_1_VECTOR, IPL1SRS) TIMER_1_Handler(void)
+   void __ISR(_TIMER_1_VECTOR, ipl1SRS) TIMER_1_Handler(void)
    {
        TIMER_1_InterruptHandler();
    }
+   
+   void __ISR(_UART1_RX_VECTOR, ipl1SRS) UART_1_RX_Handler(void)
+   {
+       UART1_InterruptHandler();
+   }
    ```
 
-3. **plib_tmrX.c** - Actual interrupt handlers with callbacks
+3. **plib_tmrX.c / plib_uartX.c** - Actual interrupt handlers with callbacks
    ```c
    void TIMER_1_InterruptHandler(void)
    {
@@ -98,6 +104,101 @@ uint32_t TMR1_FrequencyGet(void) {
    ```
 
 **Why**: Separation of concerns - ISR vectors (system) vs handler logic (peripheral library).
+
+### 5. MCC Harmony 3 Folder Structure - CRITICAL (Dec 17, 2025)
+**Each peripheral instance MUST have its own subfolder:**
+
+```
+peripheral/
+├── tmr1/                      ← Timer1 special (Type A)
+│   ├── plib_tmr1.h
+│   ├── plib_tmr1.c
+│   └── plib_tmr1_common.h     ← Common header at instance level
+├── tmr/                       ← Parent for Timer2-9
+│   ├── plib_tmr_common.h      ← Common header at parent level
+│   ├── tmr2/                  ← Instance subfolder
+│   │   ├── plib_tmr2.h
+│   │   └── plib_tmr2.c
+│   └── tmr3/
+│       ├── plib_tmr3.h
+│       └── plib_tmr3.c
+└── uart/                      ← Parent for all UARTs
+    ├── plib_uart_common.h     ← Common header at parent level
+    ├── uart1/                 ← Instance subfolder
+    │   ├── plib_uart1.h
+    │   └── plib_uart1.c
+    └── uart2/
+        ├── plib_uart2.h
+        └── plib_uart2.c
+```
+
+**Include path format:**
+```c
+// ✅ CORRECT - Include paths with subfolders
+#include "peripheral/tmr1/plib_tmr1.h"
+#include "peripheral/tmr/tmr2/plib_tmr2.h"
+#include "peripheral/uart/uart1/plib_uart1.h"
+
+// ❌ WRONG - Flat structure
+#include "peripheral/tmr/plib_tmr2.h"
+#include "peripheral/uart/plib_uart1.h"
+```
+
+### 6. Conditional Peripheral Generation - CRITICAL (Dec 17, 2025)
+**Only generate peripheral files when configured by user:**
+
+```typescript
+// ✅ CORRECT - Check for configuration before generating
+if (timerConfigurations && timerConfigurations.length > 0) {
+    // Generate timer files
+    for (const timerConfig of timerConfigurations) {
+        // Create peripheral/tmr/tmr{N}/ folder
+        // Generate plib_tmr{N}.h/c files
+    }
+    // Generate common header at parent level
+}
+
+// Same pattern for UARTs
+if (uartConfigurations && uartConfigurations.length > 0) {
+    // Generate UART files
+}
+```
+
+**Why**: Prevents empty folders and unused code. User explicitly configures peripherals in UI.
+
+### 7. Multi-Peripheral Configuration - CRITICAL (Dec 17, 2025)
+**UI supports configuring multiple peripherals of the same type:**
+
+**Timer UI Pattern:**
+1. User selects timer (Timer1, Timer2/3 32-bit, etc.)
+2. Configures period, prescaler, priority
+3. Clicks "Calculate" to verify settings
+4. Clicks "Add Timer to Project" → adds to configuredTimers array
+5. Can configure additional timers with different settings
+6. All configured timers passed to backend as array
+
+**Backend receives:**
+```typescript
+timerConfigurations: TimerConfiguration[] = [
+    { timer: '1', prescaler: 8, prValue: 25000, ... },
+    { timer: '23', prescaler: 64, prValue: 15625, ... }  // 32-bit Timer2/3
+]
+```
+
+**Project Generator:**
+```typescript
+if (timerConfigurations && timerConfigurations.length > 0) {
+    for (const timerConfig of timerConfigurations) {
+        // Generate each timer's files in its own subfolder
+        // peripheral/tmr1/, peripheral/tmr/tmr2/, etc.
+    }
+}
+```
+
+**Same pattern for UART** (to be implemented):
+- Multiple UARTs configurable
+- Each with different baud rates, modes (blocking/non-blocking/ring-buffer)
+- All passed as array to backend
 
 ### 3. Timer Peripheral Code Generation (MCC Style)
 

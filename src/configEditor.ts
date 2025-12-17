@@ -15,6 +15,8 @@ import { calculateRegisters, formatRegisterValue } from './devices/pic32mz/efhRe
 import { PinManager } from './pinManager';
 import { PackageType, PinConfiguration } from './devices/pic32mz/types';
 import { TimerConfiguration } from './generators/harmonyTimerGen';
+import { UartConfig } from './generators/harmonyUartGen';
+import { PPS_INPUT_SIGNALS, PPS_OUTPUT_PINS } from './devices/pic32mz/ppsMapping';
 
 export interface ConfigResult {
     config: Map<number, string>;
@@ -24,6 +26,7 @@ export interface ConfigResult {
     useMikroeBootloader?: boolean;
     pinConfigurations?: PinConfiguration[];
     timerConfigurations?: TimerConfiguration[];
+    uartConfigurations?: UartConfig[];
 }
 
 export class ConfigEditor {
@@ -119,7 +122,8 @@ export class ConfigEditor {
                                     dfpVersion: message.dfpVersion,
                                     useMikroeBootloader: message.useMikroeBootloader || false,
                                     pinConfigurations: this.pinManager.exportState().pins,
-                                    timerConfigurations: message.timerConfigurations
+                                    timerConfigurations: message.timerConfigurations,
+                                    uartConfigurations: message.uartConfigurations
                                 });
                             }
                             this.panel?.dispose();
@@ -191,7 +195,9 @@ export class ConfigEditor {
             type: 'init',
             deviceInfo: this.device,
             uiSchema: EFH_UI_SCHEMA,
-            config: configObj
+            config: configObj,
+            ppsInputSignals: PPS_INPUT_SIGNALS,
+            ppsOutputPins: PPS_OUTPUT_PINS
         });
 
         // Send initial register values
@@ -555,9 +561,19 @@ export class ConfigEditor {
      */
     private getWebviewContent(): string {
         const htmlPath = path.join(this.context.extensionPath, 'out', 'webview', 'configEditor.html');
+        const cssPath = path.join(this.context.extensionPath, 'out', 'webview', 'configEditor.css');
+        const jsPath = path.join(this.context.extensionPath, 'out', 'webview', 'configEditor.js');
+        
         let html = fs.readFileSync(htmlPath, 'utf8');
-
-        // No resource replacements needed - HTML is self-contained
+        
+        // Convert file paths to webview URIs
+        const cssUri = this.panel!.webview.asWebviewUri(vscode.Uri.file(cssPath));
+        const jsUri = this.panel!.webview.asWebviewUri(vscode.Uri.file(jsPath));
+        
+        // Replace placeholders with actual URIs
+        html = html.replace('{{cssUri}}', cssUri.toString());
+        html = html.replace('{{jsUri}}', jsUri.toString());
+        
         return html;
     }
 

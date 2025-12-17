@@ -35,9 +35,9 @@ function createPin(
     // Extract analog channel
     const analogChannel = alternateFunctions.find(f => f.startsWith('AN'));
     
-    // Extract RP number
-    const rpMatch = alternateFunctions.find(f => f.match(/^RP\d+$/));
-    const rpNumber = rpMatch ? parseInt(rpMatch.substring(2)) : undefined;
+    // Extract RP designation (e.g., RPB0, RPD2) and extract the number part
+    const rpDesignation = alternateFunctions.find(f => f.match(/^RP[A-K]\d+$/));
+    const rpNumber = rpDesignation ? parseInt(rpDesignation.match(/\d+$/)![0]) : undefined;
     
     // Extract CN number
     const cnNumber = alternateFunctions.find(f => f.startsWith('CN'));
