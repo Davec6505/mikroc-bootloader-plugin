@@ -1,5 +1,38 @@
 # GitHub Copilot Instructions for MikroC Bootloader VS Code Extension
 
+## ⚠️ CRITICAL DEVELOPMENT RULES ⚠️
+
+### **RULE #1: READ BEFORE YOU CODE**
+**ALWAYS READ THE ENTIRE PROJECT CONTEXT BEFORE MAKING CHANGES**
+- Use `semantic_search` to understand related code
+- Use `grep_search` to find all usages of functions you're changing
+- Use `read_file` to read adjacent code that might be affected
+- **NEVER** assume a change is isolated without verifying
+
+### **RULE #2: VERIFY BEFORE YOU BREAK**
+**CHECK THAT YOUR CHANGES DON'T BREAK EXISTING FUNCTIONALITY**
+- Read the call sites of functions you're modifying
+- Check if other files import/depend on what you're changing
+- Test file paths and message passing between frontend/backend
+- Verify TypeScript interfaces match JavaScript usage
+
+### **RULE #3: DOCUMENT CRITICAL FINDINGS**
+**UPDATE THIS FILE with any critical discoveries about:**
+- Line ending issues (CRLF vs LF)
+- Template replacement patterns
+- ISR macro requirements
+- Folder structure requirements
+- Interface changes
+
+### **RULE #4: GO SLOWLY AND CAREFULLY**
+**ONE CHANGE AT A TIME. VERIFY. THEN NEXT CHANGE.**
+- Don't batch multiple unrelated changes
+- Compile after each logical change
+- Check that existing features still work
+- Don't delete code you haven't fully understood
+
+---
+
 ## Project Overview
 This is a VS Code extension for PIC32MZ microcontrollers that provides:
 1. Configuration bit editor with visual UI
