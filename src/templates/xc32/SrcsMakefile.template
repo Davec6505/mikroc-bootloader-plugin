@@ -165,14 +165,14 @@ EXCLUDED_FILES := $(wildcard startup/*.S)
 SRCS := $(filter-out $(EXCLUDED_FILES),$(ALL_SRCS))
 ASM_SRCS := $(filter-out $(EXCLUDED_FILES),$(ALL_ASM_SRCS))
 
-# Convert sources to object files with proper paths (use notdir to avoid nested subdirs)
-OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(notdir $(SRCS)))
+# Convert sources to object files preserving directory structure
+OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 
 # MikroE Bootloader: Create startup object file if enabled
 ifeq ($(USE_MIKROE_BOOTLOADER),yes)
 	ASM_OBJS := $(OBJ_DIR)/startup.o
 else
-	ASM_OBJS := $(patsubst %.S,$(OBJ_DIR)/%.o,$(notdir $(ASM_SRCS)))
+	ASM_OBJS := $(patsubst $(SRC_DIR)/%.S,$(OBJ_DIR)/%.o,$(ASM_SRCS))
 endif
 
 # All objects
@@ -181,10 +181,6 @@ ALL_OBJS := $(OBJS) $(ASM_OBJS)
 # Discover all source subdirectories
 SRC_DIRS := $(sort $(dir $(SRCS) $(ASM_SRCS)))
 SRC_SUBDIRS := $(sort $(filter-out startup/,$(SRC_DIRS:$(SRC_DIR)/%=%)))
-
-# Set up vpath to search for sources in all discovered directories
-vpath %.c $(SRC_DIR) $(addprefix $(SRC_DIR)/,$(SRC_SUBDIRS))
-vpath %.S $(SRC_DIR) $(SRC_DIR)/startup
 
 # Discover all include directories dynamically (5 levels deep)
 INC_DIRS_SRC := $(call get_inc_dirs,$(SRC_DIR))
@@ -208,6 +204,9 @@ CFLAGS += -fno-common -ffunction-sections -fdata-sections
 CFLAGS += -mno-smart-io
 CFLAGS += $(INC_FLAGS)
 
+# Extra CFLAGS from MPLABX project
+CFLAGS += {{EXTRA_CFLAGS}}
+
 # MikroE Bootloader defines
 ifeq ($(USE_MIKROE_BOOTLOADER),yes)
 	CFLAGS += -DUSE_MIKROE_BOOTLOADER
@@ -220,6 +219,9 @@ LDFLAGS += -Wl,--gc-sections
 LDFLAGS += -Wl,--defsym=_min_heap_size=$(HEAP_SIZE)
 LDFLAGS += -Wl,--defsym=_min_stack_size=$(STACK_SIZE)
 LDFLAGS += -L"$(DFP_LIB)"
+
+# Extra LDFLAGS from MPLABX project
+LDFLAGS += {{EXTRA_LDFLAGS}}
 
 # MikroE Bootloader: Don't use default startup files
 ifeq ($(USE_MIKROE_BOOTLOADER),yes)
@@ -255,24 +257,16 @@ $(ELF): $(ALL_OBJS) | $(OUT_DIR) $(OTHER_DIR)
 	@echo "Linking $(MODULE)..."
 	$(LD) $(LDFLAGS) -Wl,-Map=$(MAP) -o $@ $(ALL_OBJS)
 
-# Pattern rule for compiling .c files from any discovered directory
-$(OBJ_DIR)/%.o: %.c | $(OBJ_DIR)
+# Pattern rule for compiling .c files from any discovered directory (preserves structure)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
 	@echo "Compiling $<..."
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Pattern rule for assembling .S files
-$(OBJ_DIR)/%.o: %.S | $(OBJ_DIR)
+# Pattern rule for assembling .S files (preserves structure)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
+	@mkdir -p $(dir $@)
 	@echo "Assembling $<..."
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-# Compile main.c from srcs/ (kept for clarity, but pattern rule handles it)
-$(OBJ_DIR)/main.o: main.c | $(OBJ_DIR)
-	@echo "Compiling $<..."
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-# Compile initialization.c from config/default/
-$(OBJ_DIR)/initialization.o: $(CONFIG_DIR)/initialization.c | $(OBJ_DIR)
-	@echo "Compiling $<..."
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # Compile startup.S if using MikroE bootloader

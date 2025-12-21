@@ -34,10 +34,27 @@
 ---
 
 ## Project Overview
-This is a VS Code extension for PIC32MZ microcontrollers that provides:
-1. Configuration bit editor with visual UI
-2. XC32 project generator with MCC Harmony 3 compatible peripheral libraries
-3. MikroC bootloader flash integration
+This is a VS Code extension for PIC32 microcontrollers that provides **two distinct workflows**:
+
+### 1. **New XC32-MikroC Project** (Generation ONLY)
+- Webview UI for project configuration (configEditor.ts)
+- Configuration bit editor with visual UI
+- Timer peripheral configuration
+- **NO GPIO/Pin Manager** in UI (library-driven, user adds -Llib paths manually)
+- **NO UART** in UI (user adds manually later if needed)
+- Generates complete project from scratch with flat structure
+- Uses existing configEditor.ts (needs GPIO/UART sections removed)
+- **MikroC projects are generated from scratch only - NO import workflow**
+
+### 2. **Import MPLABX Project** (Import ONLY)
+- Simple folder selection dialog (no configuration UI)
+- Parse MPLABX Makefiles to extract all settings
+- Detect `-no-startup-files` flag for CRT0 vs startup.S
+- Copy files and organize headers automatically
+- Generate Makefiles with detected settings
+- MCC Harmony 3 compatible peripheral libraries preserved
+- XC32 project with proper folder structure
+- **MPLABX projects are imported only - NO generation workflow**
 
 ## Critical Technical Findings
 
@@ -232,6 +249,63 @@ if (timerConfigurations && timerConfigurations.length > 0) {
 - Multiple UARTs configurable
 - Each with different baud rates, modes (blocking/non-blocking/ring-buffer)
 - All passed as array to backend
+
+### 8. Dual Workflow Architecture - CRITICAL (Dec 21, 2025)
+**Extension supports TWO distinct project workflows:**
+
+**Workflow 1: Generate New XC32-MikroC Project**
+- User creates project from scratch using webview UI
+- Configure: Config bits + Timer peripherals ONLY
+- **NO GPIO/Pin Manager** (MikroC is library-driven with -Llib paths)
+- **NO UART** (user adds manually to generated code if needed)
+- Generates flat MikroC-style folder structure
+- Uses configEditor.ts webview panel (needs simplification)
+
+**Workflow 2: Import MPLABX Project**
+- User selects existing MPLABX .X folder
+- NO configuration UI needed (uses MPLABX settings)
+- Parse Makefiles for toolchain paths, device, flags
+- Detect CRT0 vs startup.S from `-no-startup-files` flag
+- Copy files, organize headers, generate build system
+- Preserves MCC Harmony 3 structure (srcs/config/default/)
+
+**Initial Template Selection:**
+Extension should present choice:
+1. "New XC32-MikroC Project" → Opens webview UI
+2. "Import MPLABX Project" → Opens folder selection dialog
+
+**TODO: Simplify configEditor.ts for MikroC workflow**
+- Remove Pin Manager / GPIO configuration tab
+- Remove UART configuration tab
+- Keep only: Config bits + Timer configuration + Heap size
+- Remove from ConfigResult: `pinConfigurations`, `uartConfigurations`
+- MikroC projects are library-driven - user adds `-Llib` paths manually
+
+### 9. CRT0 vs Startup.S Detection - CRITICAL (Dec 21, 2025)
+**MPLABX projects may use either:**
+- **CRT0** (default): Standard Microchip startup code (`crt0.o`)
+- **Custom startup.S**: User-provided assembly startup file
+
+**Detection method** in `Makefile-default.mk`:
+```makefile
+# Project using custom startup.S
+${MP_CC} ... -nostartfiles -o ${DISTDIR}/...
+
+# Project using CRT0 (flag absent)
+${MP_CC} ... -o ${DISTDIR}/...  # No -nostartfiles
+```
+
+**IMPORTANT**: XC32 uses `-nostartfiles` flag (single word), NOT `-no-startup-files`.
+
+**Import behavior:**
+- Parse linker commands for `-nostartfiles` flag
+- If present: `usesCrt0 = false` → Generate startup.S in project
+- If absent: `usesCrt0 = true` → Linker uses crt0.o automatically
+
+**ProjectInfo interface:**
+```typescript
+usesCrt0?: boolean;  // true = crt0.o, false = startup.S
+```
 
 ### 3. Timer Peripheral Code Generation (MCC Style)
 

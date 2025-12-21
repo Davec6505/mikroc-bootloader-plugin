@@ -1,8 +1,8 @@
 {
-  "name": "pic32m-dev",
-  "displayName": "PIC32M Development Tools",
-  "description": "Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager",
-  "version": "1.2.7",
+  "name": "pic32-ide-vscode",
+  "displayName": "PIC32 IDE for VS Code",
+  "description": "Import MPLABX projects or generate new XC32-MikroC projects with clean Makefiles for VS Code development",
+  "version": "2.0.0",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
@@ -35,54 +35,31 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:pic32m-dev.flash",
-    "onCommand:pic32m-dev.configureDevice",
-    "onCommand:pic32m-dev.createXC32Project",
-    "onCommand:pic32m-dev.createMikroCProject",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "pic32m-dev.flash",
-        "title": "PIC32M: Flash with Bootloader"
+        "command": "pic32-ide.importMPLABX",
+        "title": "PIC32 IDE: Import MPLABX Project"
       },
       {
-        "command": "pic32m-dev.configureDevice",
-        "title": "PIC32M: Device Configuration Editor"
+        "command": "pic32-ide.flash",
+        "title": "PIC32 IDE: Flash Device"
       },
       {
-        "command": "pic32m-dev.createXC32Project",
-        "title": "PIC32M: Create XC32 Project"
-      },
-      {
-        "command": "pic32m-dev.createMikroCProject",
-        "title": "PIC32M: Generate MikroC Project"
+        "command": "pic32-ide.build",
+        "title": "PIC32 IDE: Build Project"
       }
     ],
     "configuration": {
-      "title": "PIC32M Development Tools",
+      "title": "PIC32 IDE for VS Code",
       "properties": {
-        "pic32m-dev.bootloaderPath": {
+        "pic32-ide.makeToolPath": {
           "type": "string",
           "default": "",
-          "description": "Path to the mikro_hb.exe bootloader executable (download from https://github.com/Davec6505/MikroC_bootloader)"
-        },
-        "pic32m-dev.xc32CompilerBinDir": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Optional: Override auto-detection. Set to the XC32 bin directory, for example: C:/Program Files/Microchip/xc32/v5.00/bin"
-        },
-        "pic32m-dev.dfpPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Optional: Override auto-detection. Set to the PIC32MZ-EF DFP folder, for example: C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/1.4.168 or C:/Microchip/packs/Microchip/PIC32MZ-EF_DFP/1.4.168"
-        },
-        "pic32m-dev.autoInstallBootloaderTool": {
-          "type": "boolean",
-          "default": true,
-          "description": "Offer to download a bootloader CLI tool if no bootloaderPath is configured."
+          "description": "Path to GNU Make executable (leave empty to use bundled)"
         },
         "pic32m-dev.hexFilePattern": {
           "type": "string",
@@ -100,7 +77,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./ && npm run copy-templates",
-    "copy-templates": "node -e \"require('fs').cpSync('src/templates', 'out/templates', {recursive: true})\" && node -e \"require('fs').cpSync('src/webview', 'out/webview', {recursive: true})\"",
+    "copy-templates": "node -e \"require('fs').cpSync('src/templates', 'out/templates', {recursive: true})\"",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
