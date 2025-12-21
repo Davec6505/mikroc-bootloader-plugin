@@ -1,123 +1,155 @@
-# PIC32M Development Tools
+# PIC32-IDE for VS Code
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Complete PIC32MZ development toolkit: bootloader flashing, config editor, XC32/MikroC project generator, pin manager, and peripheral configuration.
+**AI-Assisted PIC32 Development in VS Code** - Import MPLABX projects and leverage GitHub Copilot for embedded development.
 
-MSYS GNU Make is required - installation will be guided when first using this plugin if it does not exist.
+## Why This Extension?
 
-XC32 compiler is required together with the DFP (Device Family Pack) downloaded from Microchip.
+This extension was created to solve a fundamental problem: **modern AI coding assistants like GitHub Copilot work best in VS Code, but PIC32 development traditionally happens in MPLABX IDE.**
 
-MikroC requires a purchased license for MikroC Pro for PIC32 from Mikroelektronika, with the application fully installed on the device.
+By importing your MPLABX projects into VS Code, you can:
+- ✨ **Get AI assistance** - Let Copilot help write peripheral drivers, debug code, and understand complex configurations
+- 🚀 **Use modern tooling** - Leverage VS Code's superior editing, search, and extension ecosystem
+- 🔄 **Keep MCC workflow** - Continue using MPLABX/MCC for peripheral configuration, then import back to VS Code
+- 🛠️ **Build natively** - Compile and flash directly from VS Code with your existing XC32 toolchain
 
-![Demo](https://via.placeholder.com/600x300?text=Add+Demo+GIF+Here)
+**Perfect for developers who want to use AI assistance while working with MCC Harmony 3 generated code.**
 
 ## Features
 
-### 🚀 Bootloader Flashing
-- **One-Click Flashing**: Flash .hex files to PIC32 devices with a single command
-- **Status Bar Button**: Quick access button in the status bar (click "⚡ Flash PIC32")
-- **Auto-Discovery**: Automatically finds .hex files in your workspace
-- **Multiple Files**: Quick picker when multiple .hex files are found
-- **Terminal Integration**: See bootloader output in real-time
+### 📥 MPLABX Project Import
+- **One-Click Import**: Select your `.X` folder and automatically import entire MPLABX project
+- **MCC Harmony 3 Compatible**: Preserves all MCC-generated peripheral libraries and structure
+- **Flag Preservation**: Extracts and preserves CFLAGS and LDFLAGS from original Makefiles
+- **Startup Detection**: Automatically detects CRT0 vs custom startup.S configuration
+- **Full Toolchain**: Uses your existing XC32 compiler and DFP installations
+- **Build System**: Generates GNU Makefiles compatible with Windows, WSL, and Git Bash
+- **Metadata Tracking**: Saves project metadata for future re-sync with MPLABX
 
-### ⚙️ Device Configuration Editor (PIC32MZ EC/EF)
-- **Visual DEVCFG Editor**: Configure all 40 PIC32MZ configuration settings with dropdown menus
-- **Real-time Register Preview**: See DEVCFG0-3 register values update as you configure
-- **Clock Calculator**: Automatic system clock calculation from PLL settings
-- **Scheme Save/Load**: Save and load configuration schemes for different projects
-- **XC32/DFP Version Selection**: Choose compiler and device pack versions
-- **Mikroelektronika Bootloader Option**: Enable bootloader-compatible configuration
+### ⚡ MikroC Bootloader Support  
+- **One-Click Flashing**: Flash .hex files to PIC32 devices via USB bootloader
+- **Status Bar Button**: Quick access "⚡ Flash PIC32" button  
+- **Auto-Discovery**: Finds .hex files in your workspace
+- **Terminal Output**: Real-time flash progress
 
-### 🕐 Timer Configuration
-- **All Timer Types**: Configure Timer1 (Type A 16-bit) and Timer2-9 (Type B 16/32-bit)
-- **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible code
-- **PBCLK3 Integration**: Automatically uses system clock configuration
-- **Interrupt Support**: Configure interrupt priorities and enable flags
-- **16/32-bit Mode**: Timer2-9 can operate as 16-bit or combined 32-bit timers
+### 🤖 AI-First Development
+This extension is designed for **AI-assisted embedded development**:
+- **GitHub Copilot Integration**: Get intelligent code suggestions for PIC32 peripherals
+- **Context-Aware Help**: Copilot understands MCC Harmony 3 code structure
+- **Faster Development**: Let AI help with boilerplate, drivers, and configuration
+- **Learning Tool**: Use Copilot to understand complex peripheral interactions
 
-### 📡 UART Configuration *(Under Development)*
-- **All UART Modules**: Configure UART1-6 with baud rate calculator
-- **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible code
-- **PBCLK2 Integration**: Automatic baud rate calculation from peripheral clock
-- **Interrupt Support**: Configure interrupt priorities and enable flags
-- **PPS Integration**: Automatic peripheral pin select for TX/RX pins
+## How It Works
 
-### 📌 Pin Manager (PIC32MZ EC/EF)
-- **Complete Pin Database**: 100+ GPIO pins across PORTA-PORTK
-- **Package Support**: 64/100/124/144-pin package configurations
-- **GPIO Configuration**: Set pins as input/output with pull-up/pull-down, open-drain
-- **Analog Configuration**: Configure 36 analog inputs (AN0-AN35)
-- **PPS Support**: Full Peripheral Pin Select for remappable peripherals
-- **Dual Code Generation**: Generate mikroC or Harmony/XC32 compatible GPIO code
-- **Visual Table**: Filter by GPIO, Analog, PPS, or configured pins
+### Typical Workflow
 
-### 🏗️ Project Generator *(Under Development)*
-- **XC32 Projects**: Generate complete buildable XC32 projects with Makefiles
-- **mikroC Projects**: Generate mikroC PRO for PIC32 projects (planned)
-- **Device Configuration**: Automatic integration of DEVCFG settings
-- **Peripheral Code**: Integration of Timer, UART, and GPIO initialization code
-- **VS Code Tasks**: Build, clean, and flash tasks pre-configured
-- **Bundled XC32 Tools**: No external compiler installation required
+1. **Design in MPLABX/MCC**
+   - Use MCC to configure clock, GPIO, timers, UART, etc.
+   - Generate code with MCC Harmony 3
+   - Save and close MPLABX
+
+2. **Import to VS Code**
+   - Run `PIC32-IDE: Import MPLABX Project`
+   - Select your `.X` project folder
+   - Extension copies files, organizes structure, generates Makefiles
+
+3. **Develop with AI Assistance**
+   - Open files in VS Code
+   - Use GitHub Copilot to write application code
+   - Get AI help with peripheral APIs, interrupts, protocols
+   - Build and debug directly in VS Code
+
+4. **Build and Flash**
+   - Run `make` to build (or use VS Code tasks)
+   - Flash with bootloader or use MPLABX for programming
+
+5. **Re-sync When Needed**
+   - Update peripheral config in MPLABX/MCC
+   - Re-import to VS Code (preserves your application code)
+
+## What Gets Imported
+
+✅ **MCC Generated Code** - All peripheral libraries (plib_*.c/h)  
+✅ **User Application Code** - Files from `src/` and `.X` folder  
+✅ **Startup Code** - CRT0 or custom startup.S (auto-detected)  
+✅ **Linker Script** - Device-specific .ld file  
+✅ **Build Flags** - Compiler and linker flags from MPLABX  
+✅ **Header Organization** - Clean incs/ folder structure  
+✅ **Makefiles** - Cross-platform GNU Make build system
 
 ## Requirements
 
-### What's Included (Bundled)
-✅ **MikroC HID Bootloader** (`mikro_hb.exe`) - No download needed!  
-✅ **XC32 Compiler Tools** - Essential compiler binaries bundled  
-✅ **Device Support Files** - PIC32MZ configuration and headers
-
 ### What You Need
 
-#### 1. Hardware
-- **PIC32MZ Device** (EC/EF series supported)
-- **USB Connection** for bootloader flashing
-- Device must have MikroC bootloader firmware installed (for flashing feature)
-
-#### 2. Software
+#### 1. Software (Required)
 - **VS Code** 1.106.1 or later
-- **Windows OS** (tested on Windows 10/11)
-- No external compiler installation required - tools are bundled!
+- **XC32 Compiler** - Download from [Microchip](https://www.microchip.com/xc32)
+- **DFP (Device Family Pack)** - Installed with MPLABX or standalone
+- **MPLABX IDE** (optional) - For using MCC to configure peripherals
+- **GitHub Copilot** (recommended) - For AI-assisted development
+
+#### 2. Hardware (For Flashing)
+- **PIC32 Device** (tested with PIC32MZ series)
+- **USB Connection** for bootloader flashing
+- **MikroC Bootloader Firmware** (for USB flashing feature)
+
+#### 3. Build Environment
+- **Windows**: MSYS2/Git Bash or native `make` (MinGW)
+- **Linux/WSL**: Standard GNU make and bash
+
+### What's Bundled
+✅ **MikroC HID Bootloader** (`mikro_hb.exe`) - Built-in!  
+✅ **Startup Code Template** - Complete CRT0 replacement for -nostartfiles
 
 ## Installation
 
 ### From VS Code Marketplace (Recommended)
 1. Open VS Code
 2. Press `Ctrl+Shift+X` to open Extensions
-3. Search for "**PIC32M Development Tools**"
+3. Search for "**PIC32-IDE**"
 4. Click **Install**
-
-That's it! All tools are bundled - no additional setup required.
 
 ### From VSIX File
 1. Download the latest `.vsix` from [Releases](https://github.com/Davec6505/mikroc-bootloader-plugin/releases)
 2. Open VS Code
 3. Press `Ctrl+Shift+P`
-4. Type "Install from VSIX"
+4. Type "Extensions: Install from VSIX"
 5. Select the downloaded file
 
-### From Source (Development)
-```bash
-git clone https://github.com/Davec6505/mikroc-bootloader-plugin.git
-cd mikroc-bootloader-plugin
-npm install
-npm run compile
-npx @vscode/vsce package
-code --install-extension pic32m-dev-1.2.3.vsix
+## Quick Start
+
+### Import Your First MPLABX Project
+
+1. **Open VS Code** in an empty folder
+2. Press `Ctrl+Shift+P` and type "**PIC32-IDE: Import MPLABX Project**"
+3. Select your MPLABX `.X` project folder
+4. Wait for import to complete (files copied, Makefiles generated)
+5. **Start coding with AI assistance!**
+
+### Example: Using Copilot
+
+```c
+// In main.c, type a comment and let Copilot suggest code:
+// Initialize UART2 for 115200 baud and print "Hello World"
+
+// Copilot will suggest using the imported UART2 APIs:
+UART2_Initialize();
+const char* msg = "Hello World\r\n";
+UART2_Write((uint8_t*)msg, strlen(msg));
 ```
 
-## Usage
+### Building
 
-### Device Configuration
+**Command Line:**
+```bash
+make                    # Build project
+make clean             # Clean build artifacts
+```
 
-1. Open Command Palette (`Ctrl+Shift+P`)
-2. Type "PIC32: Configure Device"
-3. Select your device (currently supports PIC32MZ EC/EF family)
-4. Configure settings in the visual editor:
-   - **Configuration Tab**: Set oscillator, PLL, watchdog, debug settings
-   - **Timer Calculator Tab**: Configure timers with automatic code generation
-   - **Pin Manager Tab**: Configure GPIO, analog pins, and PPS mappings
-5. Click OK to generate project or save configuration
+**VS Code Tasks:**
+- Press `Ctrl+Shift+B` to build
+- Or use Command Palette: "Tasks: Run Build Task"
 
 ### Bootloader Flashing
 
@@ -129,72 +161,222 @@ code --install-extension pic32m-dev-1.2.3.vsix
 
 **Method 2: Command Palette**
 1. Press `Ctrl+Shift+P`
-2. Type "MikroC PIC32: Flash Device"
+2. Type "**MikroC PIC32: Flash Device**"
 3. Select the .hex file to flash
 4. Monitor progress in integrated terminal
 
-## Prerequisites
+## Project Structure After Import
+
+```
+your-project/
+├── Makefile                    # Root makefile (runs srcs/Makefile)
+├── .vscode/
+│   ├── tasks.json             # Build/clean/flash tasks
+│   └── pic32-project.json     # Import metadata
+├── bins/                      # Compiled output (.elf, .hex)
+├── objs/                      # Object files (mirrors srcs/ structure)
+├── incs/                      # All header files organized
+│   ├── global.h
+│   └── config/default/
+│       ├── definitions.h
+│       ├── device.h
+│       ├── interrupts.h
+│       └── peripheral/
+│           ├── clk/
+│           ├── gpio/
+│           ├── tmr/
+│           ├── tmr1/
+│           └── uart/
+├── srcs/                      # All source files
+│   ├── Makefile               # Build system
+│   ├── main.c                 # Your application code
+│   ├── startup/
+│   │   └── startup.S          # Startup code (if using -nostartfiles)
+│   └── config/default/
+│       ├── initialization.c
+│       ├── interrupts.c
+│       ├── exceptions.c
+│       └── peripheral/
+│           ├── clk/plib_clk.c
+│           ├── gpio/plib_gpio.c
+│           ├── tmr/plib_tmr2.c
+│           ├── tmr1/plib_tmr1.c
+│           └── uart/plib_uart2.c
+├── other/                     # Linker scripts, maps
+│   └── p32MZ2048EFH100.ld
+└── README.md                  # Generated project info
+```
+
+## Why VS Code + AI for Embedded?
+
+Traditional embedded IDEs weren't designed for AI assistance. Here's what you gain:
+
+### 🤖 Better AI Assistance
+- **Context Understanding**: Copilot learns from your entire codebase
+- **Peripheral Knowledge**: Trained on millions of embedded code examples
+- **Pattern Recognition**: Suggests based on common PIC32/Harmony patterns
+
+### 📝 Superior Editing
+- **Multi-cursor editing** - Change all peripheral instances at once
+- **Powerful search/replace** - Find uses across entire codebase instantly  
+- **Git integration** - Track changes, branch, merge easily
+- **IntelliSense** - Better autocomplete than MPLABX
+
+### 🔌 Extension Ecosystem  
+- **GitHub Copilot** - AI pair programmer
+- **GitLens** - Advanced git visualization
+- **C/C++ Tools** - Microsoft's industry-standard C/C++ support
+- **Live Share** - Collaborate in real-time
+
+## AI-Assisted Development Tips
+
+### Getting the Most from Copilot
+
+**1. Write Descriptive Comments**
+```c
+// Initialize Timer2 as a millisecond timer at 100Hz with interrupt callback
+// that increments a millisecond counter
+```
+Copilot will suggest complete initialization code.
+
+**2. Use Function Signatures**
+```c
+void configure_motor_pwm(uint32_t frequency_hz, uint8_t duty_percent) {
+    // Copilot suggests: Configure OCMP module for PWM...
+}
+```
+
+**3. Ask for Explanations**
+```c
+// What does this MCC-generated clock configuration do?
+// Copilot can explain PLL settings, dividers, frequencies
+```
+
+**4. Refactor Legacy Code**
+```c
+// Refactor this polling UART code to use interrupts with ring buffer
+// Copilot suggests using UART2_ReadCallbackRegister()...
+```
+
+## Troubleshooting
 
 ### Common Issues
 
 | Issue | Solution |
 |-------|----------|
-| "Bootloader path not configured" | Set the path in VS Code settings |
-| "No .hex files found" | Ensure your project has compiled .hex files |
-| "Exit code: 1" | Device not connected or not in bootloader mode |
-| "No output from bootloader" | Check USB connection and device status |
+| **"Cannot find XC32 compiler"** | Set compiler path in project metadata or ensure XC32 is in system PATH |
+| **"Device Family Pack not found"** | Install DFP from MPLABX or set DFP path in metadata |
+| **Build errors after import** | Check that original MPLABX project compiles first |
+| **Missing startup.S** | Extension auto-generates for `-nostartfiles` projects |
+| **"Bootloader not found"** | Device not in bootloader mode or USB not connected |
 
 ### Debug Steps
 
-1. Verify `mikro_hb.exe` exists at configured path
-2. Test bootloader manually: `mikro_hb.exe path\to\file.hex`
-3. Check VS Code Output panel (View > Output > MikroC Bootloader)
-4. Check terminal output for detailed error messages
+1. **Check Import Logs**: View Output panel (View > Output > PIC32-IDE)
+2. **Verify Original Project**: Build in MPLABX first to confirm it works
+3. **Check Paths**: Open `.vscode/pic32-project.json` to verify compiler/DFP paths
+4. **Test Makefile**: Run `make DRY_RUN=1` to see commands without executing
+5. **Check Console Logs**: Look for `[CFLAGS Parser]` and `[LDFLAGS Parser]` debug output
+
+## Comparison: MPLABX vs VS Code
+
+| Feature | MPLABX IDE | VS Code + PIC32-IDE |
+|---------|-----------|-------------------|
+| **MCC Configuration** | ✅ Native | ⚠️ Use MPLABX, then import |
+| **Code Editing** | ⚠️ Basic | ✅ Modern, fast |
+| **AI Assistance** | ❌ None | ✅ GitHub Copilot |
+| **Git Integration** | ⚠️ Limited | ✅ Excellent |
+| **Extensions** | ❌ Limited | ✅ Thousands available |
+| **Build System** | ✅ Integrated | ✅ Makefile-based |
+| **Debugging** | ✅ Full MPLAB debugger | ⚠️ Use MPLABX for debugging |
+| **Programming** | ✅ All programmers | ⚠️ Bootloader or MPLABX |
+
+**Recommendation**: Use MPLABX for initial setup and debugging, VS Code for development.
+
+## Roadmap
+
+### ✅ Completed (v2.0.0)
+- [x] MPLABX project import
+- [x] CFLAGS/LDFLAGS parsing
+- [x] MCC Harmony 3 structure preservation
+- [x] Startup.S auto-generation
+- [x] Cross-platform Makefile generation
+- [x] MikroC bootloader flashing
+
+### 🚧 In Progress
+- [ ] Re-sync command (update MCC files while preserving user code)
+- [ ] Better build error parsing and IntelliSense integration
+- [ ] Support for XC16 (PIC24/dsPIC) projects
+
+### 📋 Planned
+- [ ] Direct MCC integration (configure peripherals in VS Code)
+- [ ] Debugger support via OpenOCD or MPLAB CLI
+- [ ] Project template generator (start new projects without MPLABX)
+- [ ] Support for more bootloaders (HID, serial, CAN)
 
 ## Development
 
-See [readme/DEVELOPER_GUIDE.md](readme/DEVELOPER_GUIDE.md) for:
-- Code architecture
-- API documentation
-- Building from source
-- Contributing guidelines
+### Building from Source
+```bash
+git clone https://github.com/Davec6505/mikroc-bootloader-plugin.git
+cd mikroc-bootloader-plugin
+npm install
+npm run compile
+npx @vscode/vsce package
+```
 
-## Documentation Index
-
-Design and internal docs are under the readme/ folder:
-
-- [readme/BUNDLING_GUIDE.md](readme/BUNDLING_GUIDE.md) – Bundling XC32 tools and MikroC bootloader
-- [readme/PIN_MANAGER_DESIGN.md](readme/PIN_MANAGER_DESIGN.md) – Pin Manager design and codegen
-- [readme/FEATURE_PROJECT_GENERATOR.md](readme/FEATURE_PROJECT_GENERATOR.md) – XC32 project generator design
-- [readme/MCC_INTERRUPT_ARCHITECTURE.md](readme/MCC_INTERRUPT_ARCHITECTURE.md) – MCC-style interrupt layering
-- [readme/PROJECT_STATUS.md](readme/PROJECT_STATUS.md) – Overall project status and roadmap
-- [readme/PUBLISHING.md](readme/PUBLISHING.md) – Publishing and Marketplace notes
-- [readme/UART_IMPLEMENTATION_PLAN.md](readme/UART_IMPLEMENTATION_PLAN.md) – UART and PBCLK implementation plan
+### Project Architecture
+See detailed documentation:
+- [readme/PLUGIN_SEPARATION.md](readme/PLUGIN_SEPARATION.md) - Why separation from MikroC generation
+- [readme/ARCHITECTURE_LESSONS_LEARNED.md](readme/ARCHITECTURE_LESSONS_LEARNED.md) - Design decisions
+- [readme/MCC_INTERRUPT_ARCHITECTURE.md](readme/MCC_INTERRUPT_ARCHITECTURE.md) - MCC Harmony 3 patterns
+- `.github/copilot-instructions.md` - Critical implementation details
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions welcome! Please:
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+2. Check existing issues and discussions
+3. Open an issue before major changes
+4. Follow existing code style (TypeScript + ESLint)
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+### v2.0.0 (December 2024)
+- 🎉 Complete rewrite focused on MPLABX import workflow
+- ✨ AI-first development approach with Copilot integration
+- 🔧 CFLAGS/LDFLAGS parsing from MPLABX Makefiles
+- 🚀 Auto-detection of CRT0 vs startup.S configuration
+- 📦 Complete 604-line startup.S template included
+- 🗂️ Proper MCC Harmony 3 folder structure preservation
+- 🛠️ Cross-platform GNU Makefile generation
+- 🧹 Removed 17k+ lines of unused generation code
+
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Support
+**This project is not affiliated with Microchip Technology Inc. or MikroElektronika.**
+
+## Support & Community
 
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/Davec6505/mikroc-bootloader-plugin/issues)
 - 💡 **Feature Requests**: [GitHub Discussions](https://github.com/Davec6505/mikroc-bootloader-plugin/discussions)
-- 📧 **Contact**: [Create an issue](https://github.com/Davec6505/mikroc-bootloader-plugin/issues/new)
+- 📖 **Documentation**: [readme/](readme/) folder
+- 💬 **Questions**: Open a discussion or issue
 
 ## Acknowledgments
 
-- MikroElektronika for the MikroC compiler
-- Microchip for PIC32 devices and XC32 toolchain
-- VS Code team for excellent extension APIs
+This extension exists to bring **AI-assisted development to embedded systems**:
+- **GitHub Copilot** - For making embedded development faster and more accessible
+- **Microchip** - For PIC32 MCUs, XC32 compiler, and MCC Harmony 3
+- **MikroElektronika** - For the MikroC HID bootloader
+- **VS Code Team** - For the incredible editor and extension API
 
 ---
 
-**⭐ If this extension helped you, please star the repo!**
+**⭐ If this extension helps you leverage AI for embedded development, please star the repo!**
+
+**Built by developers, for developers who want to code smarter with AI.**

@@ -1,7 +1,7 @@
 {
   "name": "pic32-ide-vscode",
-  "displayName": "PIC32 IDE for VS Code",
-  "description": "Import MPLABX projects or generate new XC32-MikroC projects with clean Makefiles for VS Code development",
+  "displayName": "PIC32-IDE: AI-Assisted Embedded Development",
+  "description": "Import MPLABX projects to VS Code and leverage GitHub Copilot for PIC32 development. MCC Harmony 3 compatible with full CFLAGS/LDFLAGS preservation.",
   "version": "2.0.0",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
@@ -18,14 +18,18 @@
   },
   "homepage": "https://github.com/Davec6505/mikroc-bootloader-plugin#readme",
   "keywords": [
-    "mikroc",
     "pic32",
-    "bootloader",
-    "flash",
-    "microcontroller",
+    "mplabx",
+    "xc32",
     "embedded",
-    "hid",
-    "usb"
+    "microchip",
+    "harmony",
+    "mcc",
+    "copilot",
+    "ai",
+    "mikroc",
+    "bootloader",
+    "microcontroller"
   ],
   "engines": {
     "vscode": "^1.106.1"
