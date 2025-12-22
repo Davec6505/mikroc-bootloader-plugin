@@ -9,6 +9,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { MPLABXImporter, saveMetadata, ProjectMetadata } from './projectImporter';
 import { MakefileGenerator } from './makefileGenerator';
+import { MikroCImporter } from './mikrocImporter';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -18,6 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('pic32-ide.importMPLABX', () => importMPLABXProject(context)),
+        vscode.commands.registerCommand('pic32-ide.importMikroC', () => importMikroCProject(context)),
         vscode.commands.registerCommand('pic32-ide.flash', () => flashDevice()),
         vscode.commands.registerCommand('pic32-ide.build', () => buildProject())
     );
@@ -148,6 +150,166 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
         await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), false);
     } else if (openAction === 'Open in New Window') {
         await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), true);
+    }
+}
+
+/**
+ * Import MikroC Project (in-place, no copy)
+ */
+async function importMikroCProject(context: vscode.ExtensionContext) {
+    // Select MikroC project folder
+    const projectFolders = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Select MikroC Project Folder'
+    });
+
+    if (!projectFolders || projectFolders.length === 0) {
+        return;
+    }
+
+    const projectPath = projectFolders[0].fsPath;
+    console.log(`MikroC import: Selected folder path: ${projectPath}`);
+    
+    try {
+        const importer = new MikroCImporter();
+        
+        // Parse project
+        const projectInfo = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Parsing MikroC project...',
+            cancellable: false
+        }, async () => {
+            return await importer.parseProject(projectPath);
+        });
+        
+        if (!projectInfo) {
+            console.log('MikroC import: Project parsing failed');
+            return;
+        }
+        
+        console.log('MikroC import: Project parsed successfully:', projectInfo.projectName, projectInfo.deviceName);
+        
+        vscode.window.showInformationMessage(
+            `Found MikroC PRO for ${projectInfo.compilerType} project: ${projectInfo.projectName}\nDevice: ${projectInfo.deviceName}`
+        );
+        
+        // Detect compiler
+        let compilerPaths = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Detecting MikroC compiler...',
+            cancellable: false
+        }, async () => {
+            return await importer.detectCompilerPath(projectInfo.compilerType);
+        });
+        
+        // If compiler not found, offer alternatives
+        if (!compilerPaths) {
+            const choice = await vscode.window.showWarningMessage(
+                `MikroC PRO for ${projectInfo.compilerType} not found in standard locations.\n\nYou can:\n• Install MikroC PRO for ${projectInfo.compilerType}\n• Specify custom path\n• Generate template Makefile (edit paths manually)`,
+                'Specify Path',
+                'Generate Template',
+                'Cancel'
+            );
+            
+            if (choice === 'Specify Path') {
+                const selectedPath = await vscode.window.showOpenDialog({
+                    canSelectFiles: false,
+                    canSelectFolders: true,
+                    canSelectMany: false,
+                    openLabel: `Select MikroC PRO for ${projectInfo.compilerType} Installation Folder`,
+                    title: `Locate mikroC PRO for ${projectInfo.compilerType}`
+                });
+                
+                if (selectedPath && selectedPath.length > 0) {
+                    compilerPaths = await importer.validateCompilerPath(selectedPath[0].fsPath, projectInfo.compilerType);
+                }
+            } else if (choice === 'Generate Template') {
+                // Generate template with placeholder paths
+                compilerPaths = {
+                    compilerExe: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}\\mikroC${projectInfo.compilerType}.exe`,
+                    installPath: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}`,
+                    defsPath: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}\\Defs`,
+                    usesPath: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}\\Uses`
+                };
+                console.log('MikroC import: Using template compiler paths');
+                vscode.window.showInformationMessage('Template Makefile will be generated. Edit paths in Makefile after creation.');
+            } else {
+                // Cancel
+                return;
+            }
+        }
+        
+        // Final check - if still no compiler paths, exit
+        if (!compilerPaths) {
+            return;
+        }
+        
+        // Generate Makefile
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Generating Makefile...',
+            cancellable: false
+        }, async () => {
+            await importer.generateMakefile(projectInfo, compilerPaths);
+        });
+        
+        console.log('MikroC import: Makefile generated successfully');
+        
+        // Generate .vscode/tasks.json
+        const vscodeDir = path.join(projectPath, '.vscode');
+        if (!fs.existsSync(vscodeDir)) {
+            fs.mkdirSync(vscodeDir, { recursive: true });
+        }
+        
+        const tasksPath = path.join(vscodeDir, 'tasks.json');
+        const tasksContent = {
+            "version": "2.0.0",
+            "tasks": [
+                {
+                    "label": "Build MikroC Project",
+                    "type": "shell",
+                    "command": "make",
+                    "group": {
+                        "kind": "build",
+                        "isDefault": true
+                    },
+                    "problemMatcher": []
+                },
+                {
+                    "label": "Clean Build Artifacts",
+                    "type": "shell",
+                    "command": "make clean",
+                    "problemMatcher": []
+                },
+                {
+                    "label": "Flash Device",
+                    "type": "shell",
+                    "command": "make flash",
+                    "problemMatcher": []
+                }
+            ]
+        };
+        
+        fs.writeFileSync(tasksPath, JSON.stringify(tasksContent, null, 4), 'utf-8');
+        
+        console.log('MikroC import: tasks.json generated successfully');
+        
+        // Show success message
+        vscode.window.showInformationMessage(
+            `MikroC project imported successfully!\n\nMakefile generated. Build with Ctrl+Shift+B or "make"\nRe-open ${projectInfo.projectFile} in MikroC IDE for config changes`,
+            { modal: false }
+        );
+        
+        // Automatically open the project folder
+        console.log('MikroC import: Opening project folder...');
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath), false);
+        console.log('MikroC import: Project opened successfully');
+        
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to import MikroC project: ${error}`);
+        console.error('MikroC import error:', error);
     }
 }
 

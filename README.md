@@ -28,6 +28,15 @@ By importing your MPLABX projects into VS Code, you can:
 - **Build System**: Generates GNU Makefiles compatible with Windows, WSL, and Git Bash
 - **Metadata Tracking**: Saves project metadata for future re-sync with MPLABX
 
+### 📦 MikroC Project Import
+- **In-Place Import**: Import MikroC PRO projects directly (no file copying)
+- **Universal Support**: Works with all MikroC compilers (PIC32, PIC, dsPIC, AVR, ARM)
+- **Auto-Detection**: Finds any `.mcp*` file (.mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar)
+- **Makefile Generation**: Creates GNU Makefile with all project settings preserved
+- **Compiler Detection**: Automatically finds MikroC installation or allows custom path
+- **Auto-Open**: Project opens automatically after successful import
+- **Build Integration**: VS Code tasks for Build, Clean, Flash (Ctrl+Shift+B)
+
 ### ⚡ MikroC Bootloader Support (PIC32 only)
 - **One-Click Flashing**: Flash .hex files to PIC32 devices via USB HID bootloader
 - **Status Bar Button**: Quick access "⚡ Flash PIC32" button  
@@ -88,13 +97,20 @@ This extension is designed for **AI-assisted embedded development**:
 
 #### 1. Software (Required)
 - **VS Code** 1.106.1 or later
-- **XC Compiler** - One or more of:
-  - XC8 (8-bit PIC10/12/16/18, AVR)
-  - XC16 (16-bit PIC24, dsPIC30/33)
-  - XC32 (32-bit PIC32)
-  - Download from [Microchip](https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers)
-- **DFP (Device Family Pack)** - Installed with MPLABX or standalone
-- **MPLABX IDE** (optional) - For using MCC to configure peripherals
+- **XC Compiler** OR **MikroC Compiler** - One or more of:
+  - **XC8** (8-bit PIC10/12/16/18, AVR)
+  - **XC16** (16-bit PIC24, dsPIC30/33)
+  - **XC32** (32-bit PIC32)
+  - **MikroC PRO for PIC32** (PIC32 with MikroElektronika libraries)
+  - **MikroC PRO for PIC** (8-bit PIC with MikroE libraries)
+  - **MikroC PRO for dsPIC** (dsPIC with MikroE libraries)
+  - **MikroC PRO for AVR** (AVR with MikroE libraries)
+  - **MikroC PRO for ARM** (ARM with MikroE libraries)
+  - Download XC: [Microchip](https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers)
+  - Download MikroC: [MikroElektronika](https://www.mikroe.com/mikroc)
+- **DFP (Device Family Pack)** - Installed with MPLABX or standalone (XC compilers only)
+- **MPLABX IDE** (optional) - For using MCC to configure peripherals (XC workflow)
+- **MikroC IDE** (optional) - For configuring project settings (MikroC workflow)
 - **GitHub Copilot** (recommended) - For AI-assisted development
 
 #### 2. Hardware (For Flashing)
@@ -128,7 +144,7 @@ This extension is designed for **AI-assisted embedded development**:
 
 ## Quick Start
 
-### Import Your First MPLABX Project
+### Import MPLABX Project
 
 1. **Open VS Code** in an empty folder
 2. Press `Ctrl+Shift+P` and type "**XC Project Importer: Import MPLABX Project**"
@@ -137,6 +153,28 @@ This extension is designed for **AI-assisted embedded development**:
 5. **Start coding with AI assistance!**
 
 _Works with any XC8/16/32 project. Tested with PIC32MZ (XC32), coming soon: PIC24/dsPIC (XC16)._
+
+### Import MikroC Project
+
+1. **Open VS Code**
+2. Press `Ctrl+Shift+P` and type "**XC Project Importer: Import MikroC Project**"
+3. Select your MikroC project folder (contains .mcp32/.mcp16/etc.)
+4. Extension auto-detects compiler and generates Makefile
+5. **Project opens automatically - ready to build!**
+
+**Key Features:**
+- ✅ **In-place import** - No file copying, Makefile created in your project folder
+- ✅ **All MikroC variants** - PIC32, PIC, dsPIC, AVR, ARM
+- ✅ **All .mcp* files** - .mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar
+- ✅ **Flexible compiler paths** - Auto-detect or specify custom location
+- ✅ **Build with Ctrl+Shift+B** - Integrated VS Code tasks
+
+**Workflow:**
+1. Import once when you need to build outside MikroC IDE
+2. Edit code in VS Code with AI assistance
+3. Build with `make` or Ctrl+Shift+B
+4. Re-open `.mcp*` file in MikroC IDE when you need to change project settings
+5. Re-import to update Makefile
 
 ### Example: Using Copilot
 
