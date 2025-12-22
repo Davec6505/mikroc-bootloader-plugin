@@ -10,18 +10,33 @@ import * as fs from 'fs';
 import { MPLABXImporter, saveMetadata, ProjectMetadata } from './projectImporter';
 import { MakefileGenerator } from './makefileGenerator';
 import { MikroCImporter } from './mikrocImporter';
+import { BootloaderUpdater } from './bootloaderUpdater';
+import { BundledToolsManager } from './bundledTools';
 
 let statusBarItem: vscode.StatusBarItem;
+let bootloaderUpdater: BootloaderUpdater;
+let bundledTools: BundledToolsManager;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('PIC32-IDE-VSCode extension activated!');
+
+    // Initialize bundled tools and bootloader updater
+    bundledTools = new BundledToolsManager(context.extensionPath);
+    bootloaderUpdater = new BootloaderUpdater(context, process.platform);
+    bundledTools.setBootloaderUpdater(bootloaderUpdater);
+
+    // Check for bootloader updates (non-blocking background check)
+    bootloaderUpdater.checkAndUpdate().catch(err => {
+        console.error('Bootloader update check failed:', err);
+    });
 
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('pic32-ide.importMPLABX', () => importMPLABXProject(context)),
         vscode.commands.registerCommand('pic32-ide.importMikroC', () => importMikroCProject(context)),
         vscode.commands.registerCommand('pic32-ide.flash', () => flashDevice()),
-        vscode.commands.registerCommand('pic32-ide.build', () => buildProject())
+        vscode.commands.registerCommand('pic32-ide.build', () => buildProject()),
+        vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates())
     );
     
     // TODO: Add 'pic32-ide.newMikroCProject' command to open configEditor UI
@@ -369,10 +384,18 @@ async function flashDevice() {
         hexFile = selected.uri;
     }
 
+    // Get bootloader path (downloaded or bundled)
+    const bootloaderPath = bundledTools.getBootloaderPath();
+    if (!bootloaderPath) {
+        vscode.window.showErrorMessage('MikroC bootloader (mikro_hb) not found');
+        return;
+    }
+
     // Flash
     const terminal = vscode.window.createTerminal('PIC32 Flash');
     terminal.show();
-    terminal.sendText(`mikro_hb "${hexFile.fsPath}"`);
+    terminal.sendText(`"${bootloaderPath}" "${hexFile.fsPath}"`);
 }
 
 export function deactivate() {}
+

@@ -65,6 +65,10 @@
       {
         "command": "pic32-ide.build",
         "title": "XC Project Importer: Build Project"
+      },
+      {
+        "command": "pic32-ide.updateBootloader",
+        "title": "XC Project Importer: Check for Bootloader Updates"
       }
     ],
     "configuration": {

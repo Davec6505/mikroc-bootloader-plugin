@@ -307,6 +307,63 @@ ${MP_CC} ... -o ${DISTDIR}/...  # No -nostartfiles
 usesCrt0?: boolean;  // true = crt0.o, false = startup.S
 ```
 
+### 10. Bootloader Auto-Update System - CRITICAL (Dec 22, 2025)
+**Extension automatically checks for mikro_hb.exe updates from GitHub:**
+
+**Architecture:**
+```typescript
+// src/bootloaderUpdater.ts - Main update logic
+export class BootloaderUpdater {
+    async checkAndUpdate(): Promise<void>  // Checks once per 24 hours
+    getBootloaderPath(): string | null     // Returns downloaded or bundled version
+    forceCheckForUpdates(): Promise<void>  // Manual update trigger
+}
+
+// src/bundledTools.ts - Path resolution with updater support
+export class BundledToolsManager {
+    setBootloaderUpdater(updater: BootloaderUpdater): void
+    getBootloaderPath(): string | null  // Prefers downloaded, falls back to bundled
+}
+
+// src/extension.ts - Integration
+bootloaderUpdater = new BootloaderUpdater(context, process.platform);
+bundledTools.setBootloaderUpdater(bootloaderUpdater);
+bootloaderUpdater.checkAndUpdate();  // Non-blocking background check on activation
+```
+
+**GitHub Releases Integration:**
+- Checks: `https://api.github.com/repos/Davec6505/MikroC_bootloader/releases/latest`
+- Downloads: `mikro_hb.exe` (Windows) or `mikro_hb` (Linux) from release assets
+- Storage: `context.globalStorageUri/bootloader/mikro_hb.exe` (persists across extension updates)
+- Versioning: Uses semantic versioning (v1.0.0 format), stored in globalState
+- Frequency: Once per 24 hours max (cached timestamp)
+- UI: Progress notification during download, success notification on completion
+
+**Path Resolution Priority:**
+1. **Downloaded version** (globalStorageUri) - Latest from GitHub
+2. **Bundled version** (extensionPath/bin/win32/) - Fallback if download fails
+
+**Commands:**
+- `pic32-ide.updateBootloader` - Manual update check (bypasses 24-hour cache)
+- Integrated into flash command via `bundledTools.getBootloaderPath()`
+
+**Error Handling:**
+- Silent failures (no user notification on check errors)
+- Console logging for debugging
+- Automatic fallback to bundled version
+- Graceful 404 handling (no releases yet)
+- 10-second timeout on HTTP requests
+
+**Prerequisites for Bootloader Repo:**
+- Create GitHub Releases with version tags (v1.0.0, v1.1.0, etc.)
+- Attach `mikro_hb.exe` (Windows) and `mikro_hb` (Linux) as release assets
+- Optional: Add release notes describing changes
+
+**Why Global Storage:**
+- Survives extension updates (unlike extensionPath)
+- Shared across all workspaces
+- User doesn't lose downloaded updates when extension is updated
+
 ### 3. Timer Peripheral Code Generation (MCC Style)
 
 **File Structure**:

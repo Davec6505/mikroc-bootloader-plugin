@@ -6,15 +6,24 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { BootloaderUpdater } from './bootloaderUpdater';
 
 export class BundledToolsManager {
     private extensionPath: string;
     private platform: string;
+    private bootloaderUpdater: BootloaderUpdater | null = null;
 
     constructor(extensionPath: string) {
         this.extensionPath = extensionPath;
         this.platform = process.platform === 'win32' ? 'win32' : 
                         process.platform === 'darwin' ? 'darwin' : 'linux';
+    }
+
+    /**
+     * Set the bootloader updater instance
+     */
+    public setBootloaderUpdater(updater: BootloaderUpdater): void {
+        this.bootloaderUpdater = updater;
     }
 
     /**
@@ -38,8 +47,15 @@ export class BundledToolsManager {
 
     /**
      * Get the path to bundled MikroC bootloader
+     * Prefers downloaded version from updater, falls back to bundled
      */
     public getBootloaderPath(): string | null {
+        // Use updater's path resolution (checks downloaded first, then bundled)
+        if (this.bootloaderUpdater) {
+            return this.bootloaderUpdater.getBootloaderPath();
+        }
+
+        // Fallback if updater not available
         const bundledBootloader = path.join(
             this.extensionPath,
             'bin',

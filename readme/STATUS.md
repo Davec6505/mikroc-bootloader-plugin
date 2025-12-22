@@ -1,14 +1,36 @@
 # Project Status
 
-**Last Updated**: December 21, 2025  
-**Version**: 1.2.7  
+**Last Updated**: December 22, 2025  
+**Version**: 2.1.0  
 **Branch**: master
 
 ---
 
 ## ✅ Completed Features
 
-### 1. Configuration Editor (WebView UI)
+### 1. MikroC Project Import (NEW - Dec 21-22, 2025)
+- **Universal compiler support**: PIC32, PIC, dsPIC, AVR, ARM
+- **All .mcp* file types**: .mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar
+- **In-place import**: No file copying, Makefile created in project folder
+- **Dynamic parsing**: Detects compiler paths, device, libraries, PLD files
+- **Library conversion**: Maps library names to .emcl format with device suffixes
+- **Windows path formatting**: Proper backslashes with trailing \\
+- **Auto-open**: Project opens automatically after import
+- **Build integration**: VS Code tasks (Build/Clean/Flash)
+- **VERIFIED WORKING**: Generates Makefiles that compile identically to MikroC IDE
+
+### 2. Bootloader Auto-Update System (NEW - Dec 22, 2025)
+- **Automatic updates**: Checks GitHub releases once per 24 hours
+- **GitHub integration**: Downloads from Davec6505/MikroC_bootloader repo
+- **Global storage**: Downloaded versions persist across extension updates
+- **Path priority**: Uses downloaded version first, falls back to bundled
+- **Manual trigger**: Command palette "Check for Bootloader Updates"
+- **Silent failures**: No user notification on check errors, console logging only
+- **Cross-platform**: Supports Windows (mikro_hb.exe) and Linux (mikro_hb)
+- **Progress UI**: Download progress notification, success message on completion
+- **Files**: `src/bootloaderUpdater.ts`, integrated with `bundledTools.ts` and `extension.ts`
+
+### 3. Configuration Editor (WebView UI)
 - Device selection with package type support
 - Visual configuration bit editing (40 settings)
 - System clock and PBCLK configuration
@@ -304,8 +326,27 @@ npx vsce package
 
 ## 📦 Distribution
 
-- **Package**: `pic32m-dev-1.2.7.vsix`
-- **Install**: Extensions → Install from VSIX
+- **Package**: `xc-project-importer-2.1.0.vsix`
+- **Published**: VS Code Marketplace (December 21, 2025)
+- **Install**: Search "XC Project Importer" or install from VSIX
+- **Bundled Tools**: make.exe, mikro_hb.exe (auto-updates)
+
+---
+
+## 🚀 Next Steps
+
+### Immediate Priorities
+1. **Create GitHub Release** for MikroC_bootloader repo with v1.0.0 tag
+   - Attach mikro_hb.exe (Windows) and mikro_hb (Linux) as assets
+   - Test auto-update mechanism with real release
+2. **Test auto-update** on different platforms
+3. **Version bump** to 2.2.0 when auto-update verified working
+
+### Future Enhancements
+- MPLABX project import improvements
+- Additional peripheral support (SPI, I2C, ADC)
+- Hardware testing of generated code
+- Linux/macOS testing
 - **Publish**: VS Code Marketplace (future)
 
 ---

@@ -27,7 +27,8 @@ export interface MikroCProjectInfo {
     // Build settings from .mcp32
     searchPaths: string[];
     includePaths: string[];
-    libraries: string[];
+    libraries: string[];        // Library names (converted to .emcl files)
+    pldFiles: string[];         // Project level define files
     
     // Interrupt settings
     ebase?: string;
@@ -139,14 +140,28 @@ export class MikroCImporter {
             }
         }
         
-        // Extract libraries (Uses)
+        // Extract libraries (Uses) and convert to .emcl format
         const libraries: string[] = [];
         if (sections['Useses']) {
             const libCount = parseInt(sections['Useses'].Count || '0', 10);
             for (let i = 0; i < libCount; i++) {
                 const libName = sections['Useses'][`File${i}`];
                 if (libName) {
-                    libraries.push(libName);
+                    // Convert library name to .emcl file format
+                    const emclName = this.convertLibraryToEmcl(libName, compilerType, deviceName);
+                    libraries.push(emclName);
+                }
+            }
+        }
+        
+        // Extract PLD files (Project Level Defines)
+        const pldFiles: string[] = [];
+        if (sections['PLDS']) {
+            const pldCount = parseInt(sections['PLDS'].Count || '0', 10);
+            for (let i = 0; i < pldCount; i++) {
+                const pldName = sections['PLDS'][`File${i}`];
+                if (pldName) {
+                    pldFiles.push(pldName);
                 }
             }
         }
@@ -182,10 +197,67 @@ export class MikroCImporter {
             searchPaths,
             includePaths,
             libraries,
+            pldFiles,
             ebase,
             interruptDef,
             compilerFlags
         };
+    }
+    
+    /**
+     * Convert library name to .emcl file format with device-specific suffix
+     */
+    private convertLibraryToEmcl(libName: string, compilerType: string, deviceName: string): string {
+        // Map library names to their .emcl equivalents
+        // Format: __Lib_LibraryName[_DeviceSuffix].emcl
+        
+        const libMap: Record<string, string> = {
+            'C_Stdlib': '__Lib_CStdlib',
+            'C_Type': '__Lib_CType',
+            'C_String': '__Lib_CString',
+            'C_Math': '__Lib_CMath',
+            'Peripheral_Pin_Select': '__Lib_PPS',
+            'UART': '__Lib_UART',
+            'Sprintf': '__Lib_Sprintf',
+            'Sprinti': '__Lib_Sprinti',
+            'Sprintl': '__Lib_Sprintl',
+            'Conversions': '__Lib_Conversions',
+            'MemManager': '__Lib_MemManager',
+            'Math': '__Lib_Math',
+            'MathDouble': '__Lib_MathDouble',
+            'System': '__Lib_System',
+            'SoftReset': '__Lib_SoftResetDma',
+            'Delays': '__Lib_Delays',
+            'CP0': '__Lib_CP0'
+        };
+        
+        let baseName = libMap[libName] || `__Lib_${libName}`;
+        
+        // Add device-specific suffix for PIC32
+        if (compilerType === 'PIC32') {
+            // Determine device family suffix
+            if (deviceName.startsWith('P32MZ') && deviceName.includes('EF')) {
+                // PIC32MZ EF family
+                if (baseName === '__Lib_CStdlib' || baseName === '__Lib_CMath' || 
+                    baseName === '__Lib_Conversions' || baseName === '__Lib_Sprintf') {
+                    baseName += '_EF';
+                } else if (baseName === '__Lib_MathDouble') {
+                    baseName += '_MZ_EF';
+                } else if (baseName === '__Lib_System') {
+                    baseName += '_MZ_EF';
+                } else if (baseName === '__Lib_UART') {
+                    baseName += '_123456_MZ';
+                } else if (baseName === '__Lib_PPS') {
+                    // PPS library has pin count suffix
+                    const pinMatch = deviceName.match(/(\\d+)$/);
+                    if (pinMatch) {
+                        baseName += `_P32MZ_${pinMatch[1]}CAN`;
+                    }
+                }
+            }
+        }
+        
+        return `${baseName}.emcl`;
     }
     
     /**
@@ -367,47 +439,88 @@ export class MikroCImporter {
     async generateMakefile(projectInfo: MikroCProjectInfo, compilerPaths: MikroCCompilerPaths): Promise<void> {
         const makefilePath = path.join(projectInfo.projectPath, 'Makefile');
         
-        // Build source file list (relative paths)
-        const sources = projectInfo.sourceFiles.map(f => path.relative(projectInfo.projectPath, f)).join(' ');
-        
-        // Build search path flags (convert to absolute and normalize)
-        const searchPathFlags = projectInfo.searchPaths
-            .map(p => `-SP"${this.resolveAbsolutePath(projectInfo.projectPath, p)}/"`)
+        // Build source file list with quotes (Windows format)
+        const sources = projectInfo.sourceFiles
+            .map(f => `"${path.relative(projectInfo.projectPath, f)}"`)
             .join(' ');
         
-        const includePathFlags = projectInfo.includePaths
-            .map(p => `-IP"${this.resolveAbsolutePath(projectInfo.projectPath, p)}/"`)
+        // Build library list (.emcl files - already converted)
+        const libs = projectInfo.libraries.map(lib => `"${lib}"`).join(' ');
+        
+        // Build PLD file list
+        const plds = projectInfo.pldFiles.map(pld => `"${pld}"`).join(' ');
+        
+        // Build search path flags with Windows backslashes and trailing backslashes
+        // Filter out paths that don't exist to avoid compiler warnings
+        const validSearchPaths = projectInfo.searchPaths
+            .map(p => path.resolve(projectInfo.projectPath, p))
+            .filter(p => {
+                try {
+                    return fs.existsSync(p);
+                } catch {
+                    return false;
+                }
+            });
+        
+        const validIncludePaths = projectInfo.includePaths
+            .map(p => path.resolve(projectInfo.projectPath, p))
+            .filter(p => {
+                try {
+                    return fs.existsSync(p);
+                } catch {
+                    return false;
+                }
+            });
+        
+        // Format paths with Windows backslashes and trailing backslashes (MikroC requires this)
+        const searchPathFlags = validSearchPaths
+            .map(p => `-SP"${p}\\\\"`)
             .join(' ');
         
-        // Always include standard paths (using Makefile variables for flexibility)
-        const stdPaths = `-SP\$(DEFS_PATH) -SP\$(USES_PATH) -SP"${this.normalizePath(projectInfo.projectPath)}/" -IP\$(USES_PATH) -IP"${this.normalizePath(projectInfo.projectPath)}/"`;
+        const includePathFlags = validIncludePaths
+            .map(p => `-IP"${p}\\\\"`)
+            .join(' ');
         
-        // Build flags
+        // Always include standard paths with Windows backslashes  
+        const projectPathWin = projectInfo.projectPath.replace(/\//g, '\\\\');
+        const stdPaths = `-SP"\$(MIKROC_PATH)\\\\Defs\\\\" -SP"\$(MIKROC_PATH)\\\\Uses\\\\" -SP"${projectPathWin}\\\\" -IP"\$(MIKROC_PATH)\\\\Uses\\\\" -IP"${projectPathWin}\\\\"`;
+        
+        // Build flags (NOTE: -Y flag must come AFTER -HEAP and BEFORE -DL for proper parsing)
         let flags = `-MSF -DBG -p${projectInfo.deviceName}`;
         
         if (projectInfo.heapSize) {
             flags += ` -HEAP ${projectInfo.heapSize}`;
         }
         
+        // Add -Y flag here (after HEAP, before DL)
+        flags += ` -Y`;
+        
+        flags += ` -DL -SSA`;
+        
         if (projectInfo.ebase) {
-            flags += ` -EBASE ${projectInfo.ebase}`;
+            // Add 0x prefix if not present
+            const ebaseValue = projectInfo.ebase.startsWith('0x') || projectInfo.ebase.startsWith('0X') 
+                ? projectInfo.ebase 
+                : `0x${projectInfo.ebase}`;
+            flags += ` -EBASE ${ebaseValue}`;
         }
         
         if (projectInfo.interruptDef) {
             flags += ` -INTDEF ${projectInfo.interruptDef}`;
         }
         
-        flags += ` -DL -SSA -O11111113 -fo${Math.floor(projectInfo.clockFrequency / 1000000)}`;
+        flags += ` -O11111113 -fo${Math.floor(projectInfo.clockFrequency / 1000000)}`;
         
-        // Use extracted flags if available
-        if (projectInfo.compilerFlags.length > 0) {
-            // Filter out redundant flags
-            const extractedFlags = projectInfo.compilerFlags
-                .filter(f => !flags.includes(f) && !f.startsWith('-N') && !f.startsWith('-SP') && !f.startsWith('-IP'))
-                .join(' ');
-            if (extractedFlags) {
-                flags += ` ${extractedFlags}`;
-            }
+        // Add -N flag with project file
+        flags += ` -N"${projectInfo.projectFile}"`;
+        
+        // Add search/include paths
+        flags += ` ${stdPaths}`;
+        if (searchPathFlags) {
+            flags += ` ${searchPathFlags}`;
+        }
+        if (includePathFlags) {
+            flags += ` ${includePathFlags}`;
         }
         
         const makefileContent = `# MikroC Project Makefile
@@ -417,13 +530,8 @@ export class MikroCImporter {
 # Compiler: MikroC PRO for ${projectInfo.compilerType}
 
 # Compiler path (can be overridden with: make MIKROC_PATH="/custom/path")
-# Or set environment variable: MIKROC_PIC32_PATH
 MIKROC_PATH ?= ${compilerPaths.installPath}
 MIKROC = "\$(MIKROC_PATH)/mikroC${projectInfo.compilerType}.exe"
-
-# Standard library paths (auto-detected from compiler location)
-DEFS_PATH = "\$(MIKROC_PATH)/Defs"
-USES_PATH = "\$(MIKROC_PATH)/Uses"
 
 # Project settings
 DEVICE = ${projectInfo.deviceName}
@@ -433,14 +541,24 @@ PROJECT_NAME = ${projectInfo.projectName}
 # Source files
 SRCS = ${sources}
 
+# Library files (MikroC compiled libraries)
+LIBS = ${libs}
+
+# Project definition files
+PLDS = ${plds}
+
 # Compiler flags
-FLAGS = ${flags} ${stdPaths} ${searchPathFlags} ${includePathFlags}
+FLAGS = ${flags}
 
 # Build target
 all:
-\t@echo Building $(PROJECT_NAME) for $(DEVICE)...
-\t$(MIKROC) $(FLAGS) $(SRCS)
-\t@echo Build complete! Output: $(PROJECT_NAME).hex
+\t@echo Building \$(PROJECT_NAME) for \$(DEVICE)...
+\t\$(MIKROC) \$(FLAGS) \$(SRCS) \$(LIBS) \$(PLDS)
+# Build target
+all:
+\t@echo Building \$(PROJECT_NAME) for \$(DEVICE)...
+\t\$(MIKROC) \$(FLAGS) \$(SRCS) \$(LIBS) \$(PLDS)
+\t@echo Build complete! Output: \$(PROJECT_NAME).hex
 
 # Clean build artifacts
 clean:

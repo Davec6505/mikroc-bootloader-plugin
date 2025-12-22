@@ -42,6 +42,9 @@ By importing your MPLABX projects into VS Code, you can:
 - **Status Bar Button**: Quick access "⚡ Flash PIC32" button  
 - **Auto-Discovery**: Finds .hex files in your workspace
 - **Terminal Output**: Real-time flash progress
+- **Auto-Updates**: Bootloader automatically checks for updates from [MikroC_bootloader repo](https://github.com/Davec6505/MikroC_bootloader)
+- **Manual Update**: Run "**XC Project Importer: Check for Bootloader Updates**" command
+- **Fallback Protection**: Uses bundled version if download fails
 
 _Note: Bootloader flashing currently supports PIC32 only. Use MPLABX IPE for other devices._
 
@@ -124,8 +127,11 @@ This extension is designed for **AI-assisted embedded development**:
 - **Linux/WSL**: Standard GNU make and bash
 
 ### What's Bundled
-✅ **MikroC HID Bootloader** (`mikro_hb.exe`) - Built-in!  
+✅ **MikroC HID Bootloader** (`mikro_hb.exe`) - Built-in, auto-updates from [GitHub](https://github.com/Davec6505/MikroC_bootloader)  
+✅ **GNU Make** (`make.exe`) - Cross-platform build system  
 ✅ **Startup Code Template** - Complete CRT0 replacement for -nostartfiles
+
+**Auto-Update System**: The bootloader checks for updates once per day from the MikroC_bootloader repository. Updates are downloaded to VS Code's global storage and persist across extension updates. You can manually trigger an update check via the Command Palette.
 
 ## Installation
 
