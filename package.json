@@ -1,7 +1,7 @@
 {
-  "name": "pic32-ide-vscode",
-  "displayName": "PIC32-IDE: AI-Assisted Embedded Development",
-  "description": "Import MPLABX projects to VS Code and leverage GitHub Copilot for PIC32 development. MCC Harmony 3 compatible with full CFLAGS/LDFLAGS preservation.",
+  "name": "xc-project-importer",
+  "displayName": "XC Project Importer: AI-Assisted Embedded Development",
+  "description": "Import MPLABX projects to VS Code and leverage GitHub Copilot for embedded development. Supports XC8/16/32 compilers with MCC Harmony 3 compatibility.",
   "version": "2.0.0",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
@@ -18,18 +18,24 @@
   },
   "homepage": "https://github.com/Davec6505/mikroc-bootloader-plugin#readme",
   "keywords": [
-    "pic32",
-    "mplabx",
+    "xc8",
+    "xc16",
     "xc32",
+    "mplabx",
     "embedded",
     "microchip",
     "harmony",
     "mcc",
     "copilot",
     "ai",
+    "pic",
+    "pic32",
+    "avr",
+    "arm",
     "mikroc",
     "bootloader",
-    "microcontroller"
+    "microcontroller",
+    "importer"
   ],
   "engines": {
     "vscode": "^1.106.1"
