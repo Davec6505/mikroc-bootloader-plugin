@@ -23,6 +23,7 @@
 - ISR macro requirements
 - Folder structure requirements
 - Interface changes
+- MikroC compiler behavior quirks
 
 ### **RULE #4: GO SLOWLY AND CAREFULLY**
 **ONE CHANGE AT A TIME. VERIFY. THEN NEXT CHANGE.**
@@ -363,6 +364,83 @@ bootloaderUpdater.checkAndUpdate();  // Non-blocking background check on activat
 - Survives extension updates (unlike extensionPath)
 - Shared across all workspaces
 - User doesn't lose downloaded updates when extension is updated
+
+### 11. MikroC Compiler Exit Code Quirk - CRITICAL (Dec 22-23, 2025)
+**mikroCPIC32.exe ALWAYS returns exit code 0, even when compilation fails!**
+
+**Solution**: Check for hex file existence instead of compiler exit code.
+
+**PowerShell Call Operator with Escaped Quotes - CRITICAL (Dec 23, 2025)**:
+The 160+ second slowdown was caused by incorrect quoting. MikroC requires **every file/library/pld to be individually quoted**, except flags.
+
+**✅ CORRECT Pattern** (2-5 second builds):
+```makefile
+# Compiler path - opening quote at start
+MIKROC_PATH ?= \"C:\\Users\\Public\\Documents\\Mikroelektronika\\mikroC PRO for PIC32
+# Compiler executable - closing quote at end, use := for immediate expansion
+MIKROC := $(MIKROC_PATH)\\mikroCPIC32.exe\"
+
+# Each source file individually quoted with escaped quotes
+SRCS = \"Main.c\" \"Config.c\" \"Stepper.c\"
+
+# Each library individually quoted
+LIBS = \"__Lib_CP0.emcl\" \"__Lib_Math.emcl\"
+
+# PLD files quoted
+PLDS = \"DEFINES.pld\"
+
+# Flags have embedded quotes where needed, not wrapped
+FLAGS = -MSF -DBG -pP32MZ2048EFH100 -N\"Project.mcp32\" -SP\"path\\\"
+
+# Build target - simple variable expansion
+all:
+\t@powershell -Command "& $(MIKROC) $(FLAGS) $(SRCS) $(LIBS) $(PLDS)"
+```
+
+**Why This Works**:
+1. Opening quote in `MIKROC_PATH` variable definition
+2. Closing quote in `MIKROC` variable assignment (after .exe)
+3. Using `:=` for immediate expansion of MIKROC (not `=`)
+4. Each source/lib/pld file wrapped in escaped quotes `\"`
+5. Variables expand with quotes intact when used
+6. PowerShell's `&` call operator handles the quoted path correctly
+
+**❌ WRONG Patterns**:
+```makefile
+# Don't use quotes around variable expansion
+MIKROC = "$(MIKROC_PATH)/mikroCPIC32.exe"  # Creates nested quotes!
+@cmd /c $(MIKROC) ...  # 160+ second slowdown
+
+# Don't quote the entire file list
+SRCS = "Main.c Config.c"  # Wrong - should be individual quotes
+
+# Don't use single quotes in Makefile variables
+MIKROC = '$(MIKROC_PATH)/mikroCPIC32.exe'  # Wrong shell syntax
+```
+
+**Bug Fixed**:
+- mikrocImporter.ts had duplicated `all:` target definition
+- Makefile always printed "Build complete!" even on failure
+- No error checking mechanism for actual compilation success
+- PPS library regex had escaped backslash `/(\\d+)$/` instead of `/(\d+)$/`
+- Missing system libraries - now detects by scanning source code for function usage
+
+**Library Detection**:
+The plugin scans all source/header files for function calls and maps them to required libraries:
+- `delay_ms()`, `Delay_us()` → `__Lib_Delays.emcl`
+- `sprintf()`, `snprintf()` → `__Lib_Sprintf_EF.emcl`
+- `DMA_`, `SoftReset()` → `__Lib_SoftResetDma.emcl`
+- `sqrt()`, `sin()`, `cos()` → `__Lib_Math.emcl`
+- `strcpy()`, `strcmp()` → `__Lib_CString.emcl`
+- Plus many more pattern-based detections
+
+**TODO - Library Detection Enhancement**:
+MikroC IDE generates a build log that contains the complete list of libraries actually used during compilation. The importer should:
+1. Check for existing IDE build log file in project directory
+2. Parse log file to extract exact library list used by IDE
+3. Use this as the authoritative source for required libraries
+4. Fall back to source code scanning if no log exists
+5. Need to identify log file format/location after successful IDE build
 
 ### 3. Timer Peripheral Code Generation (MCC Style)
 

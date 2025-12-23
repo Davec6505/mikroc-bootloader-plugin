@@ -142,6 +142,8 @@ export class MikroCImporter {
         
         // Extract libraries (Uses) and convert to .emcl format
         const libraries: string[] = [];
+        
+        // First, add libraries explicitly listed in project file
         if (sections['Useses']) {
             const libCount = parseInt(sections['Useses'].Count || '0', 10);
             for (let i = 0; i < libCount; i++) {
@@ -149,8 +151,24 @@ export class MikroCImporter {
                 if (libName) {
                     // Convert library name to .emcl file format
                     const emclName = this.convertLibraryToEmcl(libName, compilerType, deviceName);
-                    libraries.push(emclName);
+                    if (!libraries.includes(emclName)) {
+                        libraries.push(emclName);
+                    }
                 }
+            }
+        }
+        
+        // Detect additional required libraries by analyzing source code
+        const detectedLibs = await this.detectRequiredLibraries(
+            projectPath, 
+            sourceFiles, 
+            headerFiles, 
+            compilerType, 
+            deviceName
+        );
+        for (const lib of detectedLibs) {
+            if (!libraries.includes(lib)) {
+                libraries.push(lib);
             }
         }
         
@@ -249,7 +267,7 @@ export class MikroCImporter {
                     baseName += '_123456_MZ';
                 } else if (baseName === '__Lib_PPS') {
                     // PPS library has pin count suffix
-                    const pinMatch = deviceName.match(/(\\d+)$/);
+                    const pinMatch = deviceName.match(/(\d+)$/);
                     if (pinMatch) {
                         baseName += `_P32MZ_${pinMatch[1]}CAN`;
                     }
@@ -258,6 +276,92 @@ export class MikroCImporter {
         }
         
         return `${baseName}.emcl`;
+    }
+    
+    /**
+     * Detect required libraries by analyzing source code
+     */
+    private async detectRequiredLibraries(
+        projectPath: string,
+        sourceFiles: string[],
+        headerFiles: string[],
+        compilerType: string,
+        deviceName: string
+    ): Promise<string[]> {
+        const requiredLibs: string[] = [];
+        
+        // Combine all files to analyze
+        const allFiles = [...sourceFiles, ...headerFiles];
+        
+        // Read all source/header files
+        let allCode = '';
+        for (const filePath of allFiles) {
+            try {
+                if (fs.existsSync(filePath)) {
+                    const content = fs.readFileSync(filePath, 'utf-8');
+                    allCode += '\n' + content;
+                }
+            } catch (err) {
+                // Skip files that can't be read
+            }
+        }
+        
+        // Library detection patterns based on function usage
+        const detectionRules = [
+            // Core system libraries for PIC32
+            { pattern: /(CP0_GET|CP0_SET|_mtc0|_mfc0|DisableInterrupts|EnableInterrupts)/i, libs: ['__Lib_CP0.emcl'] },
+            { pattern: /(delay_ms|delay_us|delay_cyc|Delay_ms|Delay_us|Delay_Cyc)/i, libs: ['__Lib_Delays.emcl'] },
+            
+            // Math libraries
+            { pattern: /(sqrt|sin|cos|tan|exp|log|pow|fabs|ceil|floor|asin|acos|atan)/i, libs: ['__Lib_Math.emcl'] },
+            { pattern: /(double\s+|float\s+.*=.*\d+\.\d+)/i, libs: ['__Lib_MathDouble_MZ_EF.emcl'] },
+            
+            // System libraries
+            { pattern: /(Reset|EnableSoftReset|SoftReset|DMA_|Dma_)/i, libs: ['__Lib_SoftResetDma.emcl'] },
+            { pattern: /(Get_Fosc_kHz|Clock_|System_Clock)/i, libs: ['__Lib_System_MZ_EF.emcl'] },
+            
+            // String and conversion libraries
+            { pattern: /(sprintf|snprintf|vsprintf)/i, libs: ['__Lib_Sprintf_EF.emcl'] },
+            { pattern: /(sprinti|IntToStr)/i, libs: ['__Lib_Sprinti.emcl'] },
+            { pattern: /(sprintl|LongToStr)/i, libs: ['__Lib_Sprintl.emcl'] },
+            { pattern: /(atoi|atol|atof|itoa|ltoa|strtol|strtoul)/i, libs: ['__Lib_Conversions_EF.emcl'] },
+            { pattern: /(malloc|calloc|free|realloc|MemManager_)/i, libs: ['__Lib_MemManager.emcl'] },
+            
+            // Standard C libraries
+            { pattern: /(strcpy|strcmp|strcat|strlen|strchr|strstr|memcpy|memset|memmove|memcmp)/i, libs: ['__Lib_CString.emcl'] },
+            { pattern: /(isalpha|isdigit|isspace|toupper|tolower|isalnum)/i, libs: ['__Lib_CType.emcl'] },
+            { pattern: /(abs|labs|div|ldiv|rand|srand)/i, libs: ['__Lib_CStdlib_EF.emcl'] },
+            { pattern: /(fabs|fabsf|ceil|ceilf|floor|floorf)/i, libs: ['__Lib_CMath_EF.emcl'] },
+        ];
+        
+        // Apply detection rules
+        for (const rule of detectionRules) {
+            if (rule.pattern.test(allCode)) {
+                for (const lib of rule.libs) {
+                    // Adjust library name for device type if needed
+                    let adjustedLib = lib;
+                    
+                    // For PIC32MZ EF devices, use device-specific variants
+                    if (compilerType === 'PIC32' && deviceName.startsWith('P32MZ') && deviceName.includes('EF')) {
+                        if (lib === '__Lib_MathDouble_MZ_EF.emcl' || 
+                            lib === '__Lib_System_MZ_EF.emcl' ||
+                            lib === '__Lib_CStdlib_EF.emcl' ||
+                            lib === '__Lib_CMath_EF.emcl' ||
+                            lib === '__Lib_Conversions_EF.emcl' ||
+                            lib === '__Lib_Sprintf_EF.emcl') {
+                            // Already has correct suffix
+                            adjustedLib = lib;
+                        }
+                    }
+                    
+                    if (!requiredLibs.includes(adjustedLib)) {
+                        requiredLibs.push(adjustedLib);
+                    }
+                }
+            }
+        }
+        
+        return requiredLibs;
     }
     
     /**
@@ -439,16 +543,16 @@ export class MikroCImporter {
     async generateMakefile(projectInfo: MikroCProjectInfo, compilerPaths: MikroCCompilerPaths): Promise<void> {
         const makefilePath = path.join(projectInfo.projectPath, 'Makefile');
         
-        // Build source file list with quotes (Windows format)
+        // Build source file list with escaped quotes around each file
         const sources = projectInfo.sourceFiles
-            .map(f => `"${path.relative(projectInfo.projectPath, f)}"`)
+            .map(f => `\\"${path.relative(projectInfo.projectPath, f).replace(/\\/g, '/')}\\"`)
             .join(' ');
         
-        // Build library list (.emcl files - already converted)
-        const libs = projectInfo.libraries.map(lib => `"${lib}"`).join(' ');
+        // Build library list (.emcl files - already converted) with escaped quotes
+        const libs = projectInfo.libraries.map(lib => `\\"${lib}\\"`).join(' ');
         
-        // Build PLD file list
-        const plds = projectInfo.pldFiles.map(pld => `"${pld}"`).join(' ');
+        // Build PLD file list with escaped quotes
+        const plds = projectInfo.pldFiles.map(pld => `\\"${pld}\\"`).join(' ');
         
         // Build search path flags with Windows backslashes and trailing backslashes
         // Filter out paths that don't exist to avoid compiler warnings
@@ -483,7 +587,7 @@ export class MikroCImporter {
         
         // Always include standard paths with Windows backslashes  
         const projectPathWin = projectInfo.projectPath.replace(/\//g, '\\\\');
-        const stdPaths = `-SP"\$(MIKROC_PATH)\\\\Defs\\\\" -SP"\$(MIKROC_PATH)\\\\Uses\\\\" -SP"${projectPathWin}\\\\" -IP"\$(MIKROC_PATH)\\\\Uses\\\\" -IP"${projectPathWin}\\\\"`;
+        const stdPaths = `-SP$(MIKROC_PATH)\\\\Defs\\\\\\" -SP$(MIKROC_PATH)\\\\Uses\\\\\\" -SP\\"${projectPathWin}\\\\\\" -IP$(MIKROC_PATH)\\\\Uses\\\\\\" -IP\\"${projectPathWin}\\"`;
         
         // Build flags (NOTE: -Y flag must come AFTER -HEAP and BEFORE -DL for proper parsing)
         let flags = `-MSF -DBG -p${projectInfo.deviceName}`;
@@ -512,7 +616,7 @@ export class MikroCImporter {
         flags += ` -O11111113 -fo${Math.floor(projectInfo.clockFrequency / 1000000)}`;
         
         // Add -N flag with project file
-        flags += ` -N"${projectInfo.projectFile}"`;
+        flags += ` -N\\"${projectInfo.projectFile}\\"`;
         
         // Add search/include paths
         flags += ` ${stdPaths}`;
@@ -530,8 +634,8 @@ export class MikroCImporter {
 # Compiler: MikroC PRO for ${projectInfo.compilerType}
 
 # Compiler path (can be overridden with: make MIKROC_PATH="/custom/path")
-MIKROC_PATH ?= ${compilerPaths.installPath}
-MIKROC = "\$(MIKROC_PATH)/mikroC${projectInfo.compilerType}.exe"
+MIKROC_PATH ?= \\"${compilerPaths.installPath.replace(/\\/g, '\\\\')}
+MIKROC := \$(MIKROC_PATH)\\\\mikroC${projectInfo.compilerType}.exe\\"
 
 # Project settings
 DEVICE = ${projectInfo.deviceName}
@@ -550,15 +654,17 @@ PLDS = ${plds}
 # Compiler flags
 FLAGS = ${flags}
 
-# Build target
+# Build target (incremental - fast when used after IDE build)
 all:
 \t@echo Building \$(PROJECT_NAME) for \$(DEVICE)...
-\t\$(MIKROC) \$(FLAGS) \$(SRCS) \$(LIBS) \$(PLDS)
-# Build target
-all:
-\t@echo Building \$(PROJECT_NAME) for \$(DEVICE)...
-\t\$(MIKROC) \$(FLAGS) \$(SRCS) \$(LIBS) \$(PLDS)
-\t@echo Build complete! Output: \$(PROJECT_NAME).hex
+\t@powershell -Command "& \$(MIKROC) \$(FLAGS) \$(SRCS) \$(LIBS) \$(PLDS)"
+\t@test -f \$(PROJECT_NAME).hex && echo \"Build complete! Output: \$(PROJECT_NAME).hex\" || (echo \"Build FAILED - no hex file generated\" && exit 1)
+
+# Rebuild all files (forces recompilation)
+rebuild:
+\t@echo Rebuilding all files for \$(PROJECT_NAME)...
+\t@powershell -Command "& \$(MIKROC) \$(FLAGS) -RA \$(SRCS) \$(LIBS) \$(PLDS)"
+\t@test -f \$(PROJECT_NAME).hex && echo \"Build complete! Output: \$(PROJECT_NAME).hex\" || (echo \"Build FAILED - no hex file generated\" && exit 1)
 
 # Clean build artifacts
 clean:
@@ -571,7 +677,7 @@ flash: all
 \t@echo Flashing $(PROJECT_NAME).hex...
 \t@"bin/mikro_hb.exe" "$(PROJECT_NAME).hex"
 
-.PHONY: all clean flash
+.PHONY: all rebuild clean flash
 `;
         
         fs.writeFileSync(makefilePath, makefileContent, 'utf-8');

@@ -283,14 +283,18 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
             "version": "2.0.0",
             "tasks": [
                 {
-                    "label": "Build MikroC Project",
+                    "label": "Build MikroC Project (External Terminal)",
                     "type": "shell",
-                    "command": "make",
+                    "command": "start cmd /k \"cd /d ${workspaceFolder} && make && pause\"",
                     "group": {
                         "kind": "build",
                         "isDefault": true
                     },
-                    "problemMatcher": []
+                    "problemMatcher": [],
+                    "presentation": {
+                        "reveal": "never",
+                        "panel": "shared"
+                    }
                 },
                 {
                     "label": "Clean Build Artifacts",
