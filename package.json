@@ -9,6 +9,7 @@
     "name": "Dave C"
   },
   "license": "MIT",
+  "readme": "README.md",
   "repository": {
     "type": "git",
     "url": "https://github.com/Davec6505/mikroc-bootloader-plugin"
