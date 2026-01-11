@@ -1,14 +1,35 @@
 # Project Status
 
-**Last Updated**: December 22, 2025  
-**Version**: 2.1.0  
+**Last Updated**: January 11, 2026  
+**Version**: 2.3.1  
 **Branch**: master
+
+---
+
+## 🎯 Development Roadmap
+
+### Current Focus: XC32 PIC32MX/MZ Validation
+
+**Priority Order**:
+1. **Testing Phase** (Current) - Validate MPLABX import with PIC32MX/MZ, bootloader flashing
+2. **Debug Support** (Next) - ICD/PICkit/SNAP integration, F5 debugging in VS Code
+3. **XC8 Support** (Future) - 8-bit PIC and AVR after XC32 is rock-solid
+4. **MikroC Config Editor** (Low Priority) - New project generation UI, minimalistic compiler
+
+**Not Pursuing**: MCC/Harmony project generation (too complex, leave to MPLABX)
 
 ---
 
 ## ✅ Completed Features
 
-### 1. MikroC Project Import (NEW - Dec 21-22, 2025)
+### 1. MPLABX Project Import (v2.3.0-2.3.1 - Jan 11, 2026)
+- **tasks.json auto-generation**: Creates build tasks automatically during import
+- **Bundled make.exe**: Zero external dependencies - no MSYS2/Git Bash needed
+- **Ctrl+Shift+B support**: Build directly from VS Code with bundled tools
+- **Enhanced Makefile help**: Detailed `make help` with DRY_RUN options
+- **Files**: `src/extension.ts` (tasks.json generation), `src/templates/xc32/tasks.json.template`
+
+### 2. MikroC Project Import (Dec 21-22, 2025)
 - **Universal compiler support**: PIC32, PIC, dsPIC, AVR, ARM
 - **All .mcp* file types**: .mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar
 - **In-place import**: No file copying, Makefile created in project folder

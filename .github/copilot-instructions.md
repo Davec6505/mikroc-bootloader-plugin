@@ -34,6 +34,56 @@
 
 ---
 
+## Development Roadmap & Priorities (Jan 11, 2026)
+
+### **Current Focus: XC32 PIC32MX/MZ Import & Debug**
+
+**Priority Order**:
+
+1. **Testing & Validation Phase** (IN PROGRESS)
+   - Test MPLABX import with PIC32MX devices
+   - Test MPLABX import with PIC32MZ devices
+   - Verify bootloader flashing on both families
+   - Validate build system with real hardware
+   - Ensure bundled tools (make.exe) work correctly
+   - Test tasks.json integration (Ctrl+Shift+B)
+
+2. **Hardware Debug Support** (NEXT - After XC32 validation)
+   - Integrate ICD/PICkit/SNAP debuggers
+   - MPLAB X IPE command-line interface
+   - MPLAB X CLI debugging tools
+   - OpenOCD (if PIC32 support exists)
+   - Generate launch.json for F5 debugging
+   - **Goal**: Press F5 to flash and debug directly from VS Code
+
+3. **XC8 Support** (After XC32 is rock-solid)
+   - 8-bit PIC (PIC10/12/16/18)
+   - AVR microcontrollers
+   - Different build system requirements
+   - Generally simpler projects than XC32
+   - Apply lessons learned from XC32 implementation
+
+4. **MikroC Config Editor** (LOWEST PRIORITY)
+   - Restore configEditor.ts webview for new MikroC projects
+   - Timer configuration (already worked well)
+   - Config bits editor
+   - Remove GPIO/Pin Manager and UART sections
+   - **Rationale**: MikroC compiler is minimalistic and limited
+   - Only when everything else is solid
+
+**Projects NOT Being Pursued**:
+- ❌ **MCC/Harmony Project Generation** - Too complex, 1000+ .ftl templates
+- ❌ **Direct MCC Integration** - Leave peripheral config to MPLABX IDE
+- ✅ **Import Workflow Only** - Let MPLABX handle generation, VS Code handles development
+
+**Current Version**: 2.3.1 (Jan 11, 2026)
+- ✅ tasks.json auto-generation for MPLABX projects
+- ✅ Bundled make.exe/sh.exe/rm.exe (zero external dependencies)
+- ✅ Bootloader auto-update from GitHub
+- ✅ Enhanced Makefile help section
+
+---
+
 ## Project Overview
 This is a VS Code extension for PIC32 microcontrollers that provides **two distinct workflows**:
 
