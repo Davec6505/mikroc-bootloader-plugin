@@ -154,9 +154,28 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
     };
     saveMetadata(outputPath, metadata);
 
+    // Generate tasks.json from template
+    const vscodeDir = path.join(outputPath, '.vscode');
+    if (!fs.existsSync(vscodeDir)) {
+        fs.mkdirSync(vscodeDir, { recursive: true });
+    }
+
+    const makePath = bundledTools.getMakePath();
+    const makeCommand = makePath?.includes(' ') ? `"${makePath}"` : makePath;
+
+    const tasksTemplatePath = path.join(__dirname, 'templates', 'xc32', 'tasks.json.template');
+    if (fs.existsSync(tasksTemplatePath)) {
+        let tasksContent = fs.readFileSync(tasksTemplatePath, 'utf-8');
+        tasksContent = tasksContent.replace(/\{\{MAKE_COMMAND\}\}/g, makeCommand || 'make');
+        
+        const tasksPath = path.join(vscodeDir, 'tasks.json');
+        fs.writeFileSync(tasksPath, tasksContent, 'utf-8');
+        console.log('MPLABX import: tasks.json generated successfully');
+    }
+
     // Ask to open project
     const openAction = await vscode.window.showInformationMessage(
-        `Project imported successfully!\nLocation: ${outputPath}\n\nReady to build with "make build"`,
+        `Project imported successfully!\nLocation: ${outputPath}\n\nReady to build with Ctrl+Shift+B or "make"`,
         'Open Project',
         'Open in New Window'
     );

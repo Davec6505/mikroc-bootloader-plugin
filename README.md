@@ -101,9 +101,9 @@ This extension is designed for **AI-assisted embedded development**:
 #### 1. Software (Required)
 - **VS Code** 1.106.1 or later
 - **XC Compiler** OR **MikroC Compiler** - One or more of:
-  - **XC8** (8-bit PIC10/12/16/18, AVR)
-  - **XC16** (16-bit PIC24, dsPIC30/33)
-  - **XC32** (32-bit PIC32)
+  - **XC32** (32-bit PIC32) - **Currently Supported**
+  - **XC16** (16-bit PIC24, dsPIC30/33) - Coming soon
+  - **XC8** (8-bit PIC10/12/16/18, AVR) - Coming soon
   - **MikroC PRO for PIC32** (PIC32 with MikroElektronika libraries)
   - **MikroC PRO for PIC** (8-bit PIC with MikroE libraries)
   - **MikroC PRO for dsPIC** (dsPIC with MikroE libraries)
@@ -122,14 +122,16 @@ This extension is designed for **AI-assisted embedded development**:
 - **MikroC Bootloader Firmware** (optional) - For PIC32 USB HID flashing feature
 - **Programmer** (recommended) - MPLAB ICD, PICkit, or compatible for production
 
-#### 3. Build Environment
-- **Windows**: MSYS2/Git Bash or native `make` (MinGW)
-- **Linux/WSL**: Standard GNU make and bash
+**Note**: No external build tools required! Extension includes GNU Make and all necessary utilities.
 
-### What's Bundled
+### What's Bundled (Zero External Dependencies!)
+✅ **GNU Make** (`make.exe`) - Complete build system with all required DLLs  
+✅ **Shell Utilities** (`sh.exe`, `rm.exe`) - Unix-like commands for Windows  
 ✅ **MikroC HID Bootloader** (`mikro_hb.exe`) - Built-in, auto-updates from [GitHub](https://github.com/Davec6505/MikroC_bootloader)  
-✅ **GNU Make** (`make.exe`) - Cross-platform build system  
-✅ **Startup Code Template** - Complete CRT0 replacement for -nostartfiles
+✅ **Startup Code Template** - Complete 604-line CRT0 replacement for `-nostartfiles`  
+✅ **VS Code Tasks** - Ready-to-use Build/Clean/Flash tasks (Ctrl+Shift+B)
+
+**Just install the extension and import your project - everything else is included!**
 
 **Auto-Update System**: The bootloader checks for updates once per day from the MikroC_bootloader repository. Updates are downloaded to VS Code's global storage and persist across extension updates. You can manually trigger an update check via the Command Palette.
 
@@ -155,10 +157,11 @@ This extension is designed for **AI-assisted embedded development**:
 1. **Open VS Code** in an empty folder
 2. Press `Ctrl+Shift+P` and type "**XC Project Importer: Import MPLABX Project**"
 3. Select your MPLABX `.X` project folder
-4. Wait for import to complete (files copied, Makefiles generated)
-5. **Start coding with AI assistance!**
+4. Wait for import to complete (files copied, Makefiles and tasks.json generated)
+5. **Build with `Ctrl+Shift+B`** - All tools bundled, no setup needed!
+6. **Start coding with AI assistance!**
 
-_Works with any XC8/16/32 project. Tested with PIC32MZ (XC32), coming soon: PIC24/dsPIC (XC16)._
+_Currently supports XC32 projects. XC16 and XC8 support coming soon._
 
 ### Import MikroC Project
 
@@ -196,15 +199,16 @@ UART2_Write((uint8_t*)msg, strlen(msg));
 
 ### Building
 
+**VS Code Tasks (Recommended):**
+- Press **`Ctrl+Shift+B`** to build (uses bundled make.exe)
+- Or use Command Palette: "Tasks: Run Build Task"
+- All build tools included - no external dependencies!
+
 **Command Line:**
 ```bash
-make                    # Build project
+make                    # Build project (if make is in PATH)
 make clean             # Clean build artifacts
 ```
-
-**VS Code Tasks:**
-- Press `Ctrl+Shift+B` to build
-- Or use Command Palette: "Tasks: Run Build Task"
 
 ### Bootloader Flashing
 
