@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**AI-Assisted Microchip Development in VS Code** - Import MPLABX projects and leverage GitHub Copilot for embedded development with XC8, XC16, or XC32 compilers.
+**AI-Assisted Microchip Development in VS Code** - Import MPLABX projects and leverage GitHub Copilot for embedded development with XC32 compiler (XC8 and XC16 support coming in future releases).
 
 ## Why This Extension?
 
