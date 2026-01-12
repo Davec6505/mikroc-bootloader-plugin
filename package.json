@@ -53,7 +53,7 @@
     "commands": [
       {
         "command": "pic32-ide.importMPLABX",
-        "title": "XC Project Importer: Import MPLABX Project"
+        "title": "XC32 Project Importer"
       },
       {
         "command": "pic32-ide.importMikroC",

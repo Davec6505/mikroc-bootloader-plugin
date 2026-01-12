@@ -13,9 +13,84 @@ import { MikroCImporter } from './mikrocImporter';
 import { BootloaderUpdater } from './bootloaderUpdater';
 import { BundledToolsManager } from './bundledTools';
 
+// Supported PIC32 devices (expandable list)
+const SUPPORTED_DEVICES = {
+    'PIC32MZ': [
+        { label: '32MZ2048EFH064', description: '2MB Flash, 512KB RAM, 64-pin' },
+        { label: '32MZ2048EFH100', description: '2MB Flash, 512KB RAM, 100-pin' },
+        { label: '32MZ2048EFH144', description: '2MB Flash, 512KB RAM, 144-pin' },
+        { label: '32MZ2048EFM064', description: '2MB Flash, 512KB RAM, 64-pin' },
+        { label: '32MZ2048EFM100', description: '2MB Flash, 512KB RAM, 100-pin' },
+        { label: '32MZ2048EFM144', description: '2MB Flash, 512KB RAM, 144-pin' },
+        { label: '32MZ1024EFH064', description: '1MB Flash, 512KB RAM, 64-pin' },
+        { label: '32MZ1024EFH100', description: '1MB Flash, 512KB RAM, 100-pin' },
+        { label: '32MZ1024EFH144', description: '1MB Flash, 512KB RAM, 144-pin' },
+        { label: '32MZ1024EFM064', description: '1MB Flash, 512KB RAM, 64-pin' },
+        { label: '32MZ1024EFM100', description: '1MB Flash, 512KB RAM, 100-pin' },
+        { label: '32MZ1024EFM144', description: '1MB Flash, 512KB RAM, 144-pin' },
+        { label: '32MZ0512EFE064', description: '512KB Flash, 128KB RAM, 64-pin' },
+        { label: '32MZ0512EFE100', description: '512KB Flash, 128KB RAM, 100-pin' },
+        { label: '32MZ0512EFE144', description: '512KB Flash, 128KB RAM, 144-pin' },
+    ],
+    // TODO: Add PIC32MX devices
+    // 'PIC32MX': [
+    //     { label: '32MX470F512H', description: '512KB Flash, 128KB RAM' },
+    //     ...
+    // ]
+};
+
 let statusBarItem: vscode.StatusBarItem;
 let bootloaderUpdater: BootloaderUpdater;
 let bundledTools: BundledToolsManager;
+
+/**
+ * Detect installed XC32 compiler and return the latest version path
+ * TODO: Add Linux support when Windows version is complete
+ */
+async function detectXC32Compiler(): Promise<string | null> {
+    try {
+        // Windows: PowerShell search across all drives
+        const searchCommand = `
+            Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object {
+                $drive = $_.Root
+                $paths = @(
+                    (Join-Path $drive "Program Files/Microchip/xc32"),
+                    (Join-Path $drive "Program Files (x86)/Microchip/xc32")
+                )
+                foreach ($basePath in $paths) {
+                    if (Test-Path $basePath) {
+                        Get-ChildItem -Path $basePath -Directory -Filter "v*" -ErrorAction SilentlyContinue | 
+                        Where-Object { Test-Path (Join-Path $_.FullName "bin/xc32-gcc.exe") } |
+                        Select-Object @{Name='Path';Expression={$_.FullName}}, @{Name='Version';Expression={$_.Name}}
+                    }
+                }
+            } | Sort-Object Version -Descending | Select-Object -First 1 -ExpandProperty Path
+        `.replace(/\n/g, ' ').trim();
+
+        const result = await new Promise<string>((resolve, reject) => {
+            const { exec } = require('child_process');
+            exec(`powershell -Command "${searchCommand}"`, (error: any, stdout: string, stderr: string) => {
+                if (error && !stdout) {
+                    reject(error);
+                } else {
+                    resolve(stdout.trim());
+                }
+            });
+        });
+
+        if (result && fs.existsSync(result)) {
+            const normalizedPath = result.replace(/\\/g, '/');
+            console.log(`Found XC32 compiler: ${normalizedPath}`);
+            return normalizedPath;
+        }
+
+        console.log('XC32 compiler not found');
+        return null;
+    } catch (error) {
+        console.error('Error detecting XC32 compiler:', error);
+        return null;
+    }
+}
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('PIC32-IDE-VSCode extension activated!');
@@ -39,7 +114,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates())
     );
     
-    // TODO: Add 'pic32-ide.newMikroCProject' command to open configEditor UI
+    // Note: createXC32Project and createMikroCProject are internal functions
+    // accessed through import commands via quick pick menu
 
     // Status bar button for quick flash
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -52,9 +128,40 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 /**
- * Import MPLABX Project
+ * Import or Create XC32 Project (unified workflow)
  */
 async function importMPLABXProject(context: vscode.ExtensionContext) {
+    // Show quick pick menu: Import or Create
+    const choice = await vscode.window.showQuickPick(
+        [
+            {
+                label: '$(folder-opened) Import Existing MPLABX Project',
+                description: 'Browse for an existing MPLABX .X project folder',
+                action: 'import'
+            },
+            {
+                label: '$(new-file) Create New XC32 Project',
+                description: 'Generate a new XC32 project from template',
+                action: 'create'
+            }
+        ],
+        {
+            placeHolder: 'Choose an option for XC32 project workflow',
+            title: 'XC32 Project Importer'
+        }
+    );
+
+    if (!choice) {
+        return;
+    }
+
+    if (choice.action === 'create') {
+        // Delegate to create project function
+        await createXC32Project(context);
+        return;
+    }
+
+    // Import workflow continues below
     // Select MPLABX project folder
     const projectFolders = await vscode.window.showOpenDialog({
         canSelectFiles: false,
@@ -176,6 +283,520 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
     // Ask to open project
     const openAction = await vscode.window.showInformationMessage(
         `Project imported successfully!\nLocation: ${outputPath}\n\nReady to build with Ctrl+Shift+B or "make"`,
+        'Open Project',
+        'Open in New Window'
+    );
+
+    if (openAction === 'Open Project') {
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), false);
+    } else if (openAction === 'Open in New Window') {
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), true);
+    }
+}
+
+/**
+ * Create new XC32 Project with basic template
+ */
+async function createXC32Project(context: vscode.ExtensionContext) {
+    // Get project name
+    const projectName = await vscode.window.showInputBox({
+        prompt: 'Enter project name',
+        placeHolder: 'MyXC32Project',
+        validateInput: (value) => {
+            if (!value || value.trim().length === 0) {
+                return 'Project name cannot be empty';
+            }
+            if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+                return 'Project name can only contain letters, numbers, underscores, and hyphens';
+            }
+            return null;
+        }
+    });
+
+    if (!projectName) {
+        return;
+    }
+
+    // Get target device from dropdown
+    const allDevices = Object.values(SUPPORTED_DEVICES).flat();
+    const deviceChoice = await vscode.window.showQuickPick(allDevices, {
+        placeHolder: 'Select target PIC32 device',
+        title: 'Choose Device',
+        matchOnDescription: true
+    });
+
+    if (!deviceChoice) {
+        return;
+    }
+
+    const deviceName = deviceChoice.label;
+
+    // Detect XC32 compiler
+    const xc32Path = await detectXC32Compiler();
+    if (!xc32Path) {
+        const choice = await vscode.window.showWarningMessage(
+            'XC32 compiler not found in standard locations (C:/Program Files/Microchip/xc32).\n\nYou can:\n• Install XC32 compiler\n• Generate template Makefile (edit path manually)',
+            'Generate Template',
+            'Cancel'
+        );
+        
+        if (choice !== 'Generate Template') {
+            return;
+        }
+        
+        vscode.window.showInformationMessage('Template Makefile will be generated. Edit XC32_PATH in Makefile after creation.');
+    }
+
+    // Select output folder
+    const outputFolders = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Select Location for New Project',
+        title: 'Where should the project be created?'
+    });
+
+    if (!outputFolders || outputFolders.length === 0) {
+        return;
+    }
+
+    const outputPath = path.join(outputFolders[0].fsPath, projectName);
+
+    // Check if directory already exists
+    if (fs.existsSync(outputPath)) {
+        const overwrite = await vscode.window.showWarningMessage(
+            `Folder "${projectName}" already exists. Overwrite?`,
+            'Yes', 'No'
+        );
+        if (overwrite !== 'Yes') {
+            return;
+        }
+    }
+
+    // Create project structure
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `Creating XC32 project "${projectName}"...`,
+        cancellable: false
+    }, async () => {
+        // Create directories
+        const srcsDir = path.join(outputPath, 'srcs');
+        fs.mkdirSync(srcsDir, { recursive: true });
+
+        // Generate main.c template
+        const mainTemplate = `/**
+ * ${projectName}
+ * XC32 Project
+ * Device: ${deviceName}
+ * Generated: ${new Date().toLocaleDateString()}
+ */
+
+#include <xc.h>
+#include <sys/attribs.h>
+
+// Configuration bits (adjust for ${deviceName} - refer to datasheet)
+#pragma config FNOSC = SPLL        // Oscillator Selection
+#pragma config POSCMOD = EC        // Primary Oscillator
+#pragma config FPLLIDIV = DIV_3    // PLL Input Divider
+#pragma config FPLLMULT = MUL_50   // PLL Multiplier
+#pragma config FPLLODIV = DIV_2    // PLL Output Divider
+
+#define SYS_CLK_FREQ 200000000UL   // System clock frequency (Hz)
+
+void delay_ms(uint32_t ms) {
+    uint32_t ticks = (SYS_CLK_FREQ / 2000) * ms;
+    _CP0_SET_COUNT(0);
+    while (_CP0_GET_COUNT() < ticks);
+}
+
+int main(void) {
+    // Initialize LED (example: RB9)
+    ANSELB &= ~(1 << 9);   // Digital mode
+    TRISB &= ~(1 << 9);    // Output
+    LATB = 0;              // Initial state
+
+    while (1) {
+        LATBINV = (1 << 9);  // Toggle LED
+        delay_ms(500);
+    }
+
+    return 0;
+}
+`;
+
+        fs.writeFileSync(path.join(srcsDir, 'main.c'), mainTemplate, 'utf-8');
+
+        // Generate basic Makefile (Windows)
+        // TODO: Adjust for Linux when porting (.exe extensions, paths, etc.)
+        const detectedXC32 = xc32Path || 'C:/Program Files/Microchip/xc32/vX.XX';
+        
+        const makefileTemplate = `# ${projectName} - XC32 Makefile
+# Device: ${deviceName}
+# Platform: Windows
+# Generated: ${new Date().toLocaleDateString()}
+
+# Project settings
+PROJECT_NAME = ${projectName}
+DEVICE = ${deviceName}
+
+# Toolchain paths${xc32Path ? ' (auto-detected)' : ' (TEMPLATE - UPDATE THIS PATH)'}
+XC32_PATH = ${detectedXC32}
+COMPILER_BIN = $(XC32_PATH)/bin
+CC = "$(COMPILER_BIN)/xc32-gcc.exe"
+LD = "$(COMPILER_BIN)/xc32-gcc.exe"
+OBJCOPY = "$(COMPILER_BIN)/xc32-bin2hex.exe"
+
+# Directories
+SRC_DIR = srcs
+BUILD_DIR = build
+
+# Source files
+SRCS = $(wildcard $(SRC_DIR)/*.c)
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
+
+# Compiler flags
+CFLAGS = -mprocessor=$(DEVICE) -O2 -Wall
+LDFLAGS = -mprocessor=$(DEVICE) -Wl,--defsym=_min_heap_size=0x1000
+
+# Output files
+ELF = $(BUILD_DIR)/$(PROJECT_NAME).elf
+HEX = $(PROJECT_NAME).hex
+
+.PHONY: all clean flash
+
+all: $(HEX)
+
+$(HEX): $(ELF)
+\t@echo Creating hex file...
+\t$(OBJCOPY) $(ELF)
+
+$(ELF): $(OBJS)
+\t@echo Linking...
+\t$(LD) $(LDFLAGS) -o $@ $^
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+\t@mkdir -p $(BUILD_DIR)
+\t@echo Compiling $<...
+\t$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+\t@echo Cleaning...
+\t@rm -rf $(BUILD_DIR) $(HEX)
+
+flash: $(HEX)
+\t@echo Flashing $(HEX)...
+\t@echo TODO: Add flash command
+`;
+
+        fs.writeFileSync(path.join(outputPath, 'Makefile'), makefileTemplate, 'utf-8');
+
+        // Generate .vscode/tasks.json
+        const vscodeDir = path.join(outputPath, '.vscode');
+        fs.mkdirSync(vscodeDir, { recursive: true });
+
+        const tasksContent = {
+            "version": "2.0.0",
+            "tasks": [
+                {
+                    "label": "Build XC32 Project",
+                    "type": "shell",
+                    "command": "make",
+                    "group": {
+                        "kind": "build",
+                        "isDefault": true
+                    },
+                    "problemMatcher": ["$gcc"]
+                },
+                {
+                    "label": "Clean Build Artifacts",
+                    "type": "shell",
+                    "command": "make clean",
+                    "problemMatcher": []
+                },
+                {
+                    "label": "Flash Device",
+                    "type": "shell",
+                    "command": "make flash",
+                    "problemMatcher": []
+                }
+            ]
+        };
+
+        fs.writeFileSync(path.join(vscodeDir, 'tasks.json'), JSON.stringify(tasksContent, null, 4), 'utf-8');
+
+        // Generate README
+        const readmeContent = `# ${projectName}
+
+Basic XC32 project created with PIC32-IDE-VSCode extension.
+
+## Project Structure
+
+\`\`\`
+${projectName}/
+├── srcs/
+│   └── main.c       # Main application code
+├── build/           # Build artifacts (generated)
+├── Makefile         # Build configuration
+└── .vscode/
+    └── tasks.json   # VS Code build tasks
+\`\`\`
+
+## Build Instructions
+
+1. **Configure Device**: Edit \`Makefile\` and set \`DEVICE\` to your target PIC32 device
+2. **Configure XC32 Path**: Verify \`XC32_PATH\` in \`Makefile\` matches your installation
+3. **Build**: Press \`Ctrl+Shift+B\` or run \`make\`
+4. **Flash**: Run \`make flash\` (configure flash tool first)
+
+## Next Steps
+
+- Add more source files to \`srcs/\` directory
+- Configure device-specific settings in \`main.c\`
+- Add peripheral initialization code
+- Configure bootloader or programmer for flashing
+
+Generated: ${new Date().toLocaleString()}
+`;
+
+        fs.writeFileSync(path.join(outputPath, 'README.md'), readmeContent, 'utf-8');
+    });
+
+    // Show success and open project
+    const openAction = await vscode.window.showInformationMessage(
+        `XC32 project "${projectName}" created successfully!\n\nNext: Configure DEVICE in Makefile, then build with Ctrl+Shift+B`,
+        'Open Project',
+        'Open in New Window'
+    );
+
+    if (openAction === 'Open Project') {
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), false);
+    } else if (openAction === 'Open in New Window') {
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), true);
+    }
+}
+
+/**
+ * Create new MikroC Project with basic template
+ */
+async function createMikroCProject(context: vscode.ExtensionContext) {
+    // Get project name
+    const projectName = await vscode.window.showInputBox({
+        prompt: 'Enter project name',
+        placeHolder: 'MyMikroCProject',
+        validateInput: (value) => {
+            if (!value || value.trim().length === 0) {
+                return 'Project name cannot be empty';
+            }
+            if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+                return 'Project name can only contain letters, numbers, underscores, and hyphens';
+            }
+            return null;
+        }
+    });
+
+    if (!projectName) {
+        return;
+    }
+
+    // Get target device from dropdown
+    const allDevices = Object.values(SUPPORTED_DEVICES).flat();
+    const deviceChoice = await vscode.window.showQuickPick(allDevices, {
+        placeHolder: 'Select target PIC32 device',
+        title: 'Choose Device',
+        matchOnDescription: true
+    });
+
+    if (!deviceChoice) {
+        return;
+    }
+
+    // MikroC uses P prefix (P32MZ... instead of 32MZ...)
+    const mikroCDevice = 'P' + deviceChoice.label;
+
+    // Select output folder
+    const outputFolders = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Select Location for New Project',
+        title: 'Where should the project be created?'
+    });
+
+    if (!outputFolders || outputFolders.length === 0) {
+        return;
+    }
+
+    const outputPath = path.join(outputFolders[0].fsPath, projectName);
+
+    // Check if directory already exists
+    if (fs.existsSync(outputPath)) {
+        const overwrite = await vscode.window.showWarningMessage(
+            `Folder "${projectName}" already exists. Overwrite?`,
+            'Yes', 'No'
+        );
+        if (overwrite !== 'Yes') {
+            return;
+        }
+    }
+
+    // Create project structure
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `Creating MikroC project "${projectName}"...`,
+        cancellable: false
+    }, async () => {
+        // Create flat directory structure (MikroC style)
+        fs.mkdirSync(outputPath, { recursive: true });
+
+        // Generate main.c template
+        const mainTemplate = `/**
+ * ${projectName}
+ * MikroC Project
+ * Device: ${mikroCDevice}
+ * Generated: ${new Date().toLocaleDateString()}
+ */
+
+void main() {
+    // Configure LED pin (example: RB9)
+    ANSELB &= ~(1 << 9);   // Digital mode
+    TRISB &= ~(1 << 9);    // Output
+    LATB = 0;              // Initial state
+
+    while (1) {
+        LATBINV = (1 << 9);  // Toggle LED
+        Delay_ms(500);       // MikroC built-in delay
+    }
+}
+`;
+
+        fs.writeFileSync(path.join(outputPath, 'main.c'), mainTemplate, 'utf-8');
+
+        // Generate basic Makefile template (user must configure compiler paths)
+        const makefileTemplate = `# ${projectName} - MikroC Makefile
+# Device: ${mikroCDevice}
+# Generated: ${new Date().toLocaleDateString()}
+# NOTE: Configure MIKROC_PATH for your MikroC installation
+
+PROJECT_NAME = ${projectName}
+
+# MikroC compiler path (UPDATE THIS PATH)
+MIKROC_PATH ?= \"C:\\Users\\Public\\Documents\\Mikroelektronika\\mikroC PRO for PIC32
+MIKROC := $(MIKROC_PATH)\\mikroCPIC32.exe\"
+
+# Device (UPDATE FOR YOUR TARGET)
+DEVICE = ${mikroCDevice}
+
+# Source files (add more as needed)
+SRCS = \"main.c\"
+
+# Common libraries (auto-detected, add custom libraries manually)
+LIBS = \"__Lib_Delays.emcl\" \"__Lib_Math.emcl\"
+
+# Compiler flags
+FLAGS = -MSF -DBG -p$(DEVICE)
+
+# Build target
+.PHONY: all clean flash
+
+all:
+	@echo Building $(PROJECT_NAME)...
+	@powershell -Command "& $(MIKROC) $(FLAGS) $(SRCS) $(LIBS)"
+	@if exist $(PROJECT_NAME).hex (echo Build complete! Hex file: $(PROJECT_NAME).hex) else (echo Build failed! && exit 1)
+
+clean:
+	@echo Cleaning build artifacts...
+	@if exist *.asm del /Q *.asm
+	@if exist *.lst del /Q *.lst
+	@if exist *.mcl del /Q *.mcl
+	@if exist *.hex del /Q *.hex
+	@echo Clean complete.
+
+flash: all
+	@echo Flashing $(PROJECT_NAME).hex...
+	@echo TODO: Configure mikro_hb.exe path
+`;
+
+        fs.writeFileSync(path.join(outputPath, 'Makefile'), makefileTemplate, 'utf-8');
+
+        // Generate .vscode/tasks.json
+        const vscodeDir = path.join(outputPath, '.vscode');
+        fs.mkdirSync(vscodeDir, { recursive: true });
+
+        const tasksContent = {
+            "version": "2.0.0",
+            "tasks": [
+                {
+                    "label": "Build MikroC Project",
+                    "type": "shell",
+                    "command": "make",
+                    "group": {
+                        "kind": "build",
+                        "isDefault": true
+                    },
+                    "problemMatcher": []
+                },
+                {
+                    "label": "Clean Build Artifacts",
+                    "type": "shell",
+                    "command": "make clean",
+                    "problemMatcher": []
+                },
+                {
+                    "label": "Flash Device",
+                    "type": "shell",
+                    "command": "make flash",
+                    "problemMatcher": []
+                }
+            ]
+        };
+
+        fs.writeFileSync(path.join(vscodeDir, 'tasks.json'), JSON.stringify(tasksContent, null, 4), 'utf-8');
+
+        // Generate README
+        const readmeContent = `# ${projectName}
+
+Basic MikroC project created with PIC32-IDE-VSCode extension.
+
+## Project Structure
+
+MikroC uses a flat folder structure:
+
+\`\`\`
+${projectName}/
+├── main.c           # Main application code
+├── Makefile         # Build configuration
+└── .vscode/
+    └── tasks.json   # VS Code build tasks
+\`\`\`
+
+## Build Instructions
+
+1. **Configure MikroC Path**: Edit \`Makefile\` and set \`MIKROC_PATH\` to your installation
+2. **Configure Device**: Set \`DEVICE\` in \`Makefile\` to your target PIC32 device
+3. **Build**: Press \`Ctrl+Shift+B\` or run \`make\`
+4. **Flash**: Configure bootloader path and run \`make flash\`
+
+## Adding Files
+
+- Place all source files (\`.c\`) in the project root directory
+- Update \`SRCS\` variable in \`Makefile\` to include new files
+- Add required MikroC libraries to \`LIBS\` variable
+
+## Notes
+
+- MikroC uses a flat project structure (no subdirectories)
+- Built-in functions like \`Delay_ms()\` require \`__Lib_Delays.emcl\`
+- For advanced configuration, open \`.mcp32\` file in MikroC IDE
+
+Generated: ${new Date().toLocaleString()}
+`;
+
+        fs.writeFileSync(path.join(outputPath, 'README.md'), readmeContent, 'utf-8');
+    });
+
+    // Show success and open project
+    const openAction = await vscode.window.showInformationMessage(
+        `MikroC project "${projectName}" created successfully!\n\nNext: Configure MIKROC_PATH and DEVICE in Makefile, then build with Ctrl+Shift+B`,
         'Open Project',
         'Open in New Window'
     );

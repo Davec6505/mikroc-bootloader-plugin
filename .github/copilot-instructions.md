@@ -76,11 +76,17 @@
 - ❌ **Direct MCC Integration** - Leave peripheral config to MPLABX IDE
 - ✅ **Import Workflow Only** - Let MPLABX handle generation, VS Code handles development
 
-**Current Version**: 2.3.1 (Jan 11, 2026)
+**Current Version**: 2.3.1 (Jan 12, 2026)
 - ✅ tasks.json auto-generation for MPLABX projects
 - ✅ Bundled make.exe/sh.exe/rm.exe (zero external dependencies)
 - ✅ Bootloader auto-update from GitHub
 - ✅ Enhanced Makefile help section
+- ✅ **NEW: Create XC32 Project from template** (Jan 12, 2026)
+  - Unified "XC32 Project Importer" command with Import/Create options
+  - Device selection dropdown with 12 PIC32MZ chips
+  - Auto-detects XC32 compiler across all drives (PowerShell dynamic search)
+  - Generates main.c, Makefile with quoted paths, tasks.json, README
+  - Prepared for Linux cross-platform support (TODO markers in code)
 
 ---
 
@@ -415,7 +421,121 @@ bootloaderUpdater.checkAndUpdate();  // Non-blocking background check on activat
 - Shared across all workspaces
 - User doesn't lose downloaded updates when extension is updated
 
-### 11. MikroC Compiler Exit Code Quirk - CRITICAL (Dec 22-23, 2025)
+### 11. XC32 Project Creation Feature - NEW (Jan 12, 2026)
+**Unified workflow with Import/Create options:**
+
+**Command**: "XC32 Project Importer" (Ctrl+Shift+P)
+- Shows Quick Pick menu:
+  - 📁 Import Existing MPLABX Project
+  - 📄 Create New XC32 Project
+
+**Create Project Workflow**:
+1. User enters project name (validated: alphanumeric, underscore, hyphen only)
+2. Selects device from dropdown (12 PIC32MZ chips)
+3. Extension auto-detects XC32 compiler using PowerShell:
+   ```powershell
+   Get-PSDrive | Search all drives for "Program Files/Microchip/xc32/v*"
+   Finds latest version automatically
+   ```
+4. User selects output folder
+5. Generates:
+   - `srcs/main.c` - LED blink template with config bits
+   - `Makefile` - Auto-detected XC32 path, quoted for spaces
+   - `.vscode/tasks.json` - Ctrl+Shift+B build integration
+   - `README.md` - Project instructions
+
+**XC32 Compiler Detection**:
+- Dynamic PowerShell search across all drives (C:, D:, etc.)
+- Searches: `Program Files` and `Program Files (x86)`
+- Finds latest version (e.g., v4.45, v5.00)
+- Returns: `C:/Program Files/Microchip/xc32/v4.45`
+- If not found: Warns user, generates template Makefile
+
+**Makefile Path Handling**:
+```makefile
+# CRITICAL: Quote all tool paths for spaces
+CC = "$(COMPILER_BIN)/xc32-gcc.exe"
+LD = "$(COMPILER_BIN)/xc32-gcc.exe"
+OBJCOPY = "$(COMPILER_BIN)/xc32-bin2hex.exe"
+```
+
+**Device Dropdown**:
+- 12 PIC32MZ devices with descriptions
+- Format: `{ label: '32MZ2048EFH100', description: '2MB Flash, 512KB RAM, 100-pin' }`
+- Searchable and filterable
+- Easy to expand with PIC32MX later
+
+**MikroC Create Project**:
+- Similar workflow (flat folder structure)
+- Device prefixed with 'P' (P32MZ...)
+- MikroC-specific template
+
+**Linux Support**:
+- Code has TODO markers for cross-platform support
+- Windows-focused for now
+- Will add Linux detection later:
+  - Search `/opt/microchip/xc32`, `/usr/local/microchip/xc32`
+  - No `.exe` extensions
+
+### 11. XC32 Project Creation Feature - NEW (Jan 12, 2026)
+**Unified workflow with Import/Create options:**
+
+**Command**: "XC32 Project Importer" (Ctrl+Shift+P)
+- Shows Quick Pick menu:
+  - 📁 Import Existing MPLABX Project
+  - 📄 Create New XC32 Project
+
+**Create Project Workflow**:
+1. User enters project name (validated: alphanumeric, underscore, hyphen only)
+2. Selects device from dropdown (12 PIC32MZ chips)
+3. Extension auto-detects XC32 compiler using PowerShell:
+   ```powershell
+   Get-PSDrive | Search all drives for "Program Files/Microchip/xc32/v*"
+   Finds latest version automatically across C:, D:, etc.
+   ```
+4. User selects output folder
+5. Generates:
+   - `srcs/main.c` - LED blink template with config bits
+   - `Makefile` - Auto-detected XC32 path, quoted for spaces
+   - `.vscode/tasks.json` - Ctrl+Shift+B build integration
+   - `README.md` - Project instructions
+
+**XC32 Compiler Detection**:
+- Dynamic PowerShell search across all drives (C:, D:, etc.)
+- Searches: `Program Files` and `Program Files (x86)`
+- Finds latest version (e.g., v4.45, v5.00)
+- Returns: `C:/Program Files/Microchip/xc32/v4.45`
+- If not found: Warns user, generates template Makefile
+
+**Makefile Path Handling - CRITICAL**:
+```makefile
+# Quote all tool paths for spaces
+CC = "$(COMPILER_BIN)/xc32-gcc.exe"
+LD = "$(COMPILER_BIN)/xc32-gcc.exe"
+OBJCOPY = "$(COMPILER_BIN)/xc32-bin2hex.exe"
+```
+**Why**: Paths like `C:/Program Files/Microchip/xc32` contain spaces and will fail without quotes.
+
+**Device Dropdown**:
+- 12 PIC32MZ devices with descriptions
+- Format: `{ label: '32MZ2048EFH100', description: '2MB Flash, 512KB RAM, 100-pin' }`
+- Includes: EFH, EFM, EFE, EFN variants (64, 100, 124, 144-pin packages)
+- Searchable and filterable
+- Easy to expand with PIC32MX later
+
+**MikroC Create Project**:
+- Similar workflow (flat folder structure)
+- Device prefixed with 'P' (P32MZ...)
+- MikroC-specific template
+
+**Linux Support**:
+- Code has TODO markers for cross-platform support
+- Windows-focused for now
+- Will add Linux detection later:
+  - Search `/opt/microchip/xc32`, `/usr/local/microchip/xc32`
+  - No `.exe` extensions
+
+### 12. MikroC Compiler Exit Code Quirk - CRITICAL (Dec 22-23, 2025)
 **mikroCPIC32.exe ALWAYS returns exit code 0, even when compilation fails!**
 
 **Solution**: Check for hex file existence instead of compiler exit code.
