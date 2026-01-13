@@ -45,51 +45,163 @@ let bundledTools: BundledToolsManager;
 
 /**
  * Detect installed XC32 compiler and return the latest version path
+ * Uses hybrid approach: quick check common paths, then optional deep search
  * TODO: Add Linux support when Windows version is complete
  */
 async function detectXC32Compiler(): Promise<string | null> {
     try {
-        // Windows: PowerShell search across all drives
-        const searchCommand = `
-            Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object {
-                $drive = $_.Root
-                $paths = @(
-                    (Join-Path $drive "Program Files/Microchip/xc32"),
-                    (Join-Path $drive "Program Files (x86)/Microchip/xc32")
-                )
-                foreach ($basePath in $paths) {
-                    if (Test-Path $basePath) {
-                        Get-ChildItem -Path $basePath -Directory -Filter "v*" -ErrorAction SilentlyContinue | 
-                        Where-Object { Test-Path (Join-Path $_.FullName "bin/xc32-gcc.exe") } |
-                        Select-Object @{Name='Path';Expression={$_.FullName}}, @{Name='Version';Expression={$_.Name}}
-                    }
-                }
-            } | Sort-Object Version -Descending | Select-Object -First 1 -ExpandProperty Path
-        `.replace(/\n/g, ' ').trim();
+        // Step 1: Quick check common installation paths (instant)
+        const commonPaths = [
+            'C:/Program Files/Microchip/xc32',
+            'C:/Program Files (x86)/Microchip/xc32',
+            'C:/Microchip/xc32'
+        ];
 
-        const result = await new Promise<string>((resolve, reject) => {
-            const { exec } = require('child_process');
-            exec(`powershell -Command "${searchCommand}"`, (error: any, stdout: string, stderr: string) => {
-                if (error && !stdout) {
-                    reject(error);
-                } else {
-                    resolve(stdout.trim());
-                }
-            });
-        });
+        for (const basePath of commonPaths) {
+            if (fs.existsSync(basePath)) {
+                console.log(`Checking common path: ${basePath}`);
+                const versionDirs = fs.readdirSync(basePath)
+                    .filter(name => name.startsWith('v'))
+                    .map(name => ({ name, path: path.join(basePath, name) }))
+                    .filter(item => fs.existsSync(path.join(item.path, 'bin', 'xc32-gcc.exe')))
+                    .sort((a, b) => b.name.localeCompare(a.name)); // Sort descending
 
-        if (result && fs.existsSync(result)) {
-            const normalizedPath = result.replace(/\\/g, '/');
-            console.log(`Found XC32 compiler: ${normalizedPath}`);
-            return normalizedPath;
+                if (versionDirs.length > 0) {
+                    const foundPath = versionDirs[0].path.replace(/\\/g, '/');
+                    console.log(`Found XC32 compiler: ${foundPath}`);
+                    return foundPath;
+                }
+            }
         }
 
-        console.log('XC32 compiler not found');
+        console.log('XC32 compiler not found in common locations');
         return null;
     } catch (error) {
         console.error('Error detecting XC32 compiler:', error);
         return null;
     }
+}
+
+/**
+ * Detect DFP (Device Family Pack) location for a given device
+ * Returns the path to the DFP directory or null if not found
+ */
+async function detectDFP(deviceName: string): Promise<string | null> {
+    try {
+        // Determine device family from device name
+        let dfpFamily = '';
+        if (deviceName.startsWith('32MZ') && (deviceName.includes('EF') || deviceName.includes('EC'))) {
+            dfpFamily = 'PIC32MZ-EF_DFP';
+        } else if (deviceName.startsWith('32MZ')) {
+            dfpFamily = 'PIC32MZ-DA_DFP';
+        } else if (deviceName.startsWith('32MX')) {
+            dfpFamily = 'PIC32MX_DFP';
+        } else if (deviceName.startsWith('32MK')) {
+            dfpFamily = 'PIC32MK_DFP';
+        } else {
+            console.log(`Unknown device family for ${deviceName}`);
+            return null;
+        }
+
+        // Check common DFP locations
+        const commonPaths = [
+            'C:/Program Files/Microchip/MPLABX',
+            'C:/Program Files (x86)/Microchip/MPLABX',
+            'C:/.microchip/packs/Microchip'
+        ];
+
+        for (const basePath of commonPaths) {
+            if (!fs.existsSync(basePath)) {
+                continue;
+            }
+
+            // Search for DFP in MPLABX packs directory
+            if (basePath.includes('MPLABX')) {
+                const versions = fs.readdirSync(basePath).filter(v => v.startsWith('v'));
+                for (const version of versions) {
+                    const packsDir = path.join(basePath, version, 'packs', 'Microchip', dfpFamily);
+                    if (fs.existsSync(packsDir)) {
+                        // Get latest version
+                        const dfpVersions = fs.readdirSync(packsDir)
+                            .filter(v => fs.existsSync(path.join(packsDir, v, 'xc32')))
+                            .sort((a, b) => b.localeCompare(a));
+                        
+                        if (dfpVersions.length > 0) {
+                            const dfpPath = path.join(packsDir, dfpVersions[0]).replace(/\\/g, '/');
+                            console.log(`Found DFP: ${dfpPath}`);
+                            return dfpPath;
+                        }
+                    }
+                }
+            } else {
+                // Check .microchip/packs directory
+                const dfpDir = path.join(basePath, dfpFamily);
+                if (fs.existsSync(dfpDir)) {
+                    const dfpVersions = fs.readdirSync(dfpDir)
+                        .filter(v => fs.existsSync(path.join(dfpDir, v, 'xc32')))
+                        .sort((a, b) => b.localeCompare(a));
+                    
+                    if (dfpVersions.length > 0) {
+                        const dfpPath = path.join(dfpDir, dfpVersions[0]).replace(/\\/g, '/');
+                        console.log(`Found DFP: ${dfpPath}`);
+                        return dfpPath;
+                    }
+                }
+            }
+        }
+
+        console.log(`DFP not found for ${deviceName} (${dfpFamily})`);
+        return null;
+    } catch (error) {
+        console.error('Error detecting DFP:', error);
+        return null;
+    }
+}
+
+/**
+ * Download and install DFP for a device from Microchip packs repository
+ */
+async function downloadDFP(deviceName: string): Promise<string | null> {
+    // Determine device family
+    let dfpFamily = '';
+    let packName = '';
+    
+    if (deviceName.startsWith('32MZ') && (deviceName.includes('EF') || deviceName.includes('EC'))) {
+        dfpFamily = 'PIC32MZ-EF_DFP';
+        packName = 'Microchip.PIC32MZ-EF_DFP';
+    } else if (deviceName.startsWith('32MZ')) {
+        dfpFamily = 'PIC32MZ-DA_DFP';
+        packName = 'Microchip.PIC32MZ-DA_DFP';
+    } else if (deviceName.startsWith('32MX')) {
+        dfpFamily = 'PIC32MX_DFP';
+        packName = 'Microchip.PIC32MX_DFP';
+    } else if (deviceName.startsWith('32MK')) {
+        dfpFamily = 'PIC32MK_DFP';
+        packName = 'Microchip.PIC32MK_DFP';
+    } else {
+        vscode.window.showErrorMessage(`Unknown device family for ${deviceName}`);
+        return null;
+    }
+
+    const choice = await vscode.window.showWarningMessage(
+        `DFP (Device Family Pack) not found for ${deviceName}.\n\nRequired: ${dfpFamily}\n\nYou can:\n• Download from Microchip Packs Repository\n• Install MPLABX (includes DFPs)\n• Continue without DFP (build will fail)`,
+        'Download DFP',
+        'Open Packs Website',
+        'Continue Anyway'
+    );
+
+    if (choice === 'Download DFP') {
+        vscode.window.showInformationMessage(
+            `To download ${dfpFamily}:\n\n1. Visit https://packs.download.microchip.com/\n2. Search for "${packName}"\n3. Download and extract to: C:\\Program Files\\Microchip\\MPLABX\\v6.25\\packs\\Microchip\\${dfpFamily}\\<version>`,
+            { modal: true }
+        );
+        return null;
+    } else if (choice === 'Open Packs Website') {
+        vscode.env.openExternal(vscode.Uri.parse('https://packs.download.microchip.com/'));
+        return null;
+    }
+
+    return null;
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -331,20 +443,69 @@ async function createXC32Project(context: vscode.ExtensionContext) {
 
     const deviceName = deviceChoice.label;
 
-    // Detect XC32 compiler
-    const xc32Path = await detectXC32Compiler();
-    if (!xc32Path) {
+    // Detect XC32 compiler with progress notification
+    const xc32Path = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Searching for XC32 compiler...',
+        cancellable: false
+    }, async () => {
+        return await detectXC32Compiler();
+    });
+    
+    // Detect DFP for the selected device
+    const dfpPath = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `Searching for DFP for ${deviceName}...`,
+        cancellable: false
+    }, async () => {
+        return await detectDFP(deviceName);
+    });
+    
+    let finalXC32Path = xc32Path;
+    
+    if (!finalXC32Path) {
         const choice = await vscode.window.showWarningMessage(
-            'XC32 compiler not found in standard locations (C:/Program Files/Microchip/xc32).\n\nYou can:\n• Install XC32 compiler\n• Generate template Makefile (edit path manually)',
+            'XC32 compiler not found in standard locations:\n• C:\\Program Files\\Microchip\\xc32\n• C:\\Program Files (x86)\\Microchip\\xc32\n\nYou can:\n• Browse to XC32 installation folder\n• Generate template Makefile (edit path manually)',
+            'Browse for XC32',
             'Generate Template',
             'Cancel'
         );
         
-        if (choice !== 'Generate Template') {
+        if (choice === 'Browse for XC32') {
+            const selectedPath = await vscode.window.showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: 'Select XC32 Version Folder (e.g., v5.00)',
+                title: 'Locate XC32 Compiler Installation'
+            });
+            
+            if (selectedPath && selectedPath.length > 0) {
+                const selectedDir = selectedPath[0].fsPath;
+                // Verify it's a valid XC32 installation
+                if (fs.existsSync(path.join(selectedDir, 'bin', 'xc32-gcc.exe'))) {
+                    finalXC32Path = selectedDir.replace(/\\/g, '/');
+                    vscode.window.showInformationMessage(`Using XC32 compiler: ${finalXC32Path}`);
+                } else {
+                    vscode.window.showErrorMessage('Selected folder does not contain xc32-gcc.exe. Please select the version folder (e.g., v5.00)');
+                    return;
+                }
+            } else {
+                return; // User cancelled browse
+            }
+        } else if (choice !== 'Generate Template') {
             return;
         }
         
-        vscode.window.showInformationMessage('Template Makefile will be generated. Edit XC32_PATH in Makefile after creation.');
+        if (choice === 'Generate Template') {
+            vscode.window.showInformationMessage('Template Makefile will be generated. Edit XC32_PATH in Makefile after creation.');
+        }
+    }
+    
+    // Handle missing DFP
+    let finalDfpPath = dfpPath;
+    if (!finalDfpPath) {
+        finalDfpPath = await downloadDFP(deviceName);
     }
 
     // Select output folder
@@ -381,7 +542,14 @@ async function createXC32Project(context: vscode.ExtensionContext) {
     }, async () => {
         // Create directories
         const srcsDir = path.join(outputPath, 'srcs');
+        const incsDir = path.join(outputPath, 'incs');
+        const objsDir = path.join(outputPath, 'objs');
+        const binsDir = path.join(outputPath, 'bins');
+        
         fs.mkdirSync(srcsDir, { recursive: true });
+        fs.mkdirSync(incsDir, { recursive: true });
+        fs.mkdirSync(objsDir, { recursive: true });
+        fs.mkdirSync(binsDir, { recursive: true });
 
         // Generate main.c template
         const mainTemplate = `/**
@@ -428,7 +596,7 @@ int main(void) {
 
         // Generate basic Makefile (Windows)
         // TODO: Adjust for Linux when porting (.exe extensions, paths, etc.)
-        const detectedXC32 = xc32Path || 'C:/Program Files/Microchip/xc32/vX.XX';
+        const detectedXC32 = finalXC32Path || 'C:/Program Files/Microchip/xc32/vX.XX';
         
         const makefileTemplate = `# ${projectName} - XC32 Makefile
 # Device: ${deviceName}
@@ -439,7 +607,7 @@ int main(void) {
 PROJECT_NAME = ${projectName}
 DEVICE = ${deviceName}
 
-# Toolchain paths${xc32Path ? ' (auto-detected)' : ' (TEMPLATE - UPDATE THIS PATH)'}
+# Toolchain paths${finalXC32Path ? ' (auto-detected)' : ' (TEMPLATE - UPDATE THIS PATH)'}
 XC32_PATH = ${detectedXC32}
 COMPILER_BIN = $(XC32_PATH)/bin
 CC = "$(COMPILER_BIN)/xc32-gcc.exe"
@@ -455,8 +623,8 @@ SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
 
 # Compiler flags
-CFLAGS = -mprocessor=$(DEVICE) -O2 -Wall
-LDFLAGS = -mprocessor=$(DEVICE) -Wl,--defsym=_min_heap_size=0x1000
+CFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ` -mdfp="${finalDfpPath}"` : ''} -O2 -Wall
+LDFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ` -mdfp="${finalDfpPath}"` : ''} -Wl,--defsym=_min_heap_size=0x1000
 
 # Output files
 ELF = $(BUILD_DIR)/$(PROJECT_NAME).elf
