@@ -23,8 +23,10 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
    - Auto-detect DFP (Device Family Pack) from MPLABX installation (`C:/Program Files/Microchip/MPLABX/v*/packs/Microchip/`)
    - Generate template project with folder structure: `srcs/`, `incs/`, `objs/`, `bins/`
    - Create files: `srcs/main.c`, `Makefile`, `tasks.json`, `README.md`
-   - Add `-mdfp` flag to Makefile when DFP detected (required for XC32 v4.0+)
-   - Offer manual browse if compiler/DFP not in standard locations
+   - Add `-mdfp="$(DFP_PATH)"` flag to Makefile (required for XC32 v4.0+)
+   - **DFP_PATH variable**: User-editable Makefile variable for manual DFP path configuration
+   - Offer manual browse if compiler/DFP not in standard locations (validates xc32 subfolder)
+   - **Directory structure**: Uses `OBJ_DIR = objs` and `BIN_DIR = bins` (NOT build/)
    - **Critical**: Quote all tool paths in Makefile (`"$(COMPILER_BIN)/xc32-gcc.exe"`)
 
 ### Key Components
@@ -150,7 +152,7 @@ See `SUPPORTED_DEVICES` in [extension.ts](../src/extension.ts). Add to `PIC32MX`
 ]
 ```
 
-### Supporting XC8/XC16 Compilers
+### Not yet Supporting XC8/XC16 Compilers
 1. Update `detectCompilerFamily()` in [projectImporter.ts](../src/projectImporter.ts)
 2. Handle compiler-specific flags (XC8 uses different syntax than XC32)
 3. Update Makefile templates for 8-bit/16-bit toolchain differences
@@ -177,7 +179,9 @@ See `SUPPORTED_DEVICES` in [extension.ts](../src/extension.ts). Add to `PIC32MX`
 The sections below document MCC Harmony 3 peripheral code generation that was explored but is **not currently pursued**. Preserved for reference if code generation is revisited.
 
 <details>
+<What>What is this?
 <summary>Click to expand: XC32 ISR Macros, Timer/GPIO Generation, MCC Folder Structure</summary>
+</What>
 
 ### XC32 ISR Macro Format
 **The __ISR macro REQUIRES <sys/attribs.h> to be included:**

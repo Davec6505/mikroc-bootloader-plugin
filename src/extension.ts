@@ -103,11 +103,12 @@ async function detectDFP(deviceName: string): Promise<string | null> {
             return null;
         }
 
-        // Check common DFP locations
+        // Check common DFP locations (ordered by likelihood)
         const commonPaths = [
-            'C:/Program Files/Microchip/MPLABX',
-            'C:/Program Files (x86)/Microchip/MPLABX',
-            'C:/.microchip/packs/Microchip'
+            'C:/Program Files/Microchip/MPLABX',                     // MPLABX v6.25+ (most common)
+            'C:/Program Files (x86)/Microchip/MPLABX',              // MPLABX (x86)
+            'C:/Program Files/Microchip/packs/Microchip',           // Standalone packs directory
+            'C:/.microchip/packs/Microchip'                          // User packs cache
         ];
 
         for (const basePath of commonPaths) {
@@ -184,20 +185,47 @@ async function downloadDFP(deviceName: string): Promise<string | null> {
     }
 
     const choice = await vscode.window.showWarningMessage(
-        `DFP (Device Family Pack) not found for ${deviceName}.\n\nRequired: ${dfpFamily}\n\nYou can:\n• Download from Microchip Packs Repository\n• Install MPLABX (includes DFPs)\n• Continue without DFP (build will fail)`,
-        'Download DFP',
-        'Open Packs Website',
+        `DFP (Device Family Pack) not found for ${deviceName}.\n\nRequired: ${dfpFamily}\n\nXC32 v4.0+ requires DFP for compilation.\n\nYou can:\n• Browse to existing DFP location\n• Download and install DFP manually\n• Continue and configure later`,
+        'Browse for DFP',
+        'Show Instructions',
         'Continue Anyway'
     );
 
-    if (choice === 'Download DFP') {
+    if (choice === 'Browse for DFP') {
+        // Let user browse to DFP folder
+        const selectedPath = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            openLabel: `Select ${dfpFamily} Version Folder`,
+            title: `Locate ${dfpFamily} (containing xc32 subfolder)`
+        });
+        
+        if (selectedPath && selectedPath.length > 0) {
+            const selectedDir = selectedPath[0].fsPath;
+            // Verify it's a valid DFP installation (must have xc32 subfolder)
+            if (fs.existsSync(path.join(selectedDir, 'xc32'))) {
+                const dfpPath = selectedDir.replace(/\\/g, '/');
+                vscode.window.showInformationMessage(`Using DFP: ${dfpPath}`);
+                return dfpPath;
+            } else {
+                vscode.window.showErrorMessage(`Selected folder does not contain 'xc32' subfolder. Please select the DFP version folder (e.g., PIC32MZ-EF_DFP/1.3.231)`);
+                return null;
+            }
+        }
+        return null;
+    } else if (choice === 'Show Instructions') {
         vscode.window.showInformationMessage(
-            `To download ${dfpFamily}:\n\n1. Visit https://packs.download.microchip.com/\n2. Search for "${packName}"\n3. Download and extract to: C:\\Program Files\\Microchip\\MPLABX\\v6.25\\packs\\Microchip\\${dfpFamily}\\<version>`,
+            `To install ${dfpFamily}:\n\n` +
+            `1. Visit: https://www.microchip.com/packs\n` +
+            `2. Search for: "${packName}"\n` +
+            `3. Download the .atpack file\n` +
+            `4. Create directory: C:\\Program Files\\Microchip\\packs\\Microchip\\${dfpFamily}\\<version>\n` +
+            `5. Extract .atpack contents to that directory\n` +
+            `6. Update DFP_PATH variable in Makefile\n\n` +
+            `Note: Adjust v6.25 to match your MPLABX version if different.`,
             { modal: true }
         );
-        return null;
-    } else if (choice === 'Open Packs Website') {
-        vscode.env.openExternal(vscode.Uri.parse('https://packs.download.microchip.com/'));
         return null;
     }
 
@@ -597,6 +625,7 @@ int main(void) {
         // Generate basic Makefile (Windows)
         // TODO: Adjust for Linux when porting (.exe extensions, paths, etc.)
         const detectedXC32 = finalXC32Path || 'C:/Program Files/Microchip/xc32/vX.XX';
+        const detectedDFP = finalDfpPath || '';
         
         const makefileTemplate = `# ${projectName} - XC32 Makefile
 # Device: ${deviceName}
@@ -614,21 +643,28 @@ CC = "$(COMPILER_BIN)/xc32-gcc.exe"
 LD = "$(COMPILER_BIN)/xc32-gcc.exe"
 OBJCOPY = "$(COMPILER_BIN)/xc32-bin2hex.exe"
 
+# Device Family Pack (DFP) path${finalDfpPath ? ' (auto-detected)' : ' (REQUIRED - See README.md for installation)'}
+# XC32 v4.0+ requires DFP for device support
+# Download from: https://www.microchip.com/packs
+# Standard location: C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/<DFP_NAME>/<version>
+DFP_PATH = ${detectedDFP}
+
 # Directories
 SRC_DIR = srcs
-BUILD_DIR = build
+OBJ_DIR = objs
+BIN_DIR = bins
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 
 # Compiler flags
-CFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ` -mdfp="${finalDfpPath}"` : ''} -O2 -Wall
-LDFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ` -mdfp="${finalDfpPath}"` : ''} -Wl,--defsym=_min_heap_size=0x1000
+CFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ' -mdfp="$(DFP_PATH)"' : ''} -O2 -Wall
+LDFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ' -mdfp="$(DFP_PATH)"' : ''} -Wl,--defsym=_min_heap_size=0x1000
 
 # Output files
-ELF = $(BUILD_DIR)/$(PROJECT_NAME).elf
-HEX = $(PROJECT_NAME).hex
+ELF = $(BIN_DIR)/$(PROJECT_NAME).elf
+HEX = $(BIN_DIR)/$(PROJECT_NAME).hex
 
 .PHONY: all clean flash
 
@@ -640,16 +676,17 @@ $(HEX): $(ELF)
 
 $(ELF): $(OBJS)
 \t@echo Linking...
+\t@mkdir -p $(BIN_DIR)
 \t$(LD) $(LDFLAGS) -o $@ $^
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-\t@mkdir -p $(BUILD_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+\t@mkdir -p $(OBJ_DIR)
 \t@echo Compiling $<...
 \t$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 \t@echo Cleaning...
-\t@rm -rf $(BUILD_DIR) $(HEX)
+\t@rm -rf $(OBJ_DIR)/* $(BIN_DIR)/*
 
 flash: $(HEX)
 \t@echo Flashing $(HEX)...
@@ -703,7 +740,9 @@ Basic XC32 project created with PIC32-IDE-VSCode extension.
 ${projectName}/
 ├── srcs/
 │   └── main.c       # Main application code
-├── build/           # Build artifacts (generated)
+├── incs/            # Header files
+├── objs/            # Object files (generated)
+├── bins/            # Binary outputs (generated)
 ├── Makefile         # Build configuration
 └── .vscode/
     └── tasks.json   # VS Code build tasks
@@ -713,8 +752,25 @@ ${projectName}/
 
 1. **Configure Device**: Edit \`Makefile\` and set \`DEVICE\` to your target PIC32 device
 2. **Configure XC32 Path**: Verify \`XC32_PATH\` in \`Makefile\` matches your installation
-3. **Build**: Press \`Ctrl+Shift+B\` or run \`make\`
-4. **Flash**: Run \`make flash\` (configure flash tool first)
+3. **Configure DFP Path**: ${finalDfpPath ? 'DFP auto-detected and configured' : 'REQUIRED - Set \\`DFP_PATH\\` in Makefile (see below)'}
+4. **Build**: Press \`Ctrl+Shift+B\` or run \`make\`
+5. **Flash**: Run \`make flash\` (configure flash tool first)
+
+${!finalDfpPath ? `### Installing Device Family Pack (DFP)
+
+XC32 v4.0+ requires a Device Family Pack for ${deviceName}.
+
+**Installation Steps:**
+1. Visit: https://www.microchip.com/packs
+2. Search for your device family pack
+3. Download the .atpack file
+4. Create directory: \`C:\\\\Program Files\\\\Microchip\\\\MPLABX\\\\v6.25\\\\packs\\\\Microchip\\\\<DFP_NAME>\\\\<version>\`
+5. Extract .atpack contents to that directory
+6. Update \`DFP_PATH\` variable in Makefile with the full path
+
+**Note:** If you have a different MPLABX version, adjust v6.25 to match your installation.
+
+` : ''}
 
 ## Next Steps
 
@@ -730,8 +786,9 @@ Generated: ${new Date().toLocaleString()}
     });
 
     // Show success and open project
+    const dfpStatus = finalDfpPath ? '✓ DFP detected and configured' : '⚠️ DFP not found - see README.md for installation';
     const openAction = await vscode.window.showInformationMessage(
-        `XC32 project "${projectName}" created successfully!\n\nNext: Configure DEVICE in Makefile, then build with Ctrl+Shift+B`,
+        `XC32 project "${projectName}" created successfully!\n\n${dfpStatus}\n\nNext: ${finalDfpPath ? 'Build with Ctrl+Shift+B' : 'Install DFP, then build with Ctrl+Shift+B'}`,
         'Open Project',
         'Open in New Window'
     );

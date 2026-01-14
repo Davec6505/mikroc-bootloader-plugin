@@ -1,4 +1,4 @@
-﻿Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object {
+﻿Get-PSDrive  -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object {
                 $drive = $_.Root
                 Write-Host "Scanning drive: $drive"
                 Get-ChildItem -Path $drive -Directory -Recurse -Filter "xc32" -ErrorAction SilentlyContinue -Depth 4 |

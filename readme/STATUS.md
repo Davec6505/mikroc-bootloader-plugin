@@ -1,17 +1,17 @@
 # Project Status
 
-**Last Updated**: January 11, 2026  
-**Version**: 2.3.1  
+**Last Updated**: January 14, 2026  
+**Version**: 2.3.2  
 **Branch**: master
 
 ---
 
 ## 🎯 Development Roadmap
 
-### Current Focus: XC32 PIC32MX/MZ Validation
+### Current Focus: Testing & Validation
 
 **Priority Order**:
-1. **Testing Phase** (Current) - Validate MPLABX import with PIC32MX/MZ, bootloader flashing
+1. **Testing Phase** (Current - Jan 14, 2026) - Validate XC32 project creation, MPLABX import, DFP detection
 2. **Debug Support** (Next) - ICD/PICkit/SNAP integration, F5 debugging in VS Code
 3. **XC8 Support** (Future) - 8-bit PIC and AVR after XC32 is rock-solid
 4. **MikroC Config Editor** (Low Priority) - New project generation UI, minimalistic compiler
@@ -22,14 +22,25 @@
 
 ## ✅ Completed Features
 
-### 1. MPLABX Project Import (v2.3.0-2.3.1 - Jan 11, 2026)
+### 1. XC32 Project Creation & Compiler Detection (v2.3.1-2.3.2 - Jan 13-14, 2026)
+- **Hybrid XC32 detection**: Fast common path check (99% case), manual browse fallback
+- **DFP auto-detection**: Automatically finds Device Family Packs from MPLABX installation
+- **Project templates**: Creates complete buildable projects with srcs/, incs/, objs/, bins/
+- **-mdfp flag support**: XC32 v4.0+ compatibility with proper DFP path inclusion
+- **DFP_PATH variable**: User-editable Makefile variable for manual DFP configuration
+- **Browse for DFP**: Manual browse option with xc32 subfolder validation
+- **Directory structure**: Correct objs/ and bins/ folders (not build/)
+- **User guidance**: Clear installation instructions for missing DFPs
+- **Files**: `src/extension.ts` (createXC32Project, detectXC32Compiler, detectDFP, downloadDFP)
+
+### 2. MPLABX Project Import (v2.3.0-2.3.1 - Jan 11, 2026)
 - **tasks.json auto-generation**: Creates build tasks automatically during import
 - **Bundled make.exe**: Zero external dependencies - no MSYS2/Git Bash needed
 - **Ctrl+Shift+B support**: Build directly from VS Code with bundled tools
 - **Enhanced Makefile help**: Detailed `make help` with DRY_RUN options
 - **Files**: `src/extension.ts` (tasks.json generation), `src/templates/xc32/tasks.json.template`
 
-### 2. MikroC Project Import (Dec 21-22, 2025)
+### 3. MikroC Project Import (Dec 21-22, 2025)
 - **Universal compiler support**: PIC32, PIC, dsPIC, AVR, ARM
 - **All .mcp* file types**: .mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar
 - **In-place import**: No file copying, Makefile created in project folder
@@ -40,7 +51,7 @@
 - **Build integration**: VS Code tasks (Build/Clean/Flash)
 - **VERIFIED WORKING**: Generates Makefiles that compile identically to MikroC IDE
 
-### 2. Bootloader Auto-Update System (NEW - Dec 22, 2025)
+### 4. Bootloader Auto-Update System (Dec 22, 2025)
 - **Automatic updates**: Checks GitHub releases once per 24 hours
 - **GitHub integration**: Downloads from Davec6505/MikroC_bootloader repo
 - **Global storage**: Downloaded versions persist across extension updates
@@ -51,7 +62,7 @@
 - **Progress UI**: Download progress notification, success message on completion
 - **Files**: `src/bootloaderUpdater.ts`, integrated with `bundledTools.ts` and `extension.ts`
 
-### 3. Configuration Editor (WebView UI)
+### 5. Configuration Editor (WebView UI - Deprecated)
 - Device selection with package type support
 - Visual configuration bit editing (40 settings)
 - System clock and PBCLK configuration
@@ -60,16 +71,12 @@
 - Save/load schemes (.cfgsch files)
 - Real-time register calculation preview
 
-### 2. Project Generators
+### 6. Project Generators (Deprecated in favor of Import workflows)
 
-#### XC32 Project Generator
-- **Complete buildable project structure**
-- MCC Harmony 3 compatible peripheral libraries
-- Makefiles for command-line builds (Root + srcs/)
-- VS Code tasks.json for F5 build/debug
-- c_cpp_properties.json for IntelliSense
-- README.md with build instructions
-- **VERIFIED WORKING** - Generates all files including Makefiles and README
+#### XC32 Project Generator (Now: XC32 Project Creation)
+- See feature #1 above - now integrated into main import workflow
+- Creates template projects with detected compiler/DFP paths
+- **STATUS**: Active, integrated into v2.3.1
 
 #### MikroC Project Generator
 - MikroC PRO for PIC32 compatible
