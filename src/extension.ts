@@ -12,31 +12,172 @@ import { MakefileGenerator } from './makefileGenerator';
 import { MikroCImporter } from './mikrocImporter';
 import { BootloaderUpdater } from './bootloaderUpdater';
 import { BundledToolsManager } from './bundledTools';
+import { loadDeviceDefinitions, getAllDevicesFlat, DeviceDefinition, detectDeviceFamily, getConfigBits } from './deviceLoader';
 
-// Supported PIC32 devices (expandable list)
-const SUPPORTED_DEVICES = {
-    'PIC32MZ': [
-        { label: '32MZ2048EFH064', description: '2MB Flash, 512KB RAM, 64-pin' },
-        { label: '32MZ2048EFH100', description: '2MB Flash, 512KB RAM, 100-pin' },
-        { label: '32MZ2048EFH144', description: '2MB Flash, 512KB RAM, 144-pin' },
-        { label: '32MZ2048EFM064', description: '2MB Flash, 512KB RAM, 64-pin' },
-        { label: '32MZ2048EFM100', description: '2MB Flash, 512KB RAM, 100-pin' },
-        { label: '32MZ2048EFM144', description: '2MB Flash, 512KB RAM, 144-pin' },
-        { label: '32MZ1024EFH064', description: '1MB Flash, 512KB RAM, 64-pin' },
-        { label: '32MZ1024EFH100', description: '1MB Flash, 512KB RAM, 100-pin' },
-        { label: '32MZ1024EFH144', description: '1MB Flash, 512KB RAM, 144-pin' },
-        { label: '32MZ1024EFM064', description: '1MB Flash, 512KB RAM, 64-pin' },
-        { label: '32MZ1024EFM100', description: '1MB Flash, 512KB RAM, 100-pin' },
-        { label: '32MZ1024EFM144', description: '1MB Flash, 512KB RAM, 144-pin' },
-        { label: '32MZ0512EFE064', description: '512KB Flash, 128KB RAM, 64-pin' },
-        { label: '32MZ0512EFE100', description: '512KB Flash, 128KB RAM, 100-pin' },
-        { label: '32MZ0512EFE144', description: '512KB Flash, 128KB RAM, 144-pin' },
+// Device definitions loaded from JSON files at runtime
+let SUPPORTED_DEVICES: Record<string, DeviceDefinition[]> = {
+    'PIC32MZ-EF (High Performance)': [
+        // 2MB Flash variants (512KB RAM)
+        { label: '32MZ2048EFG064', description: '2MB Flash, 512KB RAM, 64-pin (EFG - No CAN)' },
+        { label: '32MZ2048EFG100', description: '2MB Flash, 512KB RAM, 100-pin (EFG - No CAN)' },
+        { label: '32MZ2048EFG144', description: '2MB Flash, 512KB RAM, 144-pin (EFG - No CAN)' },
+        { label: '32MZ2048EFH064', description: '2MB Flash, 512KB RAM, 64-pin (EFH - CAN, 252MHz)' },
+        { label: '32MZ2048EFH100', description: '2MB Flash, 512KB RAM, 100-pin (EFH - CAN, 252MHz)' },
+        { label: '32MZ2048EFH144', description: '2MB Flash, 512KB RAM, 144-pin (EFH - CAN, 252MHz)' },
+        { label: '32MZ2048EFM064', description: '2MB Flash, 512KB RAM, 64-pin (EFM - CAN+Crypto)' },
+        { label: '32MZ2048EFM100', description: '2MB Flash, 512KB RAM, 100-pin (EFM - CAN+Crypto)' },
+        { label: '32MZ2048EFM144', description: '2MB Flash, 512KB RAM, 144-pin (EFM - CAN+Crypto)' },
+        // 1MB Flash variants (512KB RAM)
+        { label: '32MZ1024EFG064', description: '1MB Flash, 512KB RAM, 64-pin (EFG - No CAN)' },
+        { label: '32MZ1024EFG100', description: '1MB Flash, 512KB RAM, 100-pin (EFG - No CAN)' },
+        { label: '32MZ1024EFG144', description: '1MB Flash, 512KB RAM, 144-pin (EFG - No CAN)' },
+        { label: '32MZ1024EFH064', description: '1MB Flash, 512KB RAM, 64-pin (EFH - CAN)' },
+        { label: '32MZ1024EFH100', description: '1MB Flash, 512KB RAM, 100-pin (EFH - CAN)' },
+        { label: '32MZ1024EFH144', description: '1MB Flash, 512KB RAM, 144-pin (EFH - CAN)' },
+        { label: '32MZ1024EFM064', description: '1MB Flash, 512KB RAM, 64-pin (EFM - CAN+Crypto)' },
+        { label: '32MZ1024EFM100', description: '1MB Flash, 512KB RAM, 100-pin (EFM - CAN+Crypto)' },
+        { label: '32MZ1024EFM144', description: '1MB Flash, 512KB RAM, 144-pin (EFM - CAN+Crypto)' },
+        // 1MB Flash variants (256KB RAM)
+        { label: '32MZ1024EFE064', description: '1MB Flash, 256KB RAM, 64-pin (EFE - No CAN)' },
+        { label: '32MZ1024EFE100', description: '1MB Flash, 256KB RAM, 100-pin (EFE - No CAN)' },
+        { label: '32MZ1024EFE144', description: '1MB Flash, 256KB RAM, 144-pin (EFE - No CAN)' },
+        { label: '32MZ1024EFF064', description: '1MB Flash, 256KB RAM, 64-pin (EFF - CAN)' },
+        { label: '32MZ1024EFF100', description: '1MB Flash, 256KB RAM, 100-pin (EFF - CAN)' },
+        { label: '32MZ1024EFF144', description: '1MB Flash, 256KB RAM, 144-pin (EFF - CAN)' },
+        { label: '32MZ1024EFK064', description: '1MB Flash, 256KB RAM, 64-pin (EFK - CAN+Crypto)' },
+        { label: '32MZ1024EFK100', description: '1MB Flash, 256KB RAM, 100-pin (EFK - CAN+Crypto)' },
+        { label: '32MZ1024EFK144', description: '1MB Flash, 256KB RAM, 144-pin (EFK - CAN+Crypto)' },
+        // 512KB Flash variants (128KB RAM)
+        { label: '32MZ0512EFE064', description: '512KB Flash, 128KB RAM, 64-pin (EFE - No CAN)' },
+        { label: '32MZ0512EFE100', description: '512KB Flash, 128KB RAM, 100-pin (EFE - No CAN)' },
+        { label: '32MZ0512EFE144', description: '512KB Flash, 128KB RAM, 144-pin (EFE - No CAN)' },
+        { label: '32MZ0512EFF064', description: '512KB Flash, 128KB RAM, 64-pin (EFF - CAN)' },
+        { label: '32MZ0512EFF100', description: '512KB Flash, 128KB RAM, 100-pin (EFF - CAN)' },
+        { label: '32MZ0512EFF144', description: '512KB Flash, 128KB RAM, 144-pin (EFF - CAN)' },
+        { label: '32MZ0512EFK064', description: '512KB Flash, 128KB RAM, 64-pin (EFK - CAN+Crypto)' },
+        { label: '32MZ0512EFK100', description: '512KB Flash, 128KB RAM, 100-pin (EFK - CAN+Crypto)' },
+        { label: '32MZ0512EFK144', description: '512KB Flash, 128KB RAM, 144-pin (EFK - CAN+Crypto)' },
     ],
-    // TODO: Add PIC32MX devices
-    // 'PIC32MX': [
-    //     { label: '32MX470F512H', description: '512KB Flash, 128KB RAM' },
-    //     ...
-    // ]
+    'PIC32MX (General Purpose)': [
+        // PIC32MX1/2 Series (28-pin, basic/USB, 40-50MHz)
+        { label: '32MX110F016B', description: '16KB Flash, 4KB RAM, 28-pin' },
+        { label: '32MX120F032B', description: '32KB Flash, 4KB RAM, 28-pin' },
+        { label: '32MX130F064B', description: '64KB Flash, 16KB RAM, 28-pin' },
+        { label: '32MX130F256B', description: '256KB Flash, 16KB RAM, 28-pin' },
+        { label: '32MX150F128B', description: '128KB Flash, 32KB RAM, 28-pin' },
+        { label: '32MX170F256B', description: '256KB Flash, 64KB RAM, 28-pin' },
+        { label: '32MX170F512H', description: '512KB Flash, 64KB RAM, 64-pin' },
+        { label: '32MX170F512L', description: '512KB Flash, 64KB RAM, 100-pin' },
+        { label: '32MX210F016B', description: '16KB Flash, 4KB RAM, 28-pin (USB)' },
+        { label: '32MX220F032B', description: '32KB Flash, 8KB RAM, 28-pin (USB)' },
+        { label: '32MX230F064B', description: '64KB Flash, 16KB RAM, 28-pin (USB)' },
+        { label: '32MX230F256B', description: '256KB Flash, 16KB RAM, 28-pin (USB)' },
+        { label: '32MX250F128B', description: '128KB Flash, 32KB RAM, 28-pin (USB)' },
+        { label: '32MX270F256B', description: '256KB Flash, 64KB RAM, 28-pin (USB)' },
+        { label: '32MX270F512H', description: '512KB Flash, 64KB RAM, 64-pin (USB)' },
+        { label: '32MX270F512L', description: '512KB Flash, 64KB RAM, 100-pin (USB)' },
+        // PIC32MX1/2 Series (44-pin variants)
+        { label: '32MX110F016D', description: '16KB Flash, 4KB RAM, 44-pin' },
+        { label: '32MX120F032D', description: '32KB Flash, 8KB RAM, 44-pin' },
+        { label: '32MX130F064D', description: '64KB Flash, 16KB RAM, 44-pin' },
+        { label: '32MX130F256D', description: '256KB Flash, 16KB RAM, 44-pin' },
+        { label: '32MX150F128D', description: '128KB Flash, 64KB RAM, 44-pin' },
+        { label: '32MX170F256D', description: '256KB Flash, 64KB RAM, 44-pin' },
+        { label: '32MX210F016D', description: '16KB Flash, 4KB RAM, 44-pin (USB)' },
+        { label: '32MX220F032D', description: '32KB Flash, 8KB RAM, 44-pin (USB)' },
+        { label: '32MX230F064D', description: '64KB Flash, 16KB RAM, 44-pin (USB)' },
+        { label: '32MX230F256D', description: '256KB Flash, 16KB RAM, 44-pin (USB)' },
+        { label: '32MX250F128D', description: '128KB Flash, 32KB RAM, 44-pin (USB)' },
+        { label: '32MX270F256D', description: '256KB Flash, 64KB RAM, 44-pin (USB)' },
+        // PIC32MX1/2 Series (64-pin and 100-pin variants)
+        { label: '32MX120F064H', description: '64KB Flash, 8KB RAM, 64-pin' },
+        { label: '32MX130F128H', description: '128KB Flash, 16KB RAM, 64-pin' },
+        { label: '32MX130F128L', description: '128KB Flash, 16KB RAM, 100-pin' },
+        { label: '32MX150F256H', description: '256KB Flash, 32KB RAM, 64-pin' },
+        { label: '32MX150F256L', description: '256KB Flash, 32KB RAM, 100-pin' },
+        { label: '32MX230F128H', description: '128KB Flash, 16KB RAM, 64-pin (USB)' },
+        { label: '32MX230F128L', description: '128KB Flash, 16KB RAM, 100-pin (USB)' },
+        { label: '32MX250F256H', description: '256KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX250F256L', description: '256KB Flash, 32KB RAM, 100-pin (USB)' },
+        // PIC32MX154/174/254/274 Series (CTMU, Low Power)
+        { label: '32MX154F128B', description: '128KB Flash, 32KB RAM, 28-pin (CTMU)' },
+        { label: '32MX154F128D', description: '128KB Flash, 32KB RAM, 44-pin (CTMU)' },
+        { label: '32MX174F256B', description: '256KB Flash, 64KB RAM, 28-pin (CTMU)' },
+        { label: '32MX174F256D', description: '256KB Flash, 64KB RAM, 44-pin (CTMU)' },
+        { label: '32MX254F128B', description: '128KB Flash, 32KB RAM, 28-pin (USB+CTMU)' },
+        { label: '32MX254F128D', description: '128KB Flash, 32KB RAM, 44-pin (USB+CTMU)' },
+        { label: '32MX274F256B', description: '256KB Flash, 64KB RAM, 28-pin (USB+CTMU)' },
+        { label: '32MX274F256D', description: '256KB Flash, 64KB RAM, 44-pin (USB+CTMU)' },
+        // PIC32MX3/4 Series (64-pin, 80-120MHz)
+        { label: '32MX320F032H', description: '32KB Flash, 8KB RAM, 64-pin' },
+        { label: '32MX320F064H', description: '64KB Flash, 16KB RAM, 64-pin' },
+        { label: '32MX320F128H', description: '128KB Flash, 16KB RAM, 64-pin' },
+        { label: '32MX320F128L', description: '128KB Flash, 16KB RAM, 100-pin' },
+        { label: '32MX330F064H', description: '64KB Flash, 16KB RAM, 64-pin' },
+        { label: '32MX330F064L', description: '64KB Flash, 16KB RAM, 100-pin' },
+        { label: '32MX340F128H', description: '128KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX340F128L', description: '128KB Flash, 32KB RAM, 100-pin (USB)' },
+        { label: '32MX340F256H', description: '256KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX340F512H', description: '512KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX350F128H', description: '128KB Flash, 32KB RAM, 64-pin' },
+        { label: '32MX350F128L', description: '128KB Flash, 32KB RAM, 100-pin' },
+        { label: '32MX350F256H', description: '256KB Flash, 64KB RAM, 64-pin' },
+        { label: '32MX350F256L', description: '256KB Flash, 64KB RAM, 100-pin' },
+        { label: '32MX360F256L', description: '256KB Flash, 32KB RAM, 100-pin (USB)' },
+        { label: '32MX360F512L', description: '512KB Flash, 32KB RAM, 100-pin (USB)' },
+        { label: '32MX370F512H', description: '512KB Flash, 128KB RAM, 64-pin' },
+        { label: '32MX370F512L', description: '512KB Flash, 128KB RAM, 100-pin' },
+        { label: '32MX420F032H', description: '32KB Flash, 8KB RAM, 64-pin (USB)' },
+        { label: '32MX430F064H', description: '64KB Flash, 16KB RAM, 64-pin (USB)' },
+        { label: '32MX430F064L', description: '64KB Flash, 16KB RAM, 100-pin (USB)' },
+        { label: '32MX440F128H', description: '128KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX440F128L', description: '128KB Flash, 32KB RAM, 100-pin (USB)' },
+        { label: '32MX440F256H', description: '256KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX440F512H', description: '512KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX450F128H', description: '128KB Flash, 32KB RAM, 64-pin (USB)' },
+        { label: '32MX450F128L', description: '128KB Flash, 32KB RAM, 100-pin (USB)' },
+        { label: '32MX450F256H', description: '256KB Flash, 64KB RAM, 64-pin (USB)' },
+        { label: '32MX450F256L', description: '256KB Flash, 64KB RAM, 100-pin (USB)' },
+        { label: '32MX460F256L', description: '256KB Flash, 32KB RAM, 100-pin (USB)' },
+        { label: '32MX460F512L', description: '512KB Flash, 32KB RAM, 100-pin (USB)' },
+        { label: '32MX470F512H', description: '512KB Flash, 128KB RAM, 64-pin (USB)' },
+        { label: '32MX470F512L', description: '512KB Flash, 128KB RAM, 100-pin (USB)' },
+        // PIC32MX5/6/7 Series (USB+Ethernet, CAN, 64-100 pin)
+        { label: '32MX530F128H', description: '128KB Flash, 16KB RAM, 64-pin (USB+CAN)' },
+        { label: '32MX530F128L', description: '128KB Flash, 16KB RAM, 100-pin (USB+Ethernet+CAN)' },
+        { label: '32MX534F064H', description: '64KB Flash, 16KB RAM, 64-pin (USB+CAN)' },
+        { label: '32MX534F064L', description: '64KB Flash, 16KB RAM, 100-pin (USB+CAN)' },
+        { label: '32MX550F256H', description: '256KB Flash, 32KB RAM, 64-pin (USB+CAN)' },
+        { label: '32MX550F256L', description: '256KB Flash, 32KB RAM, 100-pin (USB+CAN)' },
+        { label: '32MX564F064H', description: '64KB Flash, 16KB RAM, 64-pin (USB+Ethernet+CAN)' },
+        { label: '32MX564F064L', description: '64KB Flash, 16KB RAM, 100-pin (USB+Ethernet+CAN)' },
+        { label: '32MX564F128H', description: '128KB Flash, 32KB RAM, 64-pin (USB+Ethernet+CAN)' },
+        { label: '32MX564F128L', description: '128KB Flash, 32KB RAM, 100-pin (USB+Ethernet+CAN)' },
+        { label: '32MX570F512H', description: '512KB Flash, 64KB RAM, 64-pin (USB+CAN)' },
+        { label: '32MX570F512L', description: '512KB Flash, 64KB RAM, 100-pin (USB+CAN)' },
+        { label: '32MX575F256H', description: '256KB Flash, 64KB RAM, 64-pin (USB+CAN)' },
+        { label: '32MX575F256L', description: '256KB Flash, 64KB RAM, 100-pin (USB+CAN)' },
+        { label: '32MX575F512H', description: '512KB Flash, 128KB RAM, 64-pin (USB+CAN)' },
+        { label: '32MX575F512L', description: '512KB Flash, 128KB RAM, 100-pin (USB+CAN)' },
+        { label: '32MX664F064H', description: '64KB Flash, 16KB RAM, 64-pin (USB+Ethernet)' },
+        { label: '32MX664F064L', description: '64KB Flash, 16KB RAM, 100-pin (USB+Ethernet)' },
+        { label: '32MX664F128H', description: '128KB Flash, 32KB RAM, 64-pin (USB+Ethernet)' },
+        { label: '32MX664F128L', description: '128KB Flash, 32KB RAM, 100-pin (USB+Ethernet)' },
+        { label: '32MX675F256H', description: '256KB Flash, 64KB RAM, 64-pin (USB+Ethernet)' },
+        { label: '32MX675F256L', description: '256KB Flash, 64KB RAM, 100-pin (USB+Ethernet)' },
+        { label: '32MX675F512H', description: '512KB Flash, 128KB RAM, 64-pin (USB+Ethernet)' },
+        { label: '32MX675F512L', description: '512KB Flash, 128KB RAM, 100-pin (USB+Ethernet)' },
+        { label: '32MX695F512H', description: '512KB Flash, 128KB RAM, 64-pin (USB+Ethernet)' },
+        { label: '32MX695F512L', description: '512KB Flash, 128KB RAM, 100-pin (USB+Ethernet)' },
+        { label: '32MX764F128H', description: '128KB Flash, 32KB RAM, 64-pin (USB+Ethernet+CAN)' },
+        { label: '32MX764F128L', description: '128KB Flash, 32KB RAM, 100-pin (USB+Ethernet+CAN)' },
+        { label: '32MX775F256H', description: '256KB Flash, 64KB RAM, 64-pin (USB+Ethernet+CAN)' },
+        { label: '32MX775F256L', description: '256KB Flash, 64KB RAM, 100-pin (USB+Ethernet+CAN)' },
+        { label: '32MX775F512H', description: '512KB Flash, 128KB RAM, 64-pin (USB+Ethernet+CAN)' },
+        { label: '32MX775F512L', description: '512KB Flash, 128KB RAM, 100-pin (USB+Ethernet+CAN)' },
+        { label: '32MX795F512H', description: '512KB Flash, 128KB RAM, 64-pin (USB+Ethernet+CAN)' },
+        { label: '32MX795F512L', description: '512KB Flash, 128KB RAM, 100-pin (USB+Ethernet+CAN)' },
+    ]
 };
 
 let statusBarItem: vscode.StatusBarItem;
@@ -234,6 +375,20 @@ async function downloadDFP(deviceName: string): Promise<string | null> {
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('PIC32-IDE-VSCode extension activated!');
+
+    // Load device definitions from JSON files
+    try {
+        SUPPORTED_DEVICES = loadDeviceDefinitions(context.extensionPath);
+        const totalDevices = Object.values(SUPPORTED_DEVICES).reduce((sum, arr) => sum + arr.length, 0);
+        console.log(`Loaded ${totalDevices} device definitions from JSON files`);
+    } catch (error) {
+        console.error('Failed to load device definitions:', error);
+        vscode.window.showErrorMessage(
+            'Failed to load device definitions. Extension cannot function. Please reinstall.',
+            { modal: true }
+        );
+        return; // Cannot continue without devices
+    }
 
     // Initialize bundled tools and bootloader updater
     bundledTools = new BundledToolsManager(context.extensionPath);
@@ -579,7 +734,22 @@ async function createXC32Project(context: vscode.ExtensionContext) {
         fs.mkdirSync(objsDir, { recursive: true });
         fs.mkdirSync(binsDir, { recursive: true });
 
-        // Generate main.c template
+        // Get device family and configuration bits from JSON
+        const familyName = detectDeviceFamily(deviceName);
+        if (!familyName) {
+            vscode.window.showErrorMessage(`Unknown device family for ${deviceName}`);
+            return;
+        }
+        
+        // Load configuration bits from JSON (device-specific variant)
+        const configBitsArray = getConfigBits(familyName, deviceName);
+        const configBits = configBitsArray.join('\n');
+        
+        // Determine system clock frequency based on family
+        const isMZ = deviceName.startsWith('32MZ');
+        const sysClockFreq = isMZ ? '200000000UL' : '80000000UL';
+        
+        // Generate main.c template with device-specific configuration
         const mainTemplate = `/**
  * ${projectName}
  * XC32 Project
@@ -590,14 +760,9 @@ async function createXC32Project(context: vscode.ExtensionContext) {
 #include <xc.h>
 #include <sys/attribs.h>
 
-// Configuration bits (adjust for ${deviceName} - refer to datasheet)
-#pragma config FNOSC = SPLL        // Oscillator Selection
-#pragma config POSCMOD = EC        // Primary Oscillator
-#pragma config FPLLIDIV = DIV_3    // PLL Input Divider
-#pragma config FPLLMULT = MUL_50   // PLL Multiplier
-#pragma config FPLLODIV = DIV_2    // PLL Output Divider
+${configBits}
 
-#define SYS_CLK_FREQ 200000000UL   // System clock frequency (Hz)
+#define SYS_CLK_FREQ ${sysClockFreq}   // System clock frequency (Hz)
 
 void delay_ms(uint32_t ms) {
     uint32_t ticks = (SYS_CLK_FREQ / 2000) * ms;

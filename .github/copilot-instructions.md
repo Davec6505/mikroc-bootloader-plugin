@@ -145,12 +145,18 @@ interface ProjectMetadata {
 ## Adding New Features
 
 ### Supporting PIC32MX Devices
-See `SUPPORTED_DEVICES` in [extension.ts](../src/extension.ts). Add to `PIC32MX` array:
-```typescript
-'PIC32MX': [
-    { label: '32MX470F512H', description: '512KB Flash, 128KB RAM' },
-]
-```
+See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json](../devices/pic32mz-ef.json) for device lists. To add devices:
+
+1. Edit the appropriate JSON file in `devices/` directory
+2. Follow the schema: `{ label: "32MXXXXX", description: "Memory, features" }`
+3. Devices are loaded at runtime via [deviceLoader.ts](../src/deviceLoader.ts)
+
+**Adding New Families (PIC8, PIC16, dsPIC):**
+1. Create `devices/pic8.json` (or pic16.json, dspic33.json, etc.)
+2. Use same JSON schema: `{ family, description, configBits: [...], devices: [...] }`
+3. **configBits** array contains #pragma config lines for XC32/XC16/XC8 projects
+4. Device loader automatically picks up all .json files
+5. No code changes needed in extension.ts
 
 ### Not yet Supporting XC8/XC16 Compilers
 1. Update `detectCompilerFamily()` in [projectImporter.ts](../src/projectImporter.ts)
