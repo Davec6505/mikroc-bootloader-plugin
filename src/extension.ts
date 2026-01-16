@@ -691,6 +691,24 @@ async function createXC32Project(context: vscode.ExtensionContext) {
         finalDfpPath = await downloadDFP(deviceName);
     }
 
+    // Ask about MikroC bootloader
+    const useBootloader = await vscode.window.showQuickPick(
+        [
+            { label: 'No', description: 'Use standard CRT0 startup (recommended for most projects)', value: false },
+            { label: 'Yes', description: 'Use custom startup.S for MikroC bootloader', value: true }
+        ],
+        {
+            placeHolder: 'Use MikroC bootloader?',
+            title: 'Bootloader Configuration'
+        }
+    );
+
+    if (!useBootloader) {
+        return;
+    }
+
+    const useMikroBootloader = useBootloader.value;
+
     // Select output folder
     const outputFolders = await vscode.window.showOpenDialog({
         canSelectFiles: false,
@@ -787,6 +805,17 @@ int main(void) {
 
         fs.writeFileSync(path.join(srcsDir, 'main.c'), mainTemplate, 'utf-8');
 
+        // Generate startup.S if using MikroC bootloader
+        if (useMikroBootloader) {
+            const startupDir = path.join(srcsDir, 'startup');
+            fs.mkdirSync(startupDir, { recursive: true });
+            
+            // Copy startup.S template
+            const templatePath = path.join(__dirname, 'templates', 'xc32', 'startup.S');
+            const startupContent = fs.readFileSync(templatePath, 'utf-8');
+            fs.writeFileSync(path.join(startupDir, 'startup.S'), startupContent, 'utf-8');
+        }
+
         // Generate basic Makefile (Windows)
         // TODO: Adjust for Linux when porting (.exe extensions, paths, etc.)
         const detectedXC32 = finalXC32Path || 'C:/Program Files/Microchip/xc32/vX.XX';
@@ -820,12 +849,12 @@ OBJ_DIR = objs
 BIN_DIR = bins
 
 # Source files
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
+SRCS = $(wildcard $(SRC_DIR)/*.c)${useMikroBootloader ? ' $(wildcard $(SRC_DIR)/startup/*.S)' : ''}
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))${useMikroBootloader ? '\nOBJS += $(patsubst $(SRC_DIR)/startup/%.S,$(OBJ_DIR)/%.o,$(wildcard $(SRC_DIR)/startup/*.S))' : ''}
 
 # Compiler flags
 CFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ' -mdfp="$(DFP_PATH)"' : ''} -O2 -Wall
-LDFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ' -mdfp="$(DFP_PATH)"' : ''} -Wl,--defsym=_min_heap_size=0x1000
+LDFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ' -mdfp="$(DFP_PATH)"' : ''}${useMikroBootloader ? ' -nostartfiles' : ''} -Wl,--defsym=_min_heap_size=0x1000
 
 # Output files
 ELF = $(BIN_DIR)/$(PROJECT_NAME).elf
@@ -848,7 +877,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 \t@mkdir -p $(OBJ_DIR)
 \t@echo Compiling $<...
 \t$(CC) $(CFLAGS) -c $< -o $@
-
+${useMikroBootloader ? '\n$(OBJ_DIR)/%.o: $(SRC_DIR)/startup/%.S\n\t@mkdir -p $(OBJ_DIR)\n\t@echo Assembling $<...\n\t$(CC) $(CFLAGS) -c $< -o $@\n' : ''}
 clean:
 \t@echo Cleaning...
 \t@rm -rf $(OBJ_DIR)/* $(BIN_DIR)/*
@@ -1428,7 +1457,7 @@ async function flashDevice() {
     // Flash
     const terminal = vscode.window.createTerminal('PIC32 Flash');
     terminal.show();
-    terminal.sendText(`"${bootloaderPath}" "${hexFile.fsPath}"`);
+    terminal.sendText(`& "${bootloaderPath}" "${hexFile.fsPath}"`);
 }
 
 export function deactivate() {}
