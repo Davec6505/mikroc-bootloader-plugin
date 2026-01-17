@@ -180,7 +180,9 @@ let SUPPORTED_DEVICES: Record<string, DeviceDefinition[]> = {
     ]
 };
 
-let statusBarItem: vscode.StatusBarItem;
+let flashStatusBarItem: vscode.StatusBarItem;
+let buildStatusBarItem: vscode.StatusBarItem;
+let rebuildStatusBarItem: vscode.StatusBarItem;
 let bootloaderUpdater: BootloaderUpdater;
 let bundledTools: BundledToolsManager;
 
@@ -391,21 +393,19 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         const { promisify } = require('util');
         const execAsync = promisify(exec);
         
-        // Use PowerShell with proper escaping - pass path as argument to avoid quoting issues
+        // Use PowerShell with proper escaping - encode script as Base64 to avoid quoting issues
         const checkScript = `
-            $targetPath = $args[0]
-            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-            if ($null -eq $userPath) {
-                Write-Output 'NOT_FOUND'
-            } elseif ($userPath -like "*$targetPath*") {
-                Write-Output 'EXISTS'
-            } else {
-                Write-Output 'NOT_FOUND'
-            }
+            $targetPath = '${bundledBinPath.replace(/\\/g, '\\\\')}';
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User');
+            if ($null -eq $userPath) { Write-Output 'NOT_FOUND' }
+            elseif ($userPath -like "*$targetPath*") { Write-Output 'EXISTS' }
+            else { Write-Output 'NOT_FOUND' }
         `;
         
+        const scriptBase64 = Buffer.from(checkScript, 'utf16le').toString('base64');
+        
         const { stdout, stderr } = await execAsync(
-            `powershell -NoProfile -ExecutionPolicy Bypass -Command "& { ${checkScript} } '${bundledBinPath}'"`,
+            `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand "${scriptBase64}"`,
             { timeout: 5000 }
         );
         
@@ -433,27 +433,16 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
             return;
         }
 
-        // Add to user PATH using PowerShell with proper handling
+        // Add to user PATH using PowerShell with Base64 encoding to avoid quoting issues
         const addScript = `
-            $targetPath = $args[0]
-            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-            
-            # Initialize if null
-            if ($null -eq $userPath) {
-                $userPath = ''
-            }
-            
-            # Check if path already exists (case-insensitive)
+            $targetPath = '${bundledBinPath.replace(/\\/g, '\\\\')}';
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User');
+            if ($null -eq $userPath) { $userPath = '' }
             if ($userPath -notlike "*$targetPath*") {
-                # Add to beginning of PATH
-                if ($userPath -eq '') {
-                    $newPath = $targetPath
-                } else {
-                    $newPath = "$targetPath;$userPath"
-                }
-                
+                if ($userPath -eq '') { $newPath = $targetPath }
+                else { $newPath = "$targetPath;$userPath" }
                 try {
-                    [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+                    [Environment]::SetEnvironmentVariable('Path', $newPath, 'User');
                     Write-Output 'SUCCESS'
                 } catch {
                     Write-Output "ERROR: $($_.Exception.Message)"
@@ -464,8 +453,10 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         `;
 
         console.log('[PATH] Attempting to add to PATH...');
+        const addScriptBase64 = Buffer.from(addScript, 'utf16le').toString('base64');
+        
         const { stdout: addResult, stderr: addStderr } = await execAsync(
-            `powershell -NoProfile -ExecutionPolicy Bypass -Command "& { ${addScript} } '${bundledBinPath}'"`,
+            `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand "${addScriptBase64}"`,
             { timeout: 10000 }
         );
         
@@ -553,6 +544,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('pic32-ide.importMikroC', () => importMikroCProject(context)),
         vscode.commands.registerCommand('pic32-ide.flash', () => flashDevice()),
         vscode.commands.registerCommand('pic32-ide.build', () => buildProject()),
+        vscode.commands.registerCommand('pic32-ide.rebuild', () => rebuildProject()),
         vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates()),
         vscode.commands.registerCommand('pic32-ide.addToPath', () => addBundledToolsToPath(context))
     );
@@ -560,14 +552,26 @@ export function activate(context: vscode.ExtensionContext) {
     // Note: createXC32Project and createMikroCProject are internal functions
     // accessed through import commands via quick pick menu
 
-    // Status bar button for quick flash
-    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    statusBarItem.command = 'pic32-ide.flash';
-    statusBarItem.text = '$(zap) Flash PIC32';
-    statusBarItem.tooltip = 'Flash .hex file to PIC32 device';
-    statusBarItem.show();
+    // Status bar buttons
+    buildStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 102);
+    buildStatusBarItem.command = 'pic32-ide.build';
+    buildStatusBarItem.text = '$(tools) Build';
+    buildStatusBarItem.tooltip = 'Build project (make)';
+    buildStatusBarItem.show();
 
-    context.subscriptions.push(statusBarItem);
+    rebuildStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 101);
+    rebuildStatusBarItem.command = 'pic32-ide.rebuild';
+    rebuildStatusBarItem.text = '$(refresh) Rebuild';
+    rebuildStatusBarItem.tooltip = 'Rebuild project (make clean && make)';
+    rebuildStatusBarItem.show();
+
+    flashStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    flashStatusBarItem.command = 'pic32-ide.flash';
+    flashStatusBarItem.text = '$(zap) Flash';
+    flashStatusBarItem.tooltip = 'Flash .hex file to PIC32 device';
+    flashStatusBarItem.show();
+
+    context.subscriptions.push(buildStatusBarItem, rebuildStatusBarItem, flashStatusBarItem);
 }
 
 /**
@@ -1559,7 +1563,7 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
 }
 
 /**
- * Build current project
+ * Build current project (uses VS Code tasks for bundled make)
  */
 async function buildProject() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -1568,9 +1572,50 @@ async function buildProject() {
         return;
     }
 
-    const terminal = vscode.window.createTerminal('PIC32 Build');
+    // Use VS Code tasks system (automatically uses bundled tools from tasks.json)
+    try {
+        await vscode.commands.executeCommand('workbench.action.tasks.runTask', 'Build XC32 Project');
+    } catch (error) {
+        // Fallback: try MikroC build task
+        try {
+            await vscode.commands.executeCommand('workbench.action.tasks.runTask', 'Build MikroC Project');
+        } catch (error2) {
+            // Last resort: open terminal and run make
+            const terminal = vscode.window.createTerminal('PIC32 Build');
+            terminal.show();
+            terminal.sendText('make');
+        }
+    }
+}
+
+/**
+ * Rebuild current project (clean + build)
+ */
+async function rebuildProject() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+        vscode.window.showErrorMessage('No workspace folder open');
+        return;
+    }
+
+    // Check if Makefile has a 'rebuild' target
+    const makefilePath = path.join(workspaceFolder.uri.fsPath, 'Makefile');
+    let hasRebuildTarget = false;
+    
+    if (fs.existsSync(makefilePath)) {
+        const makefileContent = fs.readFileSync(makefilePath, 'utf-8');
+        hasRebuildTarget = /^rebuild:/m.test(makefileContent);
+    }
+
+    const terminal = vscode.window.createTerminal('PIC32 Rebuild');
     terminal.show();
-    terminal.sendText('make');
+    
+    if (hasRebuildTarget) {
+        terminal.sendText('make rebuild');
+    } else {
+        // Fallback: run clean then build
+        terminal.sendText('make clean && make');
+    }
 }
 
 /**

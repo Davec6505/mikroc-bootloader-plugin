@@ -55,6 +55,9 @@ build:
 all: clean build
 	@echo "######  FULL REBUILD COMPLETE  ########"
 
+# Alias for 'all' (used by VS Code rebuild button)
+rebuild: all
+
 build_dir:
 	@echo "###### BUILDING DIRECTORIES FOR OUTPUT BINARIES #######"
 	$(BUILD_DIR) -C srcs
@@ -83,6 +86,7 @@ help:
 	@echo "Available targets:"
 	@echo "  make build       - Incremental build (fast, only changed files)"
 	@echo "  make all         - Clean + full rebuild"
+	@echo "  make rebuild     - Alias for 'all' (clean + rebuild)"
 	@echo "  make build_dir   - Create output directories (bins/, objs/, incs/)"
 	@echo "                     and move .h files into incs/ folder"
 	@echo "  make clean       - Remove build artifacts (objs/, bins/)"
@@ -114,4 +118,4 @@ help:
 	@echo "      Use MPLABX IDE for MCC peripheral configuration, then re-import"
 	@echo "=========================================="
 
-.PHONY: build all build_dir clean debug platform help
+.PHONY: build all rebuild build_dir clean debug platform help
