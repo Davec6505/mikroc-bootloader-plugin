@@ -150,6 +150,45 @@ This extension is designed for **AI-assisted embedded development**:
 4. Type "Extensions: Install from VSIX"
 5. Select the downloaded file
 
+### First-Time Setup: Adding Build Tools to PATH (Optional)
+
+The extension includes bundled GNU Make and utilities - **no external installation required!** VS Code tasks (Ctrl+Shift+B) work immediately.
+
+However, if you want to use `make` directly from any terminal (Command Prompt, PowerShell, etc.), you have three options:
+
+#### Option 1: Automatic Setup (Recommended)
+1. When extension activates, you'll see a prompt: _"To use 'make' from any terminal, the bundled tools need to be added to your PATH"_
+2. Click **"Add to PATH"**
+3. **Restart VS Code completely** (close all windows)
+4. Open any terminal - `make` command now works everywhere!
+
+#### Option 2: Manual Command
+1. Press `Ctrl+Shift+P`
+2. Type: **"XC Project Importer: Add Bundled Tools to PATH"**
+3. Click **"Add to PATH"**
+4. **Restart VS Code completely**
+
+#### Option 3: Manual PATH Configuration
+If automatic setup fails, add manually:
+
+**Windows:**
+1. Press `Win+R`, type: `sysdm.cpl`
+2. Click **Advanced** → **Environment Variables**
+3. Under "User variables", select **Path** → **Edit**
+4. Click **New**, add: `C:\Users\<YourUsername>\.vscode\extensions\davidcoetzee.xc-project-importer-X.X.X\bin\win32`
+5. Click **OK**, restart VS Code
+
+**Alternative: Copy Path**
+- Run the command from Option 2
+- If it fails, click **"Copy Path"**
+- Paste into PATH manually using steps above
+
+**Note:** 
+- ✅ VS Code tasks work immediately - no PATH setup required
+- ✅ PATH setup only needed for using `make` in external terminals
+- ✅ No admin rights required - adds to User PATH only
+- ✅ Persists across VS Code updates
+
 ## Quick Start
 
 ### Import MPLABX Project
@@ -351,6 +390,86 @@ void configure_motor_pwm(uint32_t frequency_hz, uint8_t duty_percent) {
 | **Programming** | ✅ All programmers | ⚠️ PIC32 bootloader or MPLABX |
 
 **Recommendation**: Use MPLABX for initial setup and debugging, VS Code for development.
+
+## Troubleshooting
+
+### "make: command not found"
+
+**Problem**: Terminal can't find `make` command.
+
+**Solutions:**
+
+1. **Use VS Code Tasks (Immediate Solution)**
+   - Press `Ctrl+Shift+B` to build
+   - Works without PATH setup!
+
+2. **Add Tools to PATH (For Terminal Usage)**
+   - Press `Ctrl+Shift+P`
+   - Type: "XC Project Importer: Add Bundled Tools to PATH"
+   - Click "Add to PATH"
+   - **Restart VS Code completely**
+   - Try `make` again in new terminal
+
+3. **Verify PATH Addition**
+   ```powershell
+   # PowerShell - Check if tools are in PATH
+   $env:PATH -split ';' | Select-String "xc-project-importer"
+   ```
+
+4. **Manual PATH Check**
+   - Press `Win+R`, type: `sysdm.cpl`
+   - Advanced → Environment Variables
+   - Look for extension path in User PATH
+   - Should contain: `...\extensions\davidcoetzee.xc-project-importer-X.X.X\bin\win32`
+
+### Build Errors After Import
+
+**DFP Not Found** (XC32 v4.0+)
+```
+error: cannot find Device Family Pack (DFP)
+```
+**Solution:**
+- Install DFP from: https://www.microchip.com/packs
+- Or browse to existing DFP location when prompted
+- Update `DFP_PATH` in Makefile if needed
+
+**Compiler Not Found**
+```
+xc32-gcc.exe: command not found
+```
+**Solution:**
+- Verify XC32 installation path in Makefile
+- Update `XC32_PATH` variable to match your installation
+- Check that `bin/xc32-gcc.exe` exists at that path
+
+### MikroC Build Issues
+
+**Long Build Times (160+ seconds)**
+- Old Makefile format issue
+- Re-import project to get updated Makefile with proper quoting
+
+**Compiler Always Returns Success**
+- MikroC compiler always exits with code 0
+- Check for .hex file existence to verify build success
+
+### PATH Setup Failed
+
+**Error: "Failed to automatically add tools to PATH"**
+
+**Solutions:**
+
+1. **Use Manual Instructions**
+   - Extension will show detailed steps
+   - Follow the sysdm.cpl instructions above
+
+2. **Copy Path to Clipboard**
+   - When error appears, click "Copy Path"
+   - Add manually to Environment Variables
+
+3. **Alternative: Use VS Code Tasks Only**
+   - No PATH needed!
+   - Always use `Ctrl+Shift+B` to build
+   - Or run from Command Palette: "Tasks: Run Build Task"
 
 ## Roadmap
 

@@ -12,6 +12,9 @@ export interface MakefileOptions {
     outputPath: string;
     makeToolPath?: string;  // Custom make.exe path
     optimizationLevel?: string;  // -O0, -O1, -O2, -O3, -Os
+    makePath?: string;  // Path to bundled make.exe
+    binPath?: string;   // Path to bundled bin directory
+    shPath?: string;    // Path to bundled sh.exe
 }
 
 export class MakefileGenerator {
@@ -56,6 +59,15 @@ export class MakefileGenerator {
         }
 
         let content = fs.readFileSync(templatePath, 'utf-8');
+
+        // Replace bundled tools paths (used by both Makefiles)
+        const makePath = options.makePath || 'make';
+        const binPath = (options.binPath || '').replace(/\\/g, '/');
+        const shPath = (options.shPath || '').replace(/\\/g, '/');
+        
+        content = content.replace(/\{\{MAKE_COMMAND\}\}/g, makePath);
+        content = content.replace(/\{\{MAKE_BIN_DIR\}\}/g, binPath);
+        content = content.replace(/\{\{SH_PATH\}\}/g, shPath);
 
         // Replace template variables
         content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectInfo.projectName);

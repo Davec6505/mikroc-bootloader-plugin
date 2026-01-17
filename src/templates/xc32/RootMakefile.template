@@ -1,5 +1,10 @@
 # Root Makefile - XC32 Project for {{DEVICE_NAME}}
 # Simple Makefile for PIC32MZ project
+
+# Force use of bundled sh.exe (no dependency on MSYS/MinGW in system PATH)
+SHELL := {{SH_PATH}}
+export PATH := {{MAKE_BIN_DIR}}:$(PATH)
+
 # Name of the project binary
 MODULE     := {{PROJECT_NAME}}
 
@@ -26,9 +31,10 @@ STACK_SIZE := {{STACK_SIZE}}   # Stack for function calls and local variables
 COMPILER_LOCATION := {{XC32_COMPILER_BIN}}
 DFP := {{DFP_PATH}}
 
-# Simple Unix-style build system
-BUILD=make
-BUILD_DIR=make build_dir
+# Use bundled make.exe for recursive calls (no dependency on system PATH)
+MAKE_EXE := {{MAKE_COMMAND}}
+BUILD=$(MAKE_EXE)
+BUILD_DIR=$(MAKE_EXE) build_dir
 
 # Build the make command with optional path overrides
 MAKE_ARGS := DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE) OPT_LEVEL=$(OPT_LEVEL)
@@ -42,7 +48,7 @@ endif
 # Default target: incremental build (only rebuilds changed files)
 build:
 	@echo "######  INCREMENTAL BUILD  ########"
-	cd srcs && $(BUILD) $(MAKE_ARGS)
+	$(BUILD) -C srcs $(MAKE_ARGS)
 	@echo "######  BUILD COMPLETE (bins/$(MODULE).hex)  ########"
 
 # Clean + full rebuild
@@ -51,23 +57,23 @@ all: clean build
 
 build_dir:
 	@echo "###### BUILDING DIRECTORIES FOR OUTPUT BINARIES #######"
-	cd srcs && $(BUILD_DIR)
+	$(BUILD_DIR) -C srcs
 	@echo "############ BUILDING DIRECTORIES COMPLETED ###########"
 
 debug:
 	@echo "####### DEBUGGING OUTPUTS #######"
-	cd srcs && $(BUILD) debug COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE)
+	$(BUILD) -C srcs debug COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE)
 
 platform:
 	@echo "####### PLATFORM INFO #######"
-	cd srcs && $(BUILD) platform COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE)
+	$(BUILD) -C srcs platform COMPILER_LOCATION="$(COMPILER_LOCATION)" DFP_LOCATION="$(DFP_LOCATION)" DFP="$(DFP)" DEVICE=$(DEVICE) MODULE=$(MODULE)
 
 clean:
 	@echo "####### CLEANING OUTPUTS #######"
 ifeq ($(OS),Windows_NT)
-	@powershell -NoProfile -Command "cd srcs; make clean DRY_RUN=$(DRY_RUN)"
+	@powershell -NoProfile -Command "make -C srcs clean DRY_RUN=$(DRY_RUN)"
 else
-	cd srcs && $(MAKE) clean DRY_RUN=$(DRY_RUN)
+	$(MAKE) -C srcs clean DRY_RUN=$(DRY_RUN)
 endif
 
 help:

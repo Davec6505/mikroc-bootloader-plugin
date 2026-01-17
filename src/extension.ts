@@ -373,6 +373,148 @@ async function downloadDFP(deviceName: string): Promise<string | null> {
     return null;
 }
 
+/**
+ * Add bundled tools to user's PATH environment variable (Windows only)
+ * This allows users to just type "make" from any terminal
+ */
+async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<void> {
+    // Only for Windows
+    if (process.platform !== 'win32') {
+        return;
+    }
+
+    const bundledBinPath = path.join(context.extensionPath, 'bin', 'win32');
+    console.log(`[PATH] Checking if bundled tools need to be added to PATH: ${bundledBinPath}`);
+    
+    try {
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        
+        // Use PowerShell with proper escaping - pass path as argument to avoid quoting issues
+        const checkScript = `
+            $targetPath = $args[0]
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+            if ($null -eq $userPath) {
+                Write-Output 'NOT_FOUND'
+            } elseif ($userPath -like "*$targetPath*") {
+                Write-Output 'EXISTS'
+            } else {
+                Write-Output 'NOT_FOUND'
+            }
+        `;
+        
+        const { stdout, stderr } = await execAsync(
+            `powershell -NoProfile -ExecutionPolicy Bypass -Command "& { ${checkScript} } '${bundledBinPath}'"`,
+            { timeout: 5000 }
+        );
+        
+        if (stderr) {
+            console.error('[PATH] PowerShell stderr:', stderr);
+        }
+        
+        console.log(`[PATH] Check result: ${stdout.trim()}`);
+        
+        if (stdout.trim() === 'EXISTS') {
+            console.log('[PATH] Bundled tools already in user PATH');
+            return;
+        }
+
+        // Ask user if they want to add to PATH
+        const choice = await vscode.window.showInformationMessage(
+            'To use "make" from any terminal, the bundled tools need to be added to your PATH.\n\nThis is a one-time setup (no admin rights needed).\n\nPath to add:\n' + bundledBinPath,
+            { modal: true },
+            'Add to PATH',
+            'Skip'
+        );
+
+        if (choice !== 'Add to PATH') {
+            console.log('[PATH] User chose to skip PATH addition');
+            return;
+        }
+
+        // Add to user PATH using PowerShell with proper handling
+        const addScript = `
+            $targetPath = $args[0]
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+            
+            # Initialize if null
+            if ($null -eq $userPath) {
+                $userPath = ''
+            }
+            
+            # Check if path already exists (case-insensitive)
+            if ($userPath -notlike "*$targetPath*") {
+                # Add to beginning of PATH
+                if ($userPath -eq '') {
+                    $newPath = $targetPath
+                } else {
+                    $newPath = "$targetPath;$userPath"
+                }
+                
+                try {
+                    [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+                    Write-Output 'SUCCESS'
+                } catch {
+                    Write-Output "ERROR: $($_.Exception.Message)"
+                }
+            } else {
+                Write-Output 'ALREADY_EXISTS'
+            }
+        `;
+
+        console.log('[PATH] Attempting to add to PATH...');
+        const { stdout: addResult, stderr: addStderr } = await execAsync(
+            `powershell -NoProfile -ExecutionPolicy Bypass -Command "& { ${addScript} } '${bundledBinPath}'"`,
+            { timeout: 10000 }
+        );
+        
+        if (addStderr) {
+            console.error('[PATH] PowerShell add stderr:', addStderr);
+        }
+        
+        console.log('[PATH] Add result:', addResult.trim());
+        
+        const result = addResult.trim();
+        if (result === 'SUCCESS' || result === 'ALREADY_EXISTS') {
+            await vscode.window.showInformationMessage(
+                '✓ Bundled tools added to PATH!\n\nIMPORTANT: Restart VS Code to apply changes.\n\nAfter restart, you can use "make" in any terminal.',
+                { modal: true }
+            );
+        } else if (result.startsWith('ERROR:')) {
+            throw new Error(result);
+        } else {
+            throw new Error('Unknown result: ' + result);
+        }
+    } catch (error) {
+        console.error('[PATH] Failed to add bundled tools to PATH:', error);
+        
+        // Provide manual instructions
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const manualChoice = await vscode.window.showErrorMessage(
+            `Failed to automatically add tools to PATH:\n${errorMsg}\n\nYou can:\n1. Add manually to User PATH\n2. Use VS Code tasks (Ctrl+Shift+B)`,
+            { modal: true },
+            'Show Manual Instructions',
+            'Copy Path'
+        );
+        
+        if (manualChoice === 'Show Manual Instructions') {
+            vscode.window.showInformationMessage(
+                `Manual PATH Setup:\n\n` +
+                `1. Press Win+R, type: sysdm.cpl\n` +
+                `2. Advanced → Environment Variables\n` +
+                `3. Under "User variables", select Path → Edit\n` +
+                `4. Click New, add: ${bundledBinPath}\n` +
+                `5. Click OK, restart VS Code`,
+                { modal: true }
+            );
+        } else if (manualChoice === 'Copy Path') {
+            await vscode.env.clipboard.writeText(bundledBinPath);
+            vscode.window.showInformationMessage('Path copied to clipboard!');
+        }
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
     console.log('PIC32-IDE-VSCode extension activated!');
 
@@ -400,13 +542,19 @@ export function activate(context: vscode.ExtensionContext) {
         console.error('Bootloader update check failed:', err);
     });
 
+    // Add bundled tools to PATH on first run (one-time setup)
+    addBundledToolsToPath(context).catch(err => {
+        console.error('Failed to add bundled tools to PATH:', err);
+    });
+
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('pic32-ide.importMPLABX', () => importMPLABXProject(context)),
         vscode.commands.registerCommand('pic32-ide.importMikroC', () => importMikroCProject(context)),
         vscode.commands.registerCommand('pic32-ide.flash', () => flashDevice()),
         vscode.commands.registerCommand('pic32-ide.build', () => buildProject()),
-        vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates())
+        vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates()),
+        vscode.commands.registerCommand('pic32-ide.addToPath', () => addBundledToolsToPath(context))
     );
     
     // Note: createXC32Project and createMikroCProject are internal functions
@@ -530,10 +678,17 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
         cancellable: false
     }, async () => {
         const generator = new MakefileGenerator();
+        const makePath = bundledTools.getMakePath() || 'make';
+        const binPath = bundledTools.getBinPath();
+        const shPath = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
+        
         await generator.generate({
             projectInfo,
             outputPath,
-            optimizationLevel: '-O2'
+            optimizationLevel: '-O2',
+            makePath,
+            binPath,
+            shPath
         });
     });
 
@@ -563,21 +718,33 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
     }
 
     const makePath = bundledTools.getMakePath();
-    const makeCommand = makePath?.includes(' ') ? `"${makePath}"` : makePath;
+    const binPath = bundledTools.getBinPath();
+    
+    // VS Code shell tasks handle path escaping automatically - don't add quotes
+    const makeCommand = makePath || 'make';
+    // Always provide bin path for DLL dependencies (normalized to forward slashes)
+    const makeBinDir = binPath.replace(/\\/g, '/');
+    // Path to bundled sh.exe for SHELL environment variable
+    const shPath = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
 
     const tasksTemplatePath = path.join(__dirname, 'templates', 'xc32', 'tasks.json.template');
     if (fs.existsSync(tasksTemplatePath)) {
         let tasksContent = fs.readFileSync(tasksTemplatePath, 'utf-8');
-        tasksContent = tasksContent.replace(/\{\{MAKE_COMMAND\}\}/g, makeCommand || 'make');
+        tasksContent = tasksContent.replace(/\{\{MAKE_COMMAND\}\}/g, makeCommand);
+        tasksContent = tasksContent.replace(/\{\{MAKE_BIN_DIR\}\}/g, makeBinDir);
+        tasksContent = tasksContent.replace(/\{\{SH_PATH\}\}/g, shPath);
         
         const tasksPath = path.join(vscodeDir, 'tasks.json');
         fs.writeFileSync(tasksPath, tasksContent, 'utf-8');
         console.log('MPLABX import: tasks.json generated successfully');
+        console.log('Make command:', makeCommand);
+        console.log('Make bin dir:', makeBinDir);
+        console.log('Shell path:', shPath);
     }
 
     // Ask to open project
     const openAction = await vscode.window.showInformationMessage(
-        `Project imported successfully!\nLocation: ${outputPath}\n\nReady to build with Ctrl+Shift+B or "make"`,
+        `Project imported successfully!\nLocation: ${outputPath}\n\nReady to build with Ctrl+Shift+B or type "make" in terminal`,
         'Open Project',
         'Open in New Window'
     );
@@ -982,7 +1149,7 @@ Generated: ${new Date().toLocaleString()}
     // Show success and open project
     const dfpStatus = finalDfpPath ? '✓ DFP detected and configured' : '⚠️ DFP not found - see README.md for installation';
     const openAction = await vscode.window.showInformationMessage(
-        `XC32 project "${projectName}" created successfully!\n\n${dfpStatus}\n\nNext: ${finalDfpPath ? 'Build with Ctrl+Shift+B' : 'Install DFP, then build with Ctrl+Shift+B'}`,
+        `XC32 project "${projectName}" created successfully!\n\n${dfpStatus}\n\nNext: ${finalDfpPath ? 'Build with Ctrl+Shift+B or type "make" in terminal' : 'Install DFP, then build with Ctrl+Shift+B'}`,
         'Open Project',
         'Open in New Window'
     );

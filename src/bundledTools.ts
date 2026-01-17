@@ -38,7 +38,9 @@ export class BundledToolsManager {
         );
 
         if (fs.existsSync(bundledMake)) {
-            return bundledMake;
+            // Normalize path to forward slashes for cross-platform compatibility
+            // and ensure absolute path is used
+            return bundledMake.replace(/\\/g, '/');
         }
 
         // Fall back to system PATH
