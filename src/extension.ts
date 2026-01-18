@@ -1779,7 +1779,10 @@ async function flashDevice() {
     }
 
     // Flash
-    const terminal = vscode.window.createTerminal('PIC32 Flash');
+    const terminal = vscode.window.createTerminal({
+        name: 'PIC32 Flash',
+        cwd: workspaceFolder.uri.fsPath
+    });
     terminal.show();
     terminal.sendText(`& "${bootloaderPath}" "${hexFile.fsPath}"`);
 }
