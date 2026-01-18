@@ -2,31 +2,42 @@
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**AI-Assisted Microchip Development in VS Code** - Import MPLABX projects and leverage GitHub Copilot for embedded development with XC32 compiler (XC8 and XC16 support coming in future releases).
+**AI-Assisted Microchip Development in VS Code** - Import existing MPLABX/MikroC projects OR create new XC32 projects from scratch. Leverage GitHub Copilot for embedded development with full XC compiler support (XC8 and XC16 import coming in future releases).
 
 ## Why This Extension?
 
 This extension was created to solve a fundamental problem: **modern AI coding assistants like GitHub Copilot work best in VS Code, but Microchip embedded development traditionally happens in MPLABX IDE.**
 
-By importing your MPLABX projects into VS Code, you can:
+By importing your MPLABX projects (or creating new ones) in VS Code, you can:
 - ✨ **Get AI assistance** - Let Copilot help write peripheral drivers, debug code, and understand complex configurations
 - 🚀 **Use modern tooling** - Leverage VS Code's superior editing, search, and extension ecosystem
 - 🔄 **Keep MCC workflow** - Continue using MPLABX/MCC for peripheral configuration, then import back to VS Code
 - 🛠️ **Build natively** - Compile and flash directly from VS Code with your existing XC8/16/32 toolchain
 
-**Perfect for developers who want to use AI assistance while working with MCC generated code for any Microchip device.**
+**Perfect for developers who want to use AI assistance while working with MCC generated code or building new projects for any Microchip device.**
 
 ## Features
 
-### 📥 MPLABX Project Import
+### 📥 MPLABX Project Import & Creation
+
+**Import Existing Projects:**
 - **One-Click Import**: Select your `.X` folder and automatically import entire MPLABX project
 - **Universal Compiler Support**: Works with XC8 (8-bit PIC/AVR), XC16 (16-bit PIC24/dsPIC), XC32 (32-bit PIC32)
 - **MCC Compatible**: Preserves all MCC-generated peripheral libraries and structure (MCC Classic & Harmony 3)
 - **Flag Preservation**: Extracts and preserves CFLAGS and LDFLAGS from original Makefiles
 - **Startup Detection**: Automatically detects CRT0 vs custom startup.S configuration (XC32)
+- **Metadata Tracking**: Saves project metadata for future re-sync with MPLABX
+
+**Create New XC32 Projects:**
+- **Template Generation**: Create complete XC32 project from scratch with proper structure
+- **Device Selection**: Choose from 150+ PIC32MX/MZ devices with device-specific configuration
+- **Auto-Detection**: Automatically finds XC32 compiler and DFP (Device Family Pack)
+- **Ready to Build**: Generated with working Makefile, main.c template, and VS Code tasks
+- **Bootloader Option**: Optional MikroC bootloader startup.S generation
+
+**Both Options Include:**
 - **Full Toolchain**: Uses your existing XC compiler and DFP installations
 - **Build System**: Generates GNU Makefiles compatible with Windows, WSL, and Git Bash
-- **Metadata Tracking**: Saves project metadata for future re-sync with MPLABX
 
 ### 📦 MikroC Project Import
 - **In-Place Import**: Import MikroC PRO projects directly (no file copying)
@@ -58,7 +69,7 @@ This extension is designed for **AI-assisted embedded development**:
 
 ## How It Works
 
-### Typical Workflow
+### Option 1: Import Existing MPLABX Project
 
 1. **Design in MPLABX/MCC**
    - Use MCC to configure clock, GPIO, timers, UART, etc.
@@ -75,6 +86,23 @@ This extension is designed for **AI-assisted embedded development**:
    - Use GitHub Copilot to write application code
    - Get AI help with peripheral APIs, interrupts, protocols
    - Build and debug directly in VS Code
+
+### Option 2: Create New XC32 Project
+
+1. **Create from Template**
+   - Run `XC Project Importer: Import MPLABX Project` → Choose "Create New XC32 Project"
+   - Select target PIC32MX/MZ device
+   - Extension auto-detects XC32 compiler and DFP
+
+2. **Develop with AI Assistance**
+   - Project opens with working main.c template and proper device configuration
+   - Use GitHub Copilot to write application code
+   - Build with Ctrl+Shift+B or type `make` in terminal
+
+3. **Optional: Add MCC Peripherals**
+   - Open project in MPLABX to add MCC-generated code
+   - Re-import to VS Code to preserve structure
+   - Continue development with AI assistance
 
 4. **Build and Flash**
    - Run `make` to build (or use VS Code tasks)
