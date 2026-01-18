@@ -532,6 +532,19 @@ npm run compile
 npx @vscode/vsce package
 ```
 
+### Testing Locally (Extension Development Host)
+1. Open the extension project in VS Code
+2. Press **F5** to launch Extension Development Host
+3. A new VS Code window opens with the extension loaded
+4. Test import/build/flash features in the dev host
+5. Changes require restarting the dev host (Ctrl+R in dev window)
+
+**Live Development with Watch Mode:**
+```bash
+npm run watch    # Auto-compile TypeScript on file save
+```
+Then press F5 - changes apply when you restart the dev host (Ctrl+R).
+
 ### Project Architecture
 See detailed documentation:
 - [readme/PLUGIN_SEPARATION.md](readme/PLUGIN_SEPARATION.md) - Why separation from MikroC generation

@@ -9,3 +9,8 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+readme/**
+workspace.code-workspace
+mikroc-bootloader-plugin.code-workspace
+startup_flag_results.csv
+!README.md
