@@ -29,6 +29,14 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
    - **Directory structure**: Uses `OBJ_DIR = objs` and `BIN_DIR = bins` (NOT build/)
    - **Critical**: Quote all tool paths in Makefile (`"$(COMPILER_BIN)/xc32-gcc.exe"`)
 
+4. **Build System Status Bar Buttons** ([extension.ts](../src/extension.ts))
+   - **Build button**: Executes `workbench.action.tasks.build` (runs default build task)
+   - **Rebuild button**: Creates terminal with bundled make, checks for `rebuild` target in Makefile
+   - **Flash button**: Creates terminal, calls `mikro_hb.exe` with selected .hex file
+   - **PowerShell syntax**: Uses `&` call operator for quoted paths: `& "path/to/make.exe" rebuild`
+   - **Makefile rebuild target**: Template includes `rebuild: all` (clean + build)
+   - **Environment setup**: Adds bundled bin path to PATH, sets SHELL to bundled sh.exe
+
 ### Key Components
 
 - **[bundledTools.ts](../src/bundledTools.ts)**: Provides paths to bundled `make.exe`, `sh.exe`, `rm.exe` (zero external dependencies)
@@ -38,9 +46,12 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 ## Critical Development Rules
 
 ### Before Changing Code
+- **ALWAYS verify assumptions**: Read templates, Makefiles, and actual code before making changes
+- **Question user requests**: If something seems wrong, check the facts first and present findings
 - **Find all usages**: Use `list_code_usages` tool to find all call sites of functions you're modifying
 - **Read adjacent code**: Template replacements and file path handling is fragile - understand the full flow
 - **Check interfaces**: TypeScript interfaces in `projectImporter.ts` must match actual usage in `extension.ts`
+- **No hasty changes**: Verify templates and existing logic before removing "unnecessary" code
 
 ### Common Pitfalls
 

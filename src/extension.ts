@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { MPLABXImporter, saveMetadata, ProjectMetadata } from './projectImporter';
+const packageJson = require('../package.json');
 import { MakefileGenerator } from './makefileGenerator';
 import { MikroCImporter } from './mikrocImporter';
 import { BootloaderUpdater } from './bootloaderUpdater';
@@ -376,6 +377,68 @@ async function downloadDFP(deviceName: string): Promise<string | null> {
 }
 
 /**
+ * Clean up old extension versions from PATH and add current version
+ */
+async function cleanupOldPathEntries(currentPath: string, execAsync: any): Promise<void> {
+    console.log('[PATH] Cleaning up old extension versions from PATH...');
+    
+    const cleanupScript = `
+        $currentPath = '${currentPath.replace(/\\/g, '\\\\')}';
+        $userPath = [Environment]::GetEnvironmentVariable('Path', 'User');
+        
+        if ($null -eq $userPath) { 
+            Write-Output 'ERROR: No user PATH found'
+            exit 1
+        }
+        
+        # Split PATH into entries
+        $pathEntries = $userPath -split ';';
+        
+        # Remove all entries matching the extension pattern
+        $cleanedEntries = $pathEntries | Where-Object { 
+            $_ -notmatch 'davidcoetzee\\.xc-project-importer-[^;]+\\\\bin\\\\win32' 
+        }
+        
+        # Add current version
+        $newPath = "$currentPath;" + ($cleanedEntries -join ';');
+        
+        # Remove any trailing semicolons
+        $newPath = $newPath -replace ';+$', '';
+        
+        try {
+            [Environment]::SetEnvironmentVariable('Path', $newPath, 'User');
+            Write-Output 'SUCCESS'
+        } catch {
+            Write-Output "ERROR: $($_.Exception.Message)"
+        }
+    `;
+    
+    const scriptBase64 = Buffer.from(cleanupScript, 'utf16le').toString('base64');
+    
+    try {
+        const { stdout, stderr } = await execAsync(
+            `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand "${scriptBase64}"`,
+            { timeout: 10000 }
+        );
+        
+        if (stderr) {
+            console.error('[PATH] Cleanup stderr:', stderr);
+        }
+        
+        const result = stdout.trim();
+        console.log('[PATH] Cleanup result:', result);
+        
+        if (result === 'SUCCESS') {
+            console.log('[PATH] Successfully cleaned up old versions and added current version');
+        } else {
+            console.warn('[PATH] Cleanup may have failed:', result);
+        }
+    } catch (error) {
+        console.error('[PATH] Error during cleanup:', error);
+    }
+}
+
+/**
  * Add bundled tools to user's PATH environment variable (Windows only)
  * This allows users to just type "make" from any terminal
  */
@@ -385,21 +448,46 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         return;
     }
 
+    const currentVersion = packageJson.version;
+    const PATH_HANDLED_KEY = `pic32.path.handled.v${currentVersion}`;
+    const alreadyHandled = context.globalState.get<boolean>(PATH_HANDLED_KEY, false);
+    
+    if (alreadyHandled) {
+        console.log(`[PATH] Already handled for v${currentVersion}, skipping check`);
+        return;
+    }
+
     const bundledBinPath = path.join(context.extensionPath, 'bin', 'win32');
-    console.log(`[PATH] Checking if bundled tools need to be added to PATH: ${bundledBinPath}`);
+    console.log(`[PATH] Checking if bundled tools (v${currentVersion}) need to be added to PATH: ${bundledBinPath}`);
     
     try {
         const { exec } = require('child_process');
         const { promisify } = require('util');
         const execAsync = promisify(exec);
         
-        // Use PowerShell with proper escaping - encode script as Base64 to avoid quoting issues
+        // Check if CURRENT version's path exists, and if any old versions exist
         const checkScript = `
-            $targetPath = '${bundledBinPath.replace(/\\/g, '\\\\')}';
+            $currentPath = '${bundledBinPath.replace(/\\/g, '\\\\')}';
             $userPath = [Environment]::GetEnvironmentVariable('Path', 'User');
-            if ($null -eq $userPath) { Write-Output 'NOT_FOUND' }
-            elseif ($userPath -like "*$targetPath*") { Write-Output 'EXISTS' }
-            else { Write-Output 'NOT_FOUND' }
+            
+            if ($null -eq $userPath) { 
+                Write-Output 'NOT_FOUND'
+                exit
+            }
+            
+            # Check if current version path exists
+            if ($userPath -like "*$currentPath*") {
+                Write-Output 'CURRENT_EXISTS'
+                exit
+            }
+            
+            # Check if any old version exists
+            if ($userPath -match 'davidcoetzee\\.xc-project-importer-[^;]+\\\\bin\\\\win32') {
+                Write-Output 'OLD_VERSION_EXISTS'
+                exit
+            }
+            
+            Write-Output 'NOT_FOUND'
         `;
         
         const scriptBase64 = Buffer.from(checkScript, 'utf16le').toString('base64');
@@ -413,10 +501,25 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
             console.error('[PATH] PowerShell stderr:', stderr);
         }
         
-        console.log(`[PATH] Check result: ${stdout.trim()}`);
+        const checkResult = stdout.trim();
+        console.log(`[PATH] Check result: ${checkResult}`);
         
-        if (stdout.trim() === 'EXISTS') {
-            console.log('[PATH] Bundled tools already in user PATH');
+        if (checkResult === 'CURRENT_EXISTS') {
+            console.log(`[PATH] Current version (v${currentVersion}) already in PATH`);
+            await context.globalState.update(PATH_HANDLED_KEY, true);
+            return;
+        }
+        
+        if (checkResult === 'OLD_VERSION_EXISTS') {
+            console.log('[PATH] Old version detected, auto-updating to current version...');
+            // Auto-update without prompting - remove old, add new
+            await cleanupOldPathEntries(bundledBinPath, execAsync);
+            await context.globalState.update(PATH_HANDLED_KEY, true);
+            
+            vscode.window.showInformationMessage(
+                `✓ Bundled tools updated to v${currentVersion}\n\nRestart VS Code to apply changes.`,
+                { modal: false }
+            );
             return;
         }
 
@@ -430,6 +533,8 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
 
         if (choice !== 'Add to PATH') {
             console.log('[PATH] User chose to skip PATH addition');
+            // Mark as handled so we don't keep asking (for this version)
+            await context.globalState.update(PATH_HANDLED_KEY, true);
             return;
         }
 
@@ -468,6 +573,9 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         
         const result = addResult.trim();
         if (result === 'SUCCESS' || result === 'ALREADY_EXISTS') {
+            // Mark as handled so we don't prompt again
+            await context.globalState.update(PATH_HANDLED_KEY, true);
+            
             await vscode.window.showInformationMessage(
                 '✓ Bundled tools added to PATH!\n\nIMPORTANT: Restart VS Code to apply changes.\n\nAfter restart, you can use "make" in any terminal.',
                 { modal: true }
@@ -546,7 +654,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('pic32-ide.build', () => buildProject()),
         vscode.commands.registerCommand('pic32-ide.rebuild', () => rebuildProject()),
         vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates()),
-        vscode.commands.registerCommand('pic32-ide.addToPath', () => addBundledToolsToPath(context))
+        vscode.commands.registerCommand('pic32-ide.addToPath', async () => {
+            // Reset the handled flag for current version so user can re-trigger the prompt
+            const currentVersion = packageJson.version;
+            await context.globalState.update(`pic32.path.handled.v${currentVersion}`, false);
+            await addBundledToolsToPath(context);
+        })
     );
     
     // Note: createXC32Project and createMikroCProject are internal functions
@@ -1610,10 +1723,10 @@ async function rebuildProject() {
     terminal.show();
     
     if (hasRebuildTarget) {
-        terminal.sendText(`"${makePath}" rebuild`);
+        terminal.sendText(`& "${makePath}" rebuild`);
     } else {
         // Fallback: run clean then build
-        terminal.sendText(`"${makePath}" clean && "${makePath}"`);
+        terminal.sendText(`& "${makePath}" clean ; & "${makePath}"`);
     }
 }
 
