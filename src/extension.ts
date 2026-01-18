@@ -1563,7 +1563,7 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
 }
 
 /**
- * Build current project (uses VS Code tasks for bundled make)
+ * Build current project (runs the default build task)
  */
 async function buildProject() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -1572,20 +1572,8 @@ async function buildProject() {
         return;
     }
 
-    // Use VS Code tasks system (automatically uses bundled tools from tasks.json)
-    try {
-        await vscode.commands.executeCommand('workbench.action.tasks.runTask', 'Build XC32 Project');
-    } catch (error) {
-        // Fallback: try MikroC build task
-        try {
-            await vscode.commands.executeCommand('workbench.action.tasks.runTask', 'Build MikroC Project');
-        } catch (error2) {
-            // Last resort: open terminal and run make
-            const terminal = vscode.window.createTerminal('PIC32 Build');
-            terminal.show();
-            terminal.sendText('make');
-        }
-    }
+    // Execute the default build task
+    await vscode.commands.executeCommand('workbench.action.tasks.build');
 }
 
 /**
