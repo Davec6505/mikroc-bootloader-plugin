@@ -31,13 +31,17 @@ STACK_SIZE := {{STACK_SIZE}}   # Stack for function calls and local variables
 COMPILER_LOCATION := {{XC32_COMPILER_BIN}}
 DFP := {{DFP_PATH}}
 
+# MikroC Bootloader Configuration
+# Set to 'yes' if project uses custom startup (detected from MPLABX -nostartfiles flag)
+USE_MIKROE_BOOTLOADER := {{USE_MIKROE_BOOTLOADER}}
+
 # Use bundled make.exe for recursive calls (no dependency on system PATH)
 MAKE_EXE := {{MAKE_COMMAND}}
 BUILD=$(MAKE_EXE)
 BUILD_DIR=$(MAKE_EXE) build_dir
 
 # Build the make command with optional path overrides
-MAKE_ARGS := DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE) OPT_LEVEL=$(OPT_LEVEL)
+MAKE_ARGS := DEVICE=$(DEVICE) MODULE=$(MODULE) HEAP_SIZE=$(HEAP_SIZE) STACK_SIZE=$(STACK_SIZE) OPT_LEVEL=$(OPT_LEVEL) USE_MIKROE_BOOTLOADER=$(USE_MIKROE_BOOTLOADER)
 ifneq ($(COMPILER_LOCATION),)
 	MAKE_ARGS += COMPILER_LOCATION="$(COMPILER_LOCATION)"
 endif
