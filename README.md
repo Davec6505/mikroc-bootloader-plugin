@@ -97,7 +97,7 @@ This extension is designed for **AI-assisted embedded development**:
 2. **Develop with AI Assistance**
    - Project opens with working main.c template and proper device configuration
    - Use GitHub Copilot to write application code
-   - Build with Ctrl+Shift+B or type `make` in terminal
+   - Build with Ctrl+Shift+B, click the Build/Rebuild buttons in the status bar, or type `make` in terminal
 
 3. **Optional: Add MCC Peripherals**
    - Open project in MPLABX to add MCC-generated code
@@ -248,7 +248,7 @@ _Currently supports XC32 projects. XC16 and XC8 support coming soon._
 **Workflow:**
 1. Import once when you need to build outside MikroC IDE
 2. Edit code in VS Code with AI assistance
-3. Build with `make` or Ctrl+Shift+B
+3. Build with `make`, Ctrl+Shift+B, or click Build/Rebuild buttons in status bar
 4. Re-open `.mcp*` file in MikroC IDE when you need to change project settings
 5. Re-import to update Makefile
 
@@ -267,6 +267,7 @@ UART2_Write((uint8_t*)msg, strlen(msg));
 ### Building
 
 **VS Code Tasks (Recommended):**
+- Click **Build** or **Rebuild** buttons in the status bar (bottom left)
 - Press **`Ctrl+Shift+B`** to build (uses bundled make.exe)
 - Or use Command Palette: "Tasks: Run Build Task"
 - All build tools included - no external dependencies!

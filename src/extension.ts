@@ -861,7 +861,7 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
 
     // Ask to open project
     const openAction = await vscode.window.showInformationMessage(
-        `Project imported successfully!\nLocation: ${outputPath}\n\nReady to build with Ctrl+Shift+B or type "make" in terminal`,
+        `Project imported successfully!\nLocation: ${outputPath}\n\nReady to build: Click Build button in status bar, press Ctrl+Shift+B, or type "make" in terminal`,
         'Open Project',
         'Open in New Window'
     );
@@ -1266,7 +1266,7 @@ Generated: ${new Date().toLocaleString()}
     // Show success and open project
     const dfpStatus = finalDfpPath ? '✓ DFP detected and configured' : '⚠️ DFP not found - see README.md for installation';
     const openAction = await vscode.window.showInformationMessage(
-        `XC32 project "${projectName}" created successfully!\n\n${dfpStatus}\n\nNext: ${finalDfpPath ? 'Build with Ctrl+Shift+B or type "make" in terminal' : 'Install DFP, then build with Ctrl+Shift+B'}`,
+        `XC32 project "${projectName}" created successfully!\n\n${dfpStatus}\n\nNext: ${finalDfpPath ? 'Click Build button in status bar, press Ctrl+Shift+B, or type "make" in terminal' : 'Install DFP, then click Build button or press Ctrl+Shift+B'}`,
         'Open Project',
         'Open in New Window'
     );
@@ -1660,7 +1660,7 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
         
         // Show success message
         vscode.window.showInformationMessage(
-            `MikroC project imported successfully!\n\nMakefile generated. Build with Ctrl+Shift+B or "make"\nRe-open ${projectInfo.projectFile} in MikroC IDE for config changes`,
+            `MikroC project imported successfully!\n\nMakefile generated. Build: Click Build button, press Ctrl+Shift+B, or type "make"\nRe-open ${projectInfo.projectFile} in MikroC IDE for config changes`,
             { modal: false }
         );
         
