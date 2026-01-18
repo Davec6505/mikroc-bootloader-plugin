@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**AI-Assisted Microchip Development in VS Code** - Import existing MPLABX/MikroC projects OR create new XC32 projects from scratch. Leverage GitHub Copilot for embedded development with full XC compiler support (XC8 and XC16 import coming in future releases).
+**AI-Assisted Microchip Development in VS Code** - Import existing MPLABX/MikroC projects OR create new XC32 projects from scratch. Leverage GitHub Copilot for embedded development with full XC32 compiler support (XC8 and XC16 import coming in future releases).
 
 ## Why This Extension?
 
@@ -12,7 +12,7 @@ By importing your MPLABX projects (or creating new ones) in VS Code, you can:
 - ✨ **Get AI assistance** - Let Copilot help write peripheral drivers, debug code, and understand complex configurations
 - 🚀 **Use modern tooling** - Leverage VS Code's superior editing, search, and extension ecosystem
 - 🔄 **Keep MCC workflow** - Continue using MPLABX/MCC for peripheral configuration, then import back to VS Code
-- 🛠️ **Build natively** - Compile and flash directly from VS Code with your existing XC8/16/32 toolchain
+- 🛠️ **Build natively** - Compile and flash directly from VS Code with your existing XC32 toolchain
 
 **Perfect for developers who want to use AI assistance while working with MCC generated code or building new projects for any Microchip device.**
 
@@ -22,7 +22,7 @@ By importing your MPLABX projects (or creating new ones) in VS Code, you can:
 
 **Import Existing Projects:**
 - **One-Click Import**: Select your `.X` folder and automatically import entire MPLABX project
-- **Universal Compiler Support**: Works with XC8 (8-bit PIC/AVR), XC16 (16-bit PIC24/dsPIC), XC32 (32-bit PIC32)
+- **XC32 Compiler Support**: Currently supports XC32 (32-bit PIC32). XC8 (8-bit PIC/AVR) and XC16 (16-bit PIC24/dsPIC) coming soon
 - **MCC Compatible**: Preserves all MCC-generated peripheral libraries and structure (MCC Classic & Harmony 3)
 - **Flag Preservation**: Extracts and preserves CFLAGS and LDFLAGS from original Makefiles
 - **Startup Detection**: Automatically detects CRT0 vs custom startup.S configuration (XC32)
@@ -65,7 +65,7 @@ This extension is designed for **AI-assisted embedded development**:
 - **Context-Aware Help**: Copilot understands MCC-generated code structure
 - **Faster Development**: Let AI help with boilerplate, drivers, and configuration
 - **Learning Tool**: Use Copilot to understand complex peripheral interactions
-- **Works with All Devices**: PIC10/12/16/18 (XC8), PIC24/dsPIC (XC16), PIC32 (XC32)
+- **Works with PIC32 Devices**: Full support for PIC32 (XC32). PIC10/12/16/18 (XC8) and PIC24/dsPIC (XC16) coming soon
 
 ## How It Works
 
@@ -390,7 +390,7 @@ void configure_motor_pwm(uint32_t frequency_hz, uint8_t duty_percent) {
 
 | Issue | Solution |
 |-------|----------|
-| **"Cannot find XC compiler"** | Set compiler path in project metadata or ensure XC8/16/32 is in system PATH |
+| **"Cannot find XC compiler"** | Set compiler path in project metadata or ensure XC32 is in system PATH |
 | **"Device Family Pack not found"** | Install DFP from MPLABX or set DFP path in metadata |
 | **Build errors after import** | Check that original MPLABX project compiles first |
 | **Missing startup.S** | Extension auto-generates for XC32 `-nostartfiles` projects |
