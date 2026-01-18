@@ -78,7 +78,7 @@ export class MakefileGenerator {
         content = content.replace(/\{\{HEAP_SIZE\}\}/g, projectInfo.heapSize || '50000');
         content = content.replace(/\{\{STACK_SIZE\}\}/g, projectInfo.stackSize || '4096');
         content = content.replace(/\{\{OPT_LEVEL\}\}/g, options.optimizationLevel || '-O2');
-        content = content.replace(/\{\{USE_MIKROE_BOOTLOADER\}\}/g, 'no');  // Default to no bootloader
+        content = content.replace(/\{\{USE_MIKROE_BOOTLOADER\}\}/g, projectInfo.usesCrt0 === false ? 'yes' : 'no');
         content = content.replace(/\{\{EXTRA_CFLAGS\}\}/g, (projectInfo.cflags || []).join(' '));
         content = content.replace(/\{\{EXTRA_LDFLAGS\}\}/g, (projectInfo.ldflags || []).join(' '));
 
