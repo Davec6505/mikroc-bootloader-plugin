@@ -1595,14 +1595,25 @@ async function rebuildProject() {
         hasRebuildTarget = /^rebuild:/m.test(makefileContent);
     }
 
-    const terminal = vscode.window.createTerminal('PIC32 Rebuild');
+    // Get bundled make path
+    const makePath = bundledTools.getMakePath() || 'make';
+    const binPath = bundledTools.getBinPath();
+    const shPath = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
+    
+    const terminal = vscode.window.createTerminal({
+        name: 'PIC32 Rebuild',
+        env: {
+            'PATH': `${binPath};${process.env.PATH}`,
+            'SHELL': shPath
+        }
+    });
     terminal.show();
     
     if (hasRebuildTarget) {
-        terminal.sendText('make rebuild');
+        terminal.sendText(`"${makePath}" rebuild`);
     } else {
         // Fallback: run clean then build
-        terminal.sendText('make clean && make');
+        terminal.sendText(`"${makePath}" clean && "${makePath}"`);
     }
 }
 
