@@ -394,9 +394,9 @@ async function cleanupOldPathEntries(currentPath: string, execAsync: any): Promi
         # Split PATH into entries
         $pathEntries = $userPath -split ';';
         
-        # Remove all entries matching the extension pattern
+        # Remove all entries matching the extension pattern (match both forward and backward slashes)
         $cleanedEntries = $pathEntries | Where-Object { 
-            $_ -notmatch 'davidcoetzee\\.xc-project-importer-[^;]+\\\\bin\\\\win32' 
+            $_ -notmatch 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32' 
         }
         
         # Add current version
@@ -481,8 +481,8 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
                 exit
             }
             
-            # Check if any old version exists
-            if ($userPath -match 'davidcoetzee\\.xc-project-importer-[^;]+\\\\bin\\\\win32') {
+            # Check if any old version exists (match both forward and backward slashes)
+            if ($userPath -match 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32') {
                 Write-Output 'OLD_VERSION_EXISTS'
                 exit
             }
