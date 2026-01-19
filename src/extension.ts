@@ -475,14 +475,30 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
                 exit
             }
             
-            # Check if current version path exists
-            if ($userPath -like "*$currentPath*") {
-                Write-Output 'CURRENT_EXISTS'
+            $currentExists = $userPath -like "*$currentPath*"
+            
+            # Check if any old version exists (match both forward and backward slashes)
+            # This regex matches ANY version of the extension
+            $oldVersionsExist = $userPath -match 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32'
+            
+            # Count how many versions exist in PATH
+            $allMatches = [regex]::Matches($userPath, 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32')
+            $versionCount = $allMatches.Count
+            
+            if ($currentExists -and $versionCount -eq 1) {
+                # Only current version exists, no cleanup needed
+                Write-Output 'CURRENT_EXISTS_CLEAN'
                 exit
             }
             
-            # Check if any old version exists (match both forward and backward slashes)
-            if ($userPath -match 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32') {
+            if ($currentExists -and $versionCount -gt 1) {
+                # Current version exists but there are duplicates - need cleanup
+                Write-Output 'CURRENT_EXISTS_WITH_DUPLICATES'
+                exit
+            }
+            
+            if ($oldVersionsExist) {
+                # Old versions exist, current doesn't
                 Write-Output 'OLD_VERSION_EXISTS'
                 exit
             }
@@ -504,9 +520,22 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         const checkResult = stdout.trim();
         console.log(`[PATH] Check result: ${checkResult}`);
         
-        if (checkResult === 'CURRENT_EXISTS') {
-            console.log(`[PATH] Current version (v${currentVersion}) already in PATH`);
+        if (checkResult === 'CURRENT_EXISTS_CLEAN') {
+            console.log(`[PATH] Current version (v${currentVersion}) already in PATH, no duplicates`);
             await context.globalState.update(PATH_HANDLED_KEY, true);
+            return;
+        }
+        
+        if (checkResult === 'CURRENT_EXISTS_WITH_DUPLICATES') {
+            console.log('[PATH] Current version exists but duplicates detected, cleaning up...');
+            // Auto-cleanup without prompting - remove ALL versions, then add current
+            await cleanupOldPathEntries(bundledBinPath, execAsync);
+            await context.globalState.update(PATH_HANDLED_KEY, true);
+            
+            vscode.window.showInformationMessage(
+                `✓ Removed duplicate extension paths from PATH (v${currentVersion} kept)\n\nRestart VS Code to apply changes.`,
+                { modal: false }
+            );
             return;
         }
         
