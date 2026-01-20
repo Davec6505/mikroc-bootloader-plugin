@@ -99,8 +99,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./ && npm run copy-templates",
+    "compile": "tsc -p ./ && npm run copy-templates && npm run copy-webview",
     "copy-templates": "node -e \"require('fs').cpSync('src/templates', 'out/templates', {recursive: true})\"",
+    "copy-webview": "node -e \"require('fs').cpSync('src/webview', 'out/webview', {recursive: true})\"",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Editor</title>
+    <link rel="stylesheet" href="configEditor.css">
+</head>
+<body>
+    <div class="config-container">
+        <!-- Left Panel: Configuration Options -->
+        <div class="config-left">
+            <div class="config-section">
+                <h3>General Project Settings</h3>
+                
+                <label>
+                    PLL Input Divider (FPLLIDIV):
+                    <select id="fpllidiv" class="config-select">
+                        <option value="1">DIV_1</option>
+                        <option value="2">DIV_2</option>
+                        <option value="3" selected>DIV_3</option>
+                        <option value="4">DIV_4</option>
+                        <option value="5">DIV_5</option>
+                        <option value="6">DIV_6</option>
+                        <option value="7">DIV_7</option>
+                        <option value="8">DIV_8</option>
+                        <option value="10">DIV_10</option>
+                        <option value="12">DIV_12</option>
+                    </select>
+                </label>
+
+                <label>
+                    PLL Multiplier (FPLLMULT):
+                    <select id="fpllmult" class="config-select">
+                        <!-- Options will be populated dynamically based on device constraints -->
+                    </select>
+                </label>
+
+                <label>
+                    System PLL Output Clock Divider (FPLLODIV):
+                    <select id="fpllodiv" class="config-select">
+                        <option value="1">DIV_1</option>
+                        <option value="2" selected>DIV_2</option>
+                        <option value="4">DIV_4</option>
+                        <option value="8">DIV_8</option>
+                        <option value="16">DIV_16</option>
+                        <option value="32">DIV_32</option>
+                        <option value="64">DIV_64</option>
+                        <option value="256">DIV_256</option>
+                    </select>
+                </label>
+
+                <label>
+                    Oscillator Selection Bits (FNOSC):
+                    <select id="fnosc" class="config-select">
+                        <option value="SPLL" selected>Primary Osc w/PLL (XT+,HS+,EC+PLL)</option>
+                        <option value="PRIPLL">Primary Osc w/PLL (PRIPLL)</option>
+                        <option value="POSC">Primary Oscillator (XT, HS, EC)</option>
+                        <option value="FRC">Fast RC Osc (FRC)</option>
+                        <option value="FRCPLL">Fast RC Osc w/Div by N (FRCDIV)</option>
+                        <option value="SOSC">Secondary Oscillator (SOSC)</option>
+                        <option value="LPRC">Low-Power RC Osc (LPRC)</option>
+                    </select>
+                </label>
+
+                <label>
+                    Primary Oscillator Configuration (POSCMOD):
+                    <select id="poscmod" class="config-select">
+                        <option value="EC" selected>EC osc mode</option>
+                        <option value="XT">XT osc mode</option>
+                        <option value="HS">HS osc mode</option>
+                        <option value="OFF">Disabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    Oscillator Crystal Frequency [MHz]:
+                    <input type="number" id="crystalFreq" value="24" min="0" max="50" step="0.001" class="config-input">
+                </label>
+
+                <label>
+                    Peripheral Clock Divisor (FPBDIV):
+                    <select id="fpbdiv" class="config-select">
+                        <option value="1" selected>Pb_Clk is Sys_Clk/1</option>
+                        <option value="2">Pb_Clk is Sys_Clk/2</option>
+                        <option value="4">Pb_Clk is Sys_Clk/4</option>
+                        <option value="8">Pb_Clk is Sys_Clk/8</option>
+                    </select>
+                </label>
+
+                <label>
+                    Clock Switching and Monitor Selection (FCKSM):
+                    <select id="fcksm" class="config-select">
+                        <option value="CSECME">Clock Switch Enable, FSCM Enabled</option>
+                        <option value="CSECMD" selected>Clock Switch Enable, FSCM Disabled</option>
+                        <option value="CSDCMD">Clock Switch Disable, FSCM Disabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    Secondary Oscillator Enable (FSOSCEN):
+                    <select id="fsoscen" class="config-select">
+                        <option value="OFF" selected>Disabled</option>
+                        <option value="ON">Enabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    Internal/External Switch Over (IESO):
+                    <select id="ieso" class="config-select">
+                        <option value="OFF" selected>Disabled</option>
+                        <option value="ON">Enabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    CLKO Output Signal Active on the OSCO Pin (OSCIOFNC):
+                    <select id="osciofnc" class="config-select">
+                        <option value="OFF" selected>Disabled</option>
+                        <option value="ON">Enabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    Watchdog Timer Enable (FWDTEN):
+                    <select id="fwdten" class="config-select">
+                        <option value="OFF" selected>WDT Disabled (SWDTEN Bit Controls)</option>
+                        <option value="ON">WDT Enabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    Watchdog Timer Postscaler (WDTPS):
+                    <select id="wdtps" class="config-select">
+                        <option value="PS1">1:1</option>
+                        <option value="PS2">1:2</option>
+                        <option value="PS4">1:4</option>
+                        <option value="PS8">1:8</option>
+                        <option value="PS16">1:16</option>
+                        <option value="PS32">1:32</option>
+                        <option value="PS64">1:64</option>
+                        <option value="PS128">1:128</option>
+                        <option value="PS256">1:256</option>
+                        <option value="PS512">1:512</option>
+                        <option value="PS1024">1:1024</option>
+                        <option value="PS2048">1:2048</option>
+                        <option value="PS4096">1:4096</option>
+                        <option value="PS8192">1:8192</option>
+                        <option value="PS16384">1:16384</option>
+                        <option value="PS32768">1:32768</option>
+                        <option value="PS65536">1:65536</option>
+                        <option value="PS131072">1:131072</option>
+                        <option value="PS262144">1:262144</option>
+                        <option value="PS524288">1:524288</option>
+                        <option value="PS1048576" selected>1:1048576</option>
+                    </select>
+                </label>
+
+                <label>
+                    Watchdog Timer Window Enable (WINDIS):
+                    <select id="windis" class="config-select">
+                        <option value="OFF" selected>Watchdog Timer in Non-Window Mode</option>
+                        <option value="ON">Watchdog Timer in Window Mode</option>
+                    </select>
+                </label>
+
+                <label>
+                    Watchdog Timer Window Size (FWDTWINSZ):
+                    <select id="fwdtwinsz" class="config-select">
+                        <option value="WINSZ_75">Window Size is 75%</option>
+                        <option value="WINSZ_50">Window Size is 50%</option>
+                        <option value="WINSZ_37">Window Size is 37.5%</option>
+                        <option value="WINSZ_25" selected>Window Size is 25%</option>
+                    </select>
+                </label>
+
+                <label>
+                    Background Debugger Enable (DEBUG):
+                    <select id="debug" class="config-select">
+                        <option value="ON" selected>Background Debugger Enabled</option>
+                        <option value="OFF">Background Debugger Disabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    JTAG Enable (JTAGEN):
+                    <select id="jtagen" class="config-select">
+                        <option value="OFF" selected>JTAG Disabled</option>
+                        <option value="ON">JTAG Port Enabled</option>
+                    </select>
+                </label>
+
+                <label>
+                    ICE/ICD Comm Channel Select (ICESEL):
+                    <select id="icesel" class="config-select">
+                        <option value="ICS_PGx1">Communicate on PGEC1/PGED1</option>
+                        <option value="ICS_PGx2" selected>Communicate on PGEC2/PGED2</option>
+                        <option value="ICS_PGx3">Communicate on PGEC3/PGED3</option>
+                        <option value="ICS_PGx4">Communicate on PGEC4/PGED4</option>
+                    </select>
+                </label>
+
+                <label>
+                    Program Flash Write Protect (PWP):
+                    <select id="pwp" class="config-select">
+                        <option value="OFF" selected>Disable</option>
+                        <option value="PWP4K">First 4K</option>
+                        <option value="PWP8K">First 8K</option>
+                        <option value="PWP16K">First 16K</option>
+                        <option value="PWP32K">First 32K</option>
+                        <option value="PWP64K">First 64K</option>
+                        <option value="PWP128K">First 128K</option>
+                        <option value="PWP256K">First 256K</option>
+                    </select>
+                </label>
+
+                <label>
+                    Boot Flash Write Protect (BWP):
+                    <select id="bwp" class="config-select">
+                        <option value="OFF" selected>Disable</option>
+                        <option value="ON">Enable</option>
+                    </select>
+                </label>
+
+                <label>
+                    Code Protect (CP):
+                    <select id="cp" class="config-select">
+                        <option value="OFF" selected>Protection Disabled</option>
+                        <option value="ON">Protection Enabled</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <!-- Right Panel: Device Info & Preview -->
+        <div class="config-right">
+            <div class="device-info">
+                <h3>Device Information</h3>
+                <div class="info-row">
+                    <span class="info-label">Device:</span>
+                    <span id="deviceName" class="info-value">Loading...</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Family:</span>
+                    <span id="deviceFamily" class="info-value">Loading...</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Max Clock:</span>
+                    <span id="maxClock" class="info-value">Loading...</span>
+                </div>
+            </div>
+
+            <div class="clock-display">
+                <h3>Calculated System Clock</h3>
+                <div id="clockFrequency" class="clock-value">0 MHz</div>
+                <div id="clockStatus" class="clock-status"></div>
+                <div class="clock-formula">
+                    Formula: (Crystal ÷ InputDiv) × Multiplier ÷ OutputDiv
+                </div>
+            </div>
+
+            <div class="config-preview">
+                <h3>Configuration Bits Preview</h3>
+                <textarea id="configPreview" readonly></textarea>
+            </div>
+
+            <div class="scheme-buttons">
+                <button id="loadSchemeBtn" class="btn btn-secondary">Load Scheme</button>
+                <button id="saveSchemeBtn" class="btn btn-secondary">Save Scheme</button>
+                <button id="resetBtn" class="btn btn-secondary">Default</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="button-bar">
+        <button id="okBtn" class="btn btn-primary">OK</button>
+        <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+    </div>
+
+    <script src="configEditor.js"></script>
+</body>
+</html>

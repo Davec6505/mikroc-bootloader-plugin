@@ -2,491 +2,859 @@
     "family": "PIC32MX (General Purpose)",
     "description": "32-bit MIPS processors, 40-120MHz, USB/Ethernet/CAN variants",
     "configBits": {
+        "50mhz": [
+            "// DEVCFG3 - Device Configuration Register 3",
+            "#pragma config USERID = 0xFFFF          // User ID bits (default = 0xFFFF)",
+            "#pragma config PMDL1WAY = OFF           // Peripheral Module Disable (OFF = Allow multiple reconfigurations)",
+            "#pragma config IOL1WAY = OFF            // Peripheral Pin Select (OFF = Allow multiple reconfigurations)",
+            "#pragma config FUSBIDIO = OFF           // USB USBID pin (OFF = Controlled by port I/O)",
+            "#pragma config FVBUSONIO = OFF          // USB VBUS_ON pin (OFF = Controlled by port I/O)",
+            "",
+            "// DEVCFG2 - PLL and Clock Configuration (8MHz crystal → 48MHz system clock)",
+            "#pragma config FPLLIDIV = DIV_2         // PLL Input Divider (8MHz ÷ 2 = 4MHz to PLL)",
+            "#pragma config FPLLMULT = MUL_12        // PLL Multiplier (4MHz × 12 = 48MHz system clock)",
+            "#pragma config FPLLODIV = DIV_1         // PLL Output Divider (48MHz ÷ 1 = 48MHz)",
+            "#pragma config UPLLIDIV = DIV_2         // USB PLL Input Divider (÷ 2)",
+            "#pragma config UPLLEN = OFF             // USB PLL (OFF = Disabled, not using USB in this template)",
+            "",
+            "// DEVCFG1 - Oscillator and Peripheral Bus Configuration",
+            "#pragma config FNOSC = PRIPLL           // Oscillator Selection (PRIPLL = Primary oscillator with PLL)",
+            "#pragma config FSOSCEN = OFF            // Secondary Oscillator (OFF = Disabled)",
+            "#pragma config IESO = OFF               // Internal/External Switchover (OFF = Disabled)",
+            "#pragma config POSCMOD = XT             // Primary Oscillator Mode (XT = Crystal oscillator mode)",
+            "#pragma config OSCIOFNC = OFF           // CLKO Output (OFF = Disabled on OSC2 pin)",
+            "#pragma config FPBDIV = DIV_1           // Peripheral Bus Clock (48MHz ÷ 1 = 48MHz PBCLK)",
+            "#pragma config FCKSM = CSDCMD           // Clock Switching & Monitor (CSDCMD = Both disabled)",
+            "#pragma config WDTPS = PS1048576        // Watchdog Postscaler (1:1048576 = longest timeout)",
+            "#pragma config WINDIS = OFF             // Watchdog Window Mode (OFF = Disabled)",
+            "#pragma config FWDTEN = OFF             // Watchdog Timer (OFF = Disabled, prevents unexpected resets)",
+            "#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Window Size (25%)",
+            "",
+            "// DEVCFG0 - Debug and Code Protection",
+            "#pragma config DEBUG = ON               // Debugger Enable (ON = Debugging enabled for MPLAB/ICD)",
+            "#pragma config JTAGEN = OFF             // JTAG Port (OFF = JTAG disabled)",
+            "#pragma config ICESEL = ICS_PGx2        // ICD/ICE Pins (ICS_PGx2 = Communicate on PGEC2/PGED2)",
+            "#pragma config PWP = OFF                // Program Flash Write Protect (OFF = Disabled)",
+            "#pragma config BWP = OFF                // Boot Flash Write Protect (OFF = Disabled)",
+            "#pragma config CP = OFF                 // Code Protect (OFF = Code protection disabled)"
+        ],
+        "72mhz": [
+            "// DEVCFG3 - Device Configuration Register 3",
+            "#pragma config USERID = 0xFFFF          // User ID bits (default = 0xFFFF)",
+            "#pragma config PMDL1WAY = OFF           // Peripheral Module Disable (OFF = Allow multiple reconfigurations)",
+            "#pragma config IOL1WAY = OFF            // Peripheral Pin Select (OFF = Allow multiple reconfigurations)",
+            "#pragma config FUSBIDIO = OFF           // USB USBID pin (OFF = Controlled by port I/O)",
+            "#pragma config FVBUSONIO = OFF          // USB VBUS_ON pin (OFF = Controlled by port I/O)",
+            "",
+            "// DEVCFG2 - PLL and Clock Configuration (8MHz crystal → 72MHz system clock)",
+            "#pragma config FPLLIDIV = DIV_2         // PLL Input Divider (8MHz ÷ 2 = 4MHz to PLL)",
+            "#pragma config FPLLMULT = MUL_18        // PLL Multiplier (4MHz × 18 = 72MHz system clock)",
+            "#pragma config FPLLODIV = DIV_1         // PLL Output Divider (72MHz ÷ 1 = 72MHz)",
+            "#pragma config UPLLIDIV = DIV_2         // USB PLL Input Divider (÷ 2)",
+            "#pragma config UPLLEN = OFF             // USB PLL (OFF = Disabled, not using USB in this template)",
+            "",
+            "// DEVCFG1 - Oscillator and Peripheral Bus Configuration",
+            "#pragma config FNOSC = PRIPLL           // Oscillator Selection (PRIPLL = Primary oscillator with PLL)",
+            "#pragma config FSOSCEN = OFF            // Secondary Oscillator (OFF = Disabled)",
+            "#pragma config IESO = OFF               // Internal/External Switchover (OFF = Disabled)",
+            "#pragma config POSCMOD = XT             // Primary Oscillator Mode (XT = Crystal oscillator mode)",
+            "#pragma config OSCIOFNC = OFF           // CLKO Output (OFF = Disabled on OSC2 pin)",
+            "#pragma config FPBDIV = DIV_1           // Peripheral Bus Clock (72MHz ÷ 1 = 72MHz PBCLK)",
+            "#pragma config FCKSM = CSDCMD           // Clock Switching & Monitor (CSDCMD = Both disabled)",
+            "#pragma config WDTPS = PS1048576        // Watchdog Postscaler (1:1048576 = longest timeout)",
+            "#pragma config WINDIS = OFF             // Watchdog Window Mode (OFF = Disabled)",
+            "#pragma config FWDTEN = OFF             // Watchdog Timer (OFF = Disabled, prevents unexpected resets)",
+            "#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Window Size (25%)",
+            "",
+            "// DEVCFG0 - Debug and Code Protection",
+            "#pragma config DEBUG = ON               // Debugger Enable (ON = Debugging enabled for MPLAB/ICD)",
+            "#pragma config JTAGEN = OFF             // JTAG Port (OFF = JTAG disabled)",
+            "#pragma config ICESEL = ICS_PGx2        // ICD/ICE Pins (ICS_PGx2 = Communicate on PGEC2/PGED2)",
+            "#pragma config PWP = OFF                // Program Flash Write Protect (OFF = Disabled)",
+            "#pragma config BWP = OFF                // Boot Flash Write Protect (OFF = Disabled)",
+            "#pragma config CP = OFF                 // Code Protect (OFF = Code protection disabled)"
+        ],
+        "80mhz": [
+            "// DEVCFG3 - Device Configuration Register 3",
+            "#pragma config USERID = 0xFFFF          // User ID bits (default = 0xFFFF)",
+            "#pragma config PMDL1WAY = OFF           // Peripheral Module Disable (OFF = Allow multiple reconfigurations)",
+            "#pragma config IOL1WAY = OFF            // Peripheral Pin Select (OFF = Allow multiple reconfigurations)",
+            "#pragma config FUSBIDIO = OFF           // USB USBID pin (OFF = Controlled by port I/O)",
+            "#pragma config FVBUSONIO = OFF          // USB VBUS_ON pin (OFF = Controlled by port I/O)",
+            "",
+            "// DEVCFG2 - PLL and Clock Configuration (8MHz crystal → 80MHz system clock)",
+            "#pragma config FPLLIDIV = DIV_2         // PLL Input Divider (8MHz ÷ 2 = 4MHz to PLL)",
+            "#pragma config FPLLMULT = MUL_20        // PLL Multiplier (4MHz × 20 = 80MHz system clock)",
+            "#pragma config FPLLODIV = DIV_1         // PLL Output Divider (80MHz ÷ 1 = 80MHz)",
+            "#pragma config UPLLIDIV = DIV_2         // USB PLL Input Divider (÷ 2)",
+            "#pragma config UPLLEN = OFF             // USB PLL (OFF = Disabled, not using USB in this template)",
+            "",
+            "// DEVCFG1 - Oscillator and Peripheral Bus Configuration",
+            "#pragma config FNOSC = PRIPLL           // Oscillator Selection (PRIPLL = Primary oscillator with PLL)",
+            "#pragma config FSOSCEN = OFF            // Secondary Oscillator (OFF = Disabled)",
+            "#pragma config IESO = OFF               // Internal/External Switchover (OFF = Disabled)",
+            "#pragma config POSCMOD = XT             // Primary Oscillator Mode (XT = Crystal oscillator mode)",
+            "#pragma config OSCIOFNC = OFF           // CLKO Output (OFF = Disabled on OSC2 pin)",
+            "#pragma config FPBDIV = DIV_1           // Peripheral Bus Clock (80MHz ÷ 1 = 80MHz PBCLK)",
+            "#pragma config FCKSM = CSDCMD           // Clock Switching & Monitor (CSDCMD = Both disabled)",
+            "#pragma config WDTPS = PS1048576        // Watchdog Postscaler (1:1048576 = longest timeout)",
+            "#pragma config WINDIS = OFF             // Watchdog Window Mode (OFF = Disabled)",
+            "#pragma config FWDTEN = OFF             // Watchdog Timer (OFF = Disabled, prevents unexpected resets)",
+            "#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Window Size (25%)",
+            "",
+            "// DEVCFG0 - Debug and Code Protection",
+            "#pragma config DEBUG = ON               // Debugger Enable (ON = Debugging enabled for MPLAB/ICD)",
+            "#pragma config JTAGEN = OFF             // JTAG Port (OFF = JTAG disabled)",
+            "#pragma config ICESEL = ICS_PGx2        // ICD/ICE Pins (ICS_PGx2 = Communicate on PGEC2/PGED2)",
+            "#pragma config PWP = OFF                // Program Flash Write Protect (OFF = Disabled)",
+            "#pragma config BWP = OFF                // Boot Flash Write Protect (OFF = Disabled)",
+            "#pragma config CP = OFF                 // Code Protect (OFF = Code protection disabled)"
+        ],
+        "120mhz": [
+            "// DEVCFG3 - Device Configuration Register 3",
+            "#pragma config USERID = 0xFFFF          // User ID bits (default = 0xFFFF)",
+            "#pragma config PMDL1WAY = OFF           // Peripheral Module Disable (OFF = Allow multiple reconfigurations)",
+            "#pragma config IOL1WAY = OFF            // Peripheral Pin Select (OFF = Allow multiple reconfigurations)",
+            "#pragma config FUSBIDIO = OFF           // USB USBID pin (OFF = Controlled by port I/O)",
+            "#pragma config FVBUSONIO = OFF          // USB VBUS_ON pin (OFF = Controlled by port I/O)",
+            "",
+            "// DEVCFG2 - PLL and Clock Configuration (8MHz crystal → 120MHz system clock)",
+            "#pragma config FPLLIDIV = DIV_2         // PLL Input Divider (8MHz ÷ 2 = 4MHz to PLL)",
+            "#pragma config FPLLMULT = MUL_24        // PLL Multiplier (4MHz × 24 = 96MHz, then × 1.25 = 120MHz)",
+            "#pragma config FPLLODIV = DIV_1         // PLL Output Divider (120MHz ÷ 1 = 120MHz)",
+            "#pragma config UPLLIDIV = DIV_2         // USB PLL Input Divider (÷ 2)",
+            "#pragma config UPLLEN = OFF             // USB PLL (OFF = Disabled, not using USB in this template)",
+            "",
+            "// DEVCFG1 - Oscillator and Peripheral Bus Configuration",
+            "#pragma config FNOSC = PRIPLL           // Oscillator Selection (PRIPLL = Primary oscillator with PLL)",
+            "#pragma config FSOSCEN = OFF            // Secondary Oscillator (OFF = Disabled)",
+            "#pragma config IESO = OFF               // Internal/External Switchover (OFF = Disabled)",
+            "#pragma config POSCMOD = XT             // Primary Oscillator Mode (XT = Crystal oscillator mode)",
+            "#pragma config OSCIOFNC = OFF           // CLKO Output (OFF = Disabled on OSC2 pin)",
+            "#pragma config FPBDIV = DIV_1           // Peripheral Bus Clock (120MHz ÷ 1 = 120MHz PBCLK)",
+            "#pragma config FCKSM = CSDCMD           // Clock Switching & Monitor (CSDCMD = Both disabled)",
+            "#pragma config WDTPS = PS1048576        // Watchdog Postscaler (1:1048576 = longest timeout)",
+            "#pragma config WINDIS = OFF             // Watchdog Window Mode (OFF = Disabled)",
+            "#pragma config FWDTEN = OFF             // Watchdog Timer (OFF = Disabled, prevents unexpected resets)",
+            "#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Window Size (25%)",
+            "",
+            "// DEVCFG0 - Debug and Code Protection",
+            "#pragma config DEBUG = ON               // Debugger Enable (ON = Debugging enabled for MPLAB/ICD)",
+            "#pragma config JTAGEN = OFF             // JTAG Port (OFF = JTAG disabled)",
+            "#pragma config ICESEL = ICS_PGx2        // ICD/ICE Pins (ICS_PGx2 = Communicate on PGEC2/PGED2)",
+            "#pragma config PWP = OFF                // Program Flash Write Protect (OFF = Disabled)",
+            "#pragma config BWP = OFF                // Boot Flash Write Protect (OFF = Disabled)",
+            "#pragma config CP = OFF                 // Code Protect (OFF = Code protection disabled)"
+        ],
         "default": [
-        "// DEVCFG3 - Device Configuration Register 3",
-        "#pragma config USERID = 0xFFFF          // User ID bits (default = 0xFFFF)",
-        "#pragma config PMDL1WAY = OFF           // Peripheral Module Disable (OFF = Allow multiple reconfigurations)",
-        "#pragma config IOL1WAY = OFF            // Peripheral Pin Select (OFF = Allow multiple reconfigurations)",
-        "#pragma config FUSBIDIO = OFF           // USB USBID pin (OFF = Controlled by port I/O)",
-        "#pragma config FVBUSONIO = OFF          // USB VBUS_ON pin (OFF = Controlled by port I/O)",
-        "",
-        "// DEVCFG2 - PLL and Clock Configuration (8MHz crystal → 80MHz system clock)",
-        "#pragma config FPLLIDIV = DIV_2         // PLL Input Divider (8MHz ÷ 2 = 4MHz to PLL)",
-        "#pragma config FPLLMULT = MUL_20        // PLL Multiplier (4MHz × 20 = 80MHz system clock)",
-        "#pragma config FPLLODIV = DIV_1         // PLL Output Divider (80MHz ÷ 1 = 80MHz)",
-        "#pragma config UPLLIDIV = DIV_2         // USB PLL Input Divider (÷ 2)",
-        "#pragma config UPLLEN = OFF             // USB PLL (OFF = Disabled, not using USB in this template)",
-        "",
-        "// DEVCFG1 - Oscillator and Peripheral Bus Configuration",
-        "#pragma config FNOSC = PRIPLL           // Oscillator Selection (PRIPLL = Primary oscillator with PLL)",
-        "#pragma config FSOSCEN = OFF            // Secondary Oscillator (OFF = Disabled)",
-        "#pragma config IESO = OFF               // Internal/External Switchover (OFF = Disabled)",
-        "#pragma config POSCMOD = XT             // Primary Oscillator Mode (XT = Crystal oscillator mode)",
-        "#pragma config OSCIOFNC = OFF           // CLKO Output (OFF = Disabled on OSC2 pin)",
-        "#pragma config FPBDIV = DIV_1           // Peripheral Bus Clock (80MHz ÷ 1 = 80MHz PBCLK)",
-        "#pragma config FCKSM = CSDCMD           // Clock Switching & Monitor (CSDCMD = Both disabled)",
-        "#pragma config WDTPS = PS1048576        // Watchdog Postscaler (1:1048576 = longest timeout)",
-        "#pragma config WINDIS = OFF             // Watchdog Window Mode (OFF = Disabled)",
-        "#pragma config FWDTEN = OFF             // Watchdog Timer (OFF = Disabled, prevents unexpected resets)",
-        "#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Window Size (25%)",
-        "",
-        "// DEVCFG0 - Debug and Code Protection",
-        "#pragma config DEBUG = ON               // Debugger Enable (ON = Debugging enabled for MPLAB/ICD)",
-        "#pragma config JTAGEN = OFF             // JTAG Port (OFF = JTAG disabled)",
-        "#pragma config ICESEL = ICS_PGx2        // ICD/ICE Pins (ICS_PGx2 = Communicate on PGEC2/PGED2)",
-        "#pragma config PWP = OFF                // Program Flash Write Protect (OFF = Disabled)",
-        "#pragma config BWP = OFF                // Boot Flash Write Protect (OFF = Disabled)",
-        "#pragma config CP = OFF                 // Code Protect (OFF = Code protection disabled)"
-    ]
+            "// DEVCFG3 - Device Configuration Register 3",
+            "#pragma config USERID = 0xFFFF          // User ID bits (default = 0xFFFF)",
+            "#pragma config PMDL1WAY = OFF           // Peripheral Module Disable (OFF = Allow multiple reconfigurations)",
+            "#pragma config IOL1WAY = OFF            // Peripheral Pin Select (OFF = Allow multiple reconfigurations)",
+            "#pragma config FUSBIDIO = OFF           // USB USBID pin (OFF = Controlled by port I/O)",
+            "#pragma config FVBUSONIO = OFF          // USB VBUS_ON pin (OFF = Controlled by port I/O)",
+            "",
+            "// DEVCFG2 - PLL and Clock Configuration (8MHz crystal → 48MHz system clock)",
+            "#pragma config FPLLIDIV = DIV_2         // PLL Input Divider (8MHz ÷ 2 = 4MHz to PLL)",
+            "#pragma config FPLLMULT = MUL_12        // PLL Multiplier (4MHz × 12 = 48MHz system clock)",
+            "#pragma config FPLLODIV = DIV_1         // PLL Output Divider (48MHz ÷ 1 = 48MHz)",
+            "#pragma config UPLLIDIV = DIV_2         // USB PLL Input Divider (÷ 2)",
+            "#pragma config UPLLEN = OFF             // USB PLL (OFF = Disabled, not using USB in this template)",
+            "",
+            "// DEVCFG1 - Oscillator and Peripheral Bus Configuration",
+            "#pragma config FNOSC = PRIPLL           // Oscillator Selection (PRIPLL = Primary oscillator with PLL)",
+            "#pragma config FSOSCEN = OFF            // Secondary Oscillator (OFF = Disabled)",
+            "#pragma config IESO = OFF               // Internal/External Switchover (OFF = Disabled)",
+            "#pragma config POSCMOD = XT             // Primary Oscillator Mode (XT = Crystal oscillator mode)",
+            "#pragma config OSCIOFNC = OFF           // CLKO Output (OFF = Disabled on OSC2 pin)",
+            "#pragma config FPBDIV = DIV_1           // Peripheral Bus Clock (48MHz ÷ 1 = 48MHz PBCLK)",
+            "#pragma config FCKSM = CSDCMD           // Clock Switching & Monitor (CSDCMD = Both disabled)",
+            "#pragma config WDTPS = PS1048576        // Watchdog Postscaler (1:1048576 = longest timeout)",
+            "#pragma config WINDIS = OFF             // Watchdog Window Mode (OFF = Disabled)",
+            "#pragma config FWDTEN = OFF             // Watchdog Timer (OFF = Disabled, prevents unexpected resets)",
+            "#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Window Size (25%)",
+            "",
+            "// DEVCFG0 - Debug and Code Protection",
+            "#pragma config DEBUG = ON               // Debugger Enable (ON = Debugging enabled for MPLAB/ICD)",
+            "#pragma config JTAGEN = OFF             // JTAG Port (OFF = JTAG disabled)",
+            "#pragma config ICESEL = ICS_PGx2        // ICD/ICE Pins (ICS_PGx2 = Communicate on PGEC2/PGED2)",
+            "#pragma config PWP = OFF                // Program Flash Write Protect (OFF = Disabled)",
+            "#pragma config BWP = OFF                // Boot Flash Write Protect (OFF = Disabled)",
+            "#pragma config CP = OFF                 // Code Protect (OFF = Code protection disabled)"
+        ]
     },
     "devices": [
         {
             "label": "32MX110F016B",
-            "description": "16KB Flash, 4KB RAM, 28-pin"
+            "description": "16KB Flash, 4KB RAM, 28-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX120F032B",
-            "description": "32KB Flash, 4KB RAM, 28-pin"
+            "description": "32KB Flash, 4KB RAM, 28-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX130F064B",
-            "description": "64KB Flash, 16KB RAM, 28-pin"
+            "description": "64KB Flash, 16KB RAM, 28-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX130F256B",
-            "description": "256KB Flash, 16KB RAM, 28-pin"
+            "description": "256KB Flash, 16KB RAM, 28-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX150F128B",
-            "description": "128KB Flash, 32KB RAM, 28-pin"
+            "description": "128KB Flash, 32KB RAM, 28-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX170F256B",
-            "description": "256KB Flash, 64KB RAM, 28-pin"
+            "description": "256KB Flash, 64KB RAM, 28-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX170F512H",
-            "description": "512KB Flash, 64KB RAM, 64-pin"
+            "description": "512KB Flash, 64KB RAM, 64-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX170F512L",
-            "description": "512KB Flash, 64KB RAM, 100-pin"
+            "description": "512KB Flash, 64KB RAM, 100-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX210F016B",
-            "description": "16KB Flash, 4KB RAM, 28-pin (USB)"
+            "description": "16KB Flash, 4KB RAM, 28-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX220F032B",
-            "description": "32KB Flash, 8KB RAM, 28-pin (USB)"
+            "description": "32KB Flash, 8KB RAM, 28-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX230F064B",
-            "description": "64KB Flash, 16KB RAM, 28-pin (USB)"
+            "description": "64KB Flash, 16KB RAM, 28-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX230F256B",
-            "description": "256KB Flash, 16KB RAM, 28-pin (USB)"
+            "description": "256KB Flash, 16KB RAM, 28-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX250F128B",
-            "description": "128KB Flash, 32KB RAM, 28-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 28-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX270F256B",
-            "description": "256KB Flash, 64KB RAM, 28-pin (USB)"
+            "description": "256KB Flash, 64KB RAM, 28-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX270F512H",
-            "description": "512KB Flash, 64KB RAM, 64-pin (USB)"
+            "description": "512KB Flash, 64KB RAM, 64-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX270F512L",
-            "description": "512KB Flash, 64KB RAM, 100-pin (USB)"
+            "description": "512KB Flash, 64KB RAM, 100-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX110F016D",
-            "description": "16KB Flash, 4KB RAM, 44-pin"
+            "description": "16KB Flash, 4KB RAM, 44-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX120F032D",
-            "description": "32KB Flash, 8KB RAM, 44-pin"
+            "description": "32KB Flash, 8KB RAM, 44-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX130F064D",
-            "description": "64KB Flash, 16KB RAM, 44-pin"
+            "description": "64KB Flash, 16KB RAM, 44-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX130F256D",
-            "description": "256KB Flash, 16KB RAM, 44-pin"
+            "description": "256KB Flash, 16KB RAM, 44-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX150F128D",
-            "description": "128KB Flash, 64KB RAM, 44-pin"
+            "description": "128KB Flash, 64KB RAM, 44-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX170F256D",
-            "description": "256KB Flash, 64KB RAM, 44-pin"
+            "description": "256KB Flash, 64KB RAM, 44-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX210F016D",
-            "description": "16KB Flash, 4KB RAM, 44-pin (USB)"
+            "description": "16KB Flash, 4KB RAM, 44-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX220F032D",
-            "description": "32KB Flash, 8KB RAM, 44-pin (USB)"
+            "description": "32KB Flash, 8KB RAM, 44-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX230F064D",
-            "description": "64KB Flash, 16KB RAM, 44-pin (USB)"
+            "description": "64KB Flash, 16KB RAM, 44-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX230F256D",
-            "description": "256KB Flash, 16KB RAM, 44-pin (USB)"
+            "description": "256KB Flash, 16KB RAM, 44-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX250F128D",
-            "description": "128KB Flash, 32KB RAM, 44-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 44-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX270F256D",
-            "description": "256KB Flash, 64KB RAM, 44-pin (USB)"
+            "description": "256KB Flash, 64KB RAM, 44-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX120F064H",
-            "description": "64KB Flash, 8KB RAM, 64-pin"
+            "description": "64KB Flash, 8KB RAM, 64-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX130F128H",
-            "description": "128KB Flash, 16KB RAM, 64-pin"
+            "description": "128KB Flash, 16KB RAM, 64-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX130F128L",
-            "description": "128KB Flash, 16KB RAM, 100-pin"
+            "description": "128KB Flash, 16KB RAM, 100-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX150F256H",
-            "description": "256KB Flash, 32KB RAM, 64-pin"
+            "description": "256KB Flash, 32KB RAM, 64-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX150F256L",
-            "description": "256KB Flash, 32KB RAM, 100-pin"
+            "description": "256KB Flash, 32KB RAM, 100-pin",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX230F128H",
-            "description": "128KB Flash, 16KB RAM, 64-pin (USB)"
+            "description": "128KB Flash, 16KB RAM, 64-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX230F128L",
-            "description": "128KB Flash, 16KB RAM, 100-pin (USB)"
+            "description": "128KB Flash, 16KB RAM, 100-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX250F256H",
-            "description": "256KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "256KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX250F256L",
-            "description": "256KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "256KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 50,
+            "configVariant": "50mhz"
         },
         {
             "label": "32MX154F128B",
-            "description": "128KB Flash, 32KB RAM, 28-pin (CTMU)"
+            "description": "128KB Flash, 32KB RAM, 28-pin (CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX154F128D",
-            "description": "128KB Flash, 32KB RAM, 44-pin (CTMU)"
+            "description": "128KB Flash, 32KB RAM, 44-pin (CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX174F256B",
-            "description": "256KB Flash, 64KB RAM, 28-pin (CTMU)"
+            "description": "256KB Flash, 64KB RAM, 28-pin (CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX174F256D",
-            "description": "256KB Flash, 64KB RAM, 44-pin (CTMU)"
+            "description": "256KB Flash, 64KB RAM, 44-pin (CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX254F128B",
-            "description": "128KB Flash, 32KB RAM, 28-pin (USB+CTMU)"
+            "description": "128KB Flash, 32KB RAM, 28-pin (USB+CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX254F128D",
-            "description": "128KB Flash, 32KB RAM, 44-pin (USB+CTMU)"
+            "description": "128KB Flash, 32KB RAM, 44-pin (USB+CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX274F256B",
-            "description": "256KB Flash, 64KB RAM, 28-pin (USB+CTMU)"
+            "description": "256KB Flash, 64KB RAM, 28-pin (USB+CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX274F256D",
-            "description": "256KB Flash, 64KB RAM, 44-pin (USB+CTMU)"
+            "description": "256KB Flash, 64KB RAM, 44-pin (USB+CTMU)",
+            "maxClockMHz": 72,
+            "configVariant": "72mhz"
         },
         {
             "label": "32MX320F032H",
-            "description": "32KB Flash, 8KB RAM, 64-pin"
+            "description": "32KB Flash, 8KB RAM, 64-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX320F064H",
-            "description": "64KB Flash, 16KB RAM, 64-pin"
+            "description": "64KB Flash, 16KB RAM, 64-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX320F128H",
-            "description": "128KB Flash, 16KB RAM, 64-pin"
+            "description": "128KB Flash, 16KB RAM, 64-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX320F128L",
-            "description": "128KB Flash, 16KB RAM, 100-pin"
+            "description": "128KB Flash, 16KB RAM, 100-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX330F064H",
-            "description": "64KB Flash, 16KB RAM, 64-pin"
+            "description": "64KB Flash, 16KB RAM, 64-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX330F064L",
-            "description": "64KB Flash, 16KB RAM, 100-pin"
+            "description": "64KB Flash, 16KB RAM, 100-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX340F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX340F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX340F256H",
-            "description": "256KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "256KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX340F512H",
-            "description": "512KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "512KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX350F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin"
+            "description": "128KB Flash, 32KB RAM, 64-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX350F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin"
+            "description": "128KB Flash, 32KB RAM, 100-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX350F256H",
-            "description": "256KB Flash, 64KB RAM, 64-pin"
+            "description": "256KB Flash, 64KB RAM, 64-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX350F256L",
-            "description": "256KB Flash, 64KB RAM, 100-pin"
+            "description": "256KB Flash, 64KB RAM, 100-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX360F256L",
-            "description": "256KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "256KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX360F512L",
-            "description": "512KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "512KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX370F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin"
+            "description": "512KB Flash, 128KB RAM, 64-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX370F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin"
+            "description": "512KB Flash, 128KB RAM, 100-pin",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX420F032H",
-            "description": "32KB Flash, 8KB RAM, 64-pin (USB)"
+            "description": "32KB Flash, 8KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX430F064H",
-            "description": "64KB Flash, 16KB RAM, 64-pin (USB)"
+            "description": "64KB Flash, 16KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX430F064L",
-            "description": "64KB Flash, 16KB RAM, 100-pin (USB)"
+            "description": "64KB Flash, 16KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX440F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX440F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX440F256H",
-            "description": "256KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "256KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX440F512H",
-            "description": "512KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "512KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX450F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX450F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "128KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX450F256H",
-            "description": "256KB Flash, 64KB RAM, 64-pin (USB)"
+            "description": "256KB Flash, 64KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX450F256L",
-            "description": "256KB Flash, 64KB RAM, 100-pin (USB)"
+            "description": "256KB Flash, 64KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX460F256L",
-            "description": "256KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "256KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX460F512L",
-            "description": "512KB Flash, 32KB RAM, 100-pin (USB)"
+            "description": "512KB Flash, 32KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX470F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin (USB)"
+            "description": "512KB Flash, 128KB RAM, 64-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX470F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin (USB)"
+            "description": "512KB Flash, 128KB RAM, 100-pin (USB)",
+            "maxClockMHz": 120,
+            "configVariant": "120mhz"
         },
         {
             "label": "32MX530F128H",
-            "description": "128KB Flash, 16KB RAM, 64-pin (USB+CAN)"
+            "description": "128KB Flash, 16KB RAM, 64-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX530F128L",
-            "description": "128KB Flash, 16KB RAM, 100-pin (USB+Ethernet+CAN)"
+            "description": "128KB Flash, 16KB RAM, 100-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX534F064H",
-            "description": "64KB Flash, 16KB RAM, 64-pin (USB+CAN)"
+            "description": "64KB Flash, 16KB RAM, 64-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX534F064L",
-            "description": "64KB Flash, 16KB RAM, 100-pin (USB+CAN)"
+            "description": "64KB Flash, 16KB RAM, 100-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX550F256H",
-            "description": "256KB Flash, 32KB RAM, 64-pin (USB+CAN)"
+            "description": "256KB Flash, 32KB RAM, 64-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX550F256L",
-            "description": "256KB Flash, 32KB RAM, 100-pin (USB+CAN)"
+            "description": "256KB Flash, 32KB RAM, 100-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX564F064H",
-            "description": "64KB Flash, 16KB RAM, 64-pin (USB+Ethernet+CAN)"
+            "description": "64KB Flash, 16KB RAM, 64-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX564F064L",
-            "description": "64KB Flash, 16KB RAM, 100-pin (USB+Ethernet+CAN)"
+            "description": "64KB Flash, 16KB RAM, 100-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX564F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin (USB+Ethernet+CAN)"
+            "description": "128KB Flash, 32KB RAM, 64-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX564F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin (USB+Ethernet+CAN)"
+            "description": "128KB Flash, 32KB RAM, 100-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX570F512H",
-            "description": "512KB Flash, 64KB RAM, 64-pin (USB+CAN)"
+            "description": "512KB Flash, 64KB RAM, 64-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX570F512L",
-            "description": "512KB Flash, 64KB RAM, 100-pin (USB+CAN)"
+            "description": "512KB Flash, 64KB RAM, 100-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX575F256H",
-            "description": "256KB Flash, 64KB RAM, 64-pin (USB+CAN)"
+            "description": "256KB Flash, 64KB RAM, 64-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX575F256L",
-            "description": "256KB Flash, 64KB RAM, 100-pin (USB+CAN)"
+            "description": "256KB Flash, 64KB RAM, 100-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX575F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin (USB+CAN)"
+            "description": "512KB Flash, 128KB RAM, 64-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX575F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin (USB+CAN)"
+            "description": "512KB Flash, 128KB RAM, 100-pin (USB+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX664F064H",
-            "description": "64KB Flash, 16KB RAM, 64-pin (USB+Ethernet)"
+            "description": "64KB Flash, 16KB RAM, 64-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX664F064L",
-            "description": "64KB Flash, 16KB RAM, 100-pin (USB+Ethernet)"
+            "description": "64KB Flash, 16KB RAM, 100-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX664F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin (USB+Ethernet)"
+            "description": "128KB Flash, 32KB RAM, 64-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX664F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin (USB+Ethernet)"
+            "description": "128KB Flash, 32KB RAM, 100-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX675F256H",
-            "description": "256KB Flash, 64KB RAM, 64-pin (USB+Ethernet)"
+            "description": "256KB Flash, 64KB RAM, 64-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX675F256L",
-            "description": "256KB Flash, 64KB RAM, 100-pin (USB+Ethernet)"
+            "description": "256KB Flash, 64KB RAM, 100-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX675F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet)"
+            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX675F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet)"
+            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX695F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet)"
+            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX695F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet)"
+            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX764F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin (USB+Ethernet+CAN)"
+            "description": "128KB Flash, 32KB RAM, 64-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX764F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin (USB+Ethernet+CAN)"
+            "description": "128KB Flash, 32KB RAM, 100-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX775F256H",
-            "description": "256KB Flash, 64KB RAM, 64-pin (USB+Ethernet+CAN)"
+            "description": "256KB Flash, 64KB RAM, 64-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX775F256L",
-            "description": "256KB Flash, 64KB RAM, 100-pin (USB+Ethernet+CAN)"
+            "description": "256KB Flash, 64KB RAM, 100-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX775F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet+CAN)"
+            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX775F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet+CAN)"
+            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX795F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet+CAN)"
+            "description": "512KB Flash, 128KB RAM, 64-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         },
         {
             "label": "32MX795F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet+CAN)"
+            "description": "512KB Flash, 128KB RAM, 100-pin (USB+Ethernet+CAN)",
+            "maxClockMHz": 80,
+            "configVariant": "80mhz"
         }
     ]
 }

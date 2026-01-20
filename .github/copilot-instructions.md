@@ -21,8 +21,11 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 3. **XC32 Project Creation** ([extension.ts](../src/extension.ts) → `createXC32Project`)
    - Detect XC32 compiler via quick check of common paths (instant, no PowerShell timeout)
    - Auto-detect DFP (Device Family Pack) from MPLABX installation (`C:/Program Files/Microchip/MPLABX/v*/packs/Microchip/`)
+   - **Config Editor Integration**: Opens webview after device selection, before file generation
+   - User configures oscillator/PLL settings → saves to `config.json`
+   - Generates `#pragma config` statements from config.json
    - Generate template project with folder structure: `srcs/`, `incs/`, `objs/`, `bins/`
-   - Create files: `srcs/main.c`, `Makefile`, `tasks.json`, `README.md`
+   - Create files: `srcs/main.c`, `Makefile`, `tasks.json`, `README.md`, `config.json`
    - Add `-mdfp="$(DFP_PATH)"` flag to Makefile (required for XC32 v4.0+)
    - **DFP_PATH variable**: User-editable Makefile variable for manual DFP path configuration
    - Offer manual browse if compiler/DFP not in standard locations (validates xc32 subfolder)
@@ -42,6 +45,8 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 - **[bundledTools.ts](../src/bundledTools.ts)**: Provides paths to bundled `make.exe`, `sh.exe`, `rm.exe` (zero external dependencies)
 - **[bootloaderUpdater.ts](../src/bootloaderUpdater.ts)**: Auto-checks GitHub releases for `mikro_hb.exe`, downloads to `globalStorageUri` (survives extension updates)
 - **[makefileGenerator.ts](../src/makefileGenerator.ts)**: Generates cross-platform Makefiles with proper escaping for paths with spaces
+- **[deviceLoader.ts](../src/deviceLoader.ts)**: Loads device definitions from JSON, provides device-specific clock frequencies and config options
+- **[configEditor.ts](../src/configEditor.ts)**: Webview provider for oscillator/PLL configuration (new project creation only)
 
 ## Critical Development Rules
 
@@ -176,18 +181,25 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
 
 ## Roadmap & Known Issues
 
-**Current Focus** (Jan 2026): Hardware debug support (ICD/PICkit/SNAP integration)
+**Current Focus** (Jan 19, 2026): Configuration Editor for new project creation
 
-**Deferred**:
-- MikroC Config Editor webview (configEditor.ts) - needs GPIO/UART sections removed
-- MCC/Harmony code generation - too complex (1000+ .ftl templates)
+**In Development**:
+- **Config Editor Webview** (configEditor.ts) - Oscillator/PLL configuration for new XC32/MikroC projects
+  - Compiler-agnostic design: config.json → XC32 #pragma OR MikroC format
+  - Only for NEW projects (createXC32Project, createMikroCProject)
+  - NOT used for imports (MPLABX/MikroC imports preserve existing config)
+  - Real-time clock calculator based on oscillator + PLL settings
+  - Device-driven options from JSON (valid PLL ranges, oscillator modes)
+  - Mirrors MikroC Project Settings dialog UX
+
+**Next Priority**: Hardware debug support (ICD/PICkit/SNAP integration)
+
+**Not Pursuing**: MCC/Harmony code generation (too complex, 1000+ .ftl templates)
 
 **Common Issues**:
 - Template path resolution after `vsce package` - use `context.extensionPath`, not `__dirname`
 - MikroC library detection - scan source code, don't rely on project file alone
 - MPLABX linker script paths - may be absolute or relative, normalize before copying
-
-### **Current Focus: XC32 PIC32MX/MZ Import & Debug**
 
 ---
 

@@ -7,13 +7,14 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { MPLABXImporter, saveMetadata, ProjectMetadata } from './projectImporter';
+import { MPLABXImporter, saveMetadata, ProjectMetadata, ProjectInfo } from './projectImporter';
 const packageJson = require('../package.json');
 import { MakefileGenerator } from './makefileGenerator';
 import { MikroCImporter } from './mikrocImporter';
 import { BootloaderUpdater } from './bootloaderUpdater';
 import { BundledToolsManager } from './bundledTools';
-import { loadDeviceDefinitions, getAllDevicesFlat, DeviceDefinition, detectDeviceFamily, getConfigBits } from './deviceLoader';
+import { loadDeviceDefinitions, getAllDevicesFlat, DeviceDefinition, detectDeviceFamily, getConfigBits, getDeviceClockFrequency } from './deviceLoader';
+import { ConfigEditorProvider, generateXC32Config } from './configEditor';
 
 // Device definitions loaded from JSON files at runtime
 let SUPPORTED_DEVICES: Record<string, DeviceDefinition[]> = {
@@ -939,6 +940,32 @@ async function createXC32Project(context: vscode.ExtensionContext) {
 
     const deviceName = deviceChoice.label;
 
+    // Get device family for config editor
+    const familyName = detectDeviceFamily(deviceName);
+    if (!familyName) {
+        vscode.window.showErrorMessage(`Unknown device family for ${deviceName}`);
+        return;
+    }
+
+    // Show config editor modal for oscillator/PLL configuration
+    const configProvider = new ConfigEditorProvider(
+        context.extensionUri,
+        {
+            deviceName,
+            deviceFamily: familyName,
+            compiler: 'XC32'
+        }
+    );
+    const projectConfig = await configProvider.showModal();
+    
+    if (!projectConfig) {
+        // User cancelled config editor
+        console.log('[DEBUG] User cancelled config editor');
+        return;
+    }
+
+    console.log('[DEBUG] Config received:', JSON.stringify(projectConfig, null, 2));
+
     // Detect XC32 compiler with progress notification
     const xc32Path = await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
@@ -1054,31 +1081,23 @@ async function createXC32Project(context: vscode.ExtensionContext) {
         title: `Creating XC32 project "${projectName}"...`,
         cancellable: false
     }, async () => {
-        // Create directories
-        const srcsDir = path.join(outputPath, 'srcs');
-        const incsDir = path.join(outputPath, 'incs');
-        const objsDir = path.join(outputPath, 'objs');
-        const binsDir = path.join(outputPath, 'bins');
-        
-        fs.mkdirSync(srcsDir, { recursive: true });
-        fs.mkdirSync(incsDir, { recursive: true });
-        fs.mkdirSync(objsDir, { recursive: true });
-        fs.mkdirSync(binsDir, { recursive: true });
+        try {
+            // Create directories
+            const srcsDir = path.join(outputPath, 'srcs');
+            const incsDir = path.join(outputPath, 'incs');
+            const objsDir = path.join(outputPath, 'objs');
+            const binsDir = path.join(outputPath, 'bins');
+            
+            fs.mkdirSync(srcsDir, { recursive: true });
+            fs.mkdirSync(incsDir, { recursive: true });
+            fs.mkdirSync(objsDir, { recursive: true });
+            fs.mkdirSync(binsDir, { recursive: true });
 
-        // Get device family and configuration bits from JSON
-        const familyName = detectDeviceFamily(deviceName);
-        if (!familyName) {
-            vscode.window.showErrorMessage(`Unknown device family for ${deviceName}`);
-            return;
-        }
-        
-        // Load configuration bits from JSON (device-specific variant)
-        const configBitsArray = getConfigBits(familyName, deviceName);
-        const configBits = configBitsArray.join('\n');
-        
-        // Determine system clock frequency based on family
-        const isMZ = deviceName.startsWith('32MZ');
-        const sysClockFreq = isMZ ? '200000000UL' : '80000000UL';
+            // Generate #pragma config statements from config editor
+            const configBits = generateXC32Config(projectConfig, familyName).join('\n');
+            
+            // Use calculated system clock frequency from config editor
+            const sysClockFreq = `${projectConfig.clock.systemFrequency}UL`;
         
         // Generate main.c template with device-specific configuration
         const mainTemplate = `/**
@@ -1093,7 +1112,7 @@ async function createXC32Project(context: vscode.ExtensionContext) {
 
 ${configBits}
 
-#define SYS_CLK_FREQ ${sysClockFreq}   // System clock frequency (Hz)
+#define SYS_CLK_FREQ ${sysClockFreq}   // System clock frequency (Hz) - ${projectConfig.clock.systemFrequency / 1000000}MHz
 
 void delay_ms(uint32_t ms) {
     uint32_t ticks = (SYS_CLK_FREQ / 2000) * ms;
@@ -1118,6 +1137,13 @@ int main(void) {
 
         fs.writeFileSync(path.join(srcsDir, 'main.c'), mainTemplate, 'utf-8');
 
+        // Save config.json to project root for future editing
+        fs.writeFileSync(
+            path.join(outputPath, 'config.json'),
+            JSON.stringify(projectConfig, null, 4),
+            'utf-8'
+        );
+
         // Generate startup.S if using MikroC bootloader
         if (useMikroBootloader) {
             const startupDir = path.join(srcsDir, 'startup');
@@ -1129,78 +1155,38 @@ int main(void) {
             fs.writeFileSync(path.join(startupDir, 'startup.S'), startupContent, 'utf-8');
         }
 
-        // Generate basic Makefile (Windows)
-        // TODO: Adjust for Linux when porting (.exe extensions, paths, etc.)
-        const detectedXC32 = finalXC32Path || 'C:/Program Files/Microchip/xc32/vX.XX';
-        const detectedDFP = finalDfpPath || '';
+        // Generate Makefiles using MakefileGenerator (same as MPLABX importer)
+        const projectInfo: ProjectInfo = {
+            projectType: 'mplabx',
+            projectName: projectName,
+            deviceName: deviceName,
+            compilerBinDir: finalXC32Path ? path.join(finalXC32Path, 'bin').replace(/\\/g, '/') : undefined,
+            dfpPath: finalDfpPath || undefined,
+            compiler: 'XC32',
+            sourceFiles: [],
+            headerFiles: [],
+            includePaths: [],
+            defines: new Map<string, string>(),
+            heapSize: '4096',
+            stackSize: '4096',
+            usesCrt0: !useMikroBootloader,
+            cflags: [],
+            ldflags: useMikroBootloader ? ['-nostartfiles'] : []
+        };
+
+        const generator = new MakefileGenerator();
+        const makePath = bundledTools.getMakePath() || 'make';
+        const binPath = bundledTools.getBinPath();
+        const shPath = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
         
-        const makefileTemplate = `# ${projectName} - XC32 Makefile
-# Device: ${deviceName}
-# Platform: Windows
-# Generated: ${new Date().toLocaleDateString()}
-
-# Project settings
-PROJECT_NAME = ${projectName}
-DEVICE = ${deviceName}
-
-# Toolchain paths${finalXC32Path ? ' (auto-detected)' : ' (TEMPLATE - UPDATE THIS PATH)'}
-XC32_PATH = ${detectedXC32}
-COMPILER_BIN = $(XC32_PATH)/bin
-CC = "$(COMPILER_BIN)/xc32-gcc.exe"
-LD = "$(COMPILER_BIN)/xc32-gcc.exe"
-OBJCOPY = "$(COMPILER_BIN)/xc32-bin2hex.exe"
-
-# Device Family Pack (DFP) path${finalDfpPath ? ' (auto-detected)' : ' (REQUIRED - See README.md for installation)'}
-# XC32 v4.0+ requires DFP for device support
-# Download from: https://www.microchip.com/packs
-# Standard location: C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/<DFP_NAME>/<version>
-DFP_PATH = ${detectedDFP}
-
-# Directories
-SRC_DIR = srcs
-OBJ_DIR = objs
-BIN_DIR = bins
-
-# Source files
-SRCS = $(wildcard $(SRC_DIR)/*.c)${useMikroBootloader ? ' $(wildcard $(SRC_DIR)/startup/*.S)' : ''}
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))${useMikroBootloader ? '\nOBJS += $(patsubst $(SRC_DIR)/startup/%.S,$(OBJ_DIR)/%.o,$(wildcard $(SRC_DIR)/startup/*.S))' : ''}
-
-# Compiler flags
-CFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ' -mdfp="$(DFP_PATH)"' : ''} -O2 -Wall
-LDFLAGS = -mprocessor=$(DEVICE)${finalDfpPath ? ' -mdfp="$(DFP_PATH)"' : ''}${useMikroBootloader ? ' -nostartfiles' : ''} -Wl,--defsym=_min_heap_size=0x1000
-
-# Output files
-ELF = $(BIN_DIR)/$(PROJECT_NAME).elf
-HEX = $(BIN_DIR)/$(PROJECT_NAME).hex
-
-.PHONY: all clean flash
-
-all: $(HEX)
-
-$(HEX): $(ELF)
-\t@echo Creating hex file...
-\t$(OBJCOPY) $(ELF)
-
-$(ELF): $(OBJS)
-\t@echo Linking...
-\t@mkdir -p $(BIN_DIR)
-\t$(LD) $(LDFLAGS) -o $@ $^
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-\t@mkdir -p $(OBJ_DIR)
-\t@echo Compiling $<...
-\t$(CC) $(CFLAGS) -c $< -o $@
-${useMikroBootloader ? '\n$(OBJ_DIR)/%.o: $(SRC_DIR)/startup/%.S\n\t@mkdir -p $(OBJ_DIR)\n\t@echo Assembling $<...\n\t$(CC) $(CFLAGS) -c $< -o $@\n' : ''}
-clean:
-\t@echo Cleaning...
-\t@rm -rf $(OBJ_DIR)/* $(BIN_DIR)/*
-
-flash: $(HEX)
-\t@echo Flashing $(HEX)...
-\t@echo TODO: Add flash command
-`;
-
-        fs.writeFileSync(path.join(outputPath, 'Makefile'), makefileTemplate, 'utf-8');
+        await generator.generate({
+            projectInfo,
+            outputPath,
+            optimizationLevel: '-O2',
+            makePath,
+            binPath,
+            shPath
+        });
 
         // Generate .vscode/tasks.json
         const vscodeDir = path.join(outputPath, '.vscode');
@@ -1290,6 +1276,11 @@ Generated: ${new Date().toLocaleString()}
 `;
 
         fs.writeFileSync(path.join(outputPath, 'README.md'), readmeContent, 'utf-8');
+        } catch (error) {
+            console.error('[ERROR] Project creation failed:', error);
+            vscode.window.showErrorMessage(`Failed to create project: ${error instanceof Error ? error.message : String(error)}`);
+            throw error;
+        }
     });
 
     // Show success and open project

@@ -9,6 +9,7 @@ import * as fs from 'fs';
 export interface DeviceDefinition {
     label: string;
     description: string;
+    maxClockMHz?: number;    // Maximum clock frequency in MHz
     configVariant?: string;  // Optional: which configBits variant to use (if not specified, uses 'default')
 }
 
@@ -121,6 +122,45 @@ export function detectDeviceFamily(deviceName: string): string | null {
         }
     }
     return null;
+}
+
+/**
+ * Get device-specific maximum clock frequency in MHz
+ * Falls back to family defaults if device-specific info not available
+ */
+export function getDeviceClockFrequency(deviceName: string): number {
+    // Find device definition
+    for (const devices of Object.values(loadedDevices)) {
+        const device = devices.find(d => d.label === deviceName);
+        if (device && device.maxClockMHz) {
+            return device.maxClockMHz;
+        }
+    }
+    
+    // Fallback: Family-based defaults
+    if (deviceName.startsWith('32MZ')) {
+        return 200; // PIC32MZ default
+    } else if (deviceName.startsWith('32MX')) {
+        // MX1/2 XLP series (154, 174, 254, 274) = 72MHz
+        if (deviceName.match(/32MX[12][57]4F/)) {
+            return 72;
+        }
+        // MX1/2/5 series = 50MHz
+        if (deviceName.match(/32MX[125]/)) {
+            return 50;
+        }
+        // MX3/4 series = 120MHz
+        if (deviceName.match(/32MX[34]/)) {
+            return 120;
+        }
+        // MX5/6/7 series (Ethernet) = 80MHz
+        if (deviceName.match(/32MX[567]/)) {
+            return 80;
+        }
+        return 50; // Default fallback
+    }
+    
+    return 80; // Generic fallback
 }
 
 // Cache loaded devices for detectDeviceFamily

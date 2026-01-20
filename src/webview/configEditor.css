@@ -1,0 +1,254 @@
+/**
+ * MikroC-Style Configuration Editor CSS
+ * Replicates the look and feel of MikroC Project Settings dialog
+ */
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 13px;
+    background-color: #f0f0f0;
+    color: #000;
+}
+
+.config-container {
+    display: grid;
+    grid-template-columns: 440px 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.config-left, .config-right {
+    padding: 10px;
+}
+
+.config-left {
+    border-right: 1px solid #ddd;
+}
+
+.config-left h3 {
+    margin: 0 0 15px 0;
+    padding: 8px 12px;
+    background-color: #e8e8e8;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: normal;
+    color: #000;
+}
+
+.config-section {
+    margin-bottom: 12px;
+}
+
+.config-section label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.config-section select,
+.config-section input[type="number"] {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    background-color: white;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+
+.config-section select:focus,
+.config-section input:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 1px #0078d4;
+}
+
+.config-right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.device-panel {
+    flex: 1;
+}
+
+.device-panel h3 {
+    margin: 0 0 15px 0;
+    padding: 8px 12px;
+    background-color: #e8e8e8;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+.device-info {
+    margin-bottom: 12px;
+}
+
+.device-info label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+#deviceName {
+    padding: 6px 10px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#clockFrequency {
+    width: 140px;
+    padding: 5px 8px;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    background-color: white;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+    color: #000;
+}
+
+.build-type {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background-color: #fafafa;
+}
+
+.build-type label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.build-type input[type="radio"] {
+    margin-right: 5px;
+    margin-left: 15px;
+}
+
+.build-type input[type="radio"]:first-of-type {
+    margin-left: 0;
+}
+
+.config-registers {
+    margin-top: 15px;
+}
+
+.config-registers label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+#configPreview {
+    width: 100%;
+    height: 160px;
+    padding: 8px;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    background-color: #f8f8f8;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    resize: none;
+    box-sizing: border-box;
+    color: #000;
+}
+
+.button-panel {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.button-panel button,
+.footer-buttons button {
+    padding: 7px 20px;
+    border: 1px solid #adadad;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, #fefefe 0%, #e8e8e8 100%);
+    font-size: 12px;
+    cursor: pointer;
+    min-width: 90px;
+}
+
+.button-panel button:hover,
+.footer-buttons button:hover {
+    background: linear-gradient(to bottom, #f8f8f8 0%, #ddd 100%);
+    border-color: #919191;
+}
+
+.button-panel button:active,
+.footer-buttons button:active {
+    background: linear-gradient(to bottom, #e8e8e8 0%, #fefefe 100%);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.footer-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding-top: 10px;
+}
+
+.footer-buttons button.primary {
+    background: linear-gradient(to bottom, #5fa3d6 0%, #3d88c4 100%);
+    border-color: #2d6ca3;
+    color: white;
+    font-weight: 600;
+}
+
+.footer-buttons button.primary:hover {
+    background: linear-gradient(to bottom, #4d93c6 0%, #2d78b4 100%);
+}
+
+.footer-buttons button.primary:active {
+    background: linear-gradient(to bottom, #3d88c4 0%, #5fa3d6 100%);
+}
+
+/* Scrollbar styling for consistency */
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border: 2px solid #f0f0f0;
+    border-radius: 7px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+/* Dropdown arrow styling */
+select {
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="12" height="8" viewBox="0 0 12 8" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L6 6L11 1" stroke="%23666" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 28px;
+}
