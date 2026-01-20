@@ -1,29 +1,49 @@
 # Project Status
 
-**Last Updated**: January 18, 2026  
-**Version**: 2.5.12  
+**Last Updated**: January 20, 2026  
+**Version**: 2.5.26  
 **Branch**: master
 
 ---
 
 ## 🎯 Development Roadmap
 
-### Current Focus: Hardware Debug Support
+### Current Focus: Config Editor Integration Complete - Ready for Testing
 
 **Priority Order**:
-1. **Debug Support** (Current - Jan 2026) - ICD/PICkit/SNAP integration, F5 debugging in VS Code
-2. **XC8 Support** (Future) - 8-bit PIC and AVR after XC32 is rock-solid
-3. **MikroC Config Editor** (Low Priority) - New project generation UI, minimalistic compiler
+1. **Config Editor Testing** (Current - Jan 20, 2026) - End-to-end validation of XC32 project creation workflow
+2. **Debug Support** (Next) - ICD/PICkit/SNAP integration, F5 debugging in VS Code
+3. **XC8 Support** (Future) - 8-bit PIC and AVR after XC32 is rock-solid
 
 **Not Pursuing**: MCC/Harmony project generation (too complex, leave to MPLABX)
 
-**Recently Completed**: Build/Rebuild/Flash status bar buttons fully functional (v2.5.8-2.5.12)
+**Recently Completed**: 
+- Config editor JSON-based #pragma config generation (v2.5.26 - Jan 20, 2026)
+- Config editor Promise resolution race condition fixed (v2.5.26 - Jan 20, 2026)
+- MakefileGenerator integration for project creation (v2.5.26 - Jan 20, 2026)
 
 ---
 
 ## ✅ Completed Features
 
-### 1. Build System Status Bar Integration (v2.5.8-2.5.12 - Jan 18, 2026)
+### 1. Configuration Editor Integration (v2.5.26 - Jan 20, 2026) ⚠️ READY FOR TESTING
+- **Config Editor UI**: 21 configuration options (oscillator, PLL, watchdog, debug, protection)
+- **Real-time clock calculator**: Dynamic PLL math with system frequency display
+- **Modal workflow**: Integrated into new XC32 project creation
+- **Promise resolution fix**: Resolve config before panel dispose to prevent race condition
+- **MakefileGenerator integration**: Uses proven MPLABX importer templates
+- **JSON-based config bits**: Pre-validated #pragma config from device JSON files
+- **PLL value substitution**: User's PLL settings merged into device-specific templates
+- **Family-aware**: Automatic PIC32MZ vs PIC32MX config bit selection
+- **Status**: Compiled and ready for end-to-end testing
+- **Next**: Delete C:\Temp\XC2, recreate project, verify compilation succeeds
+- **Files**: 
+  - `src/configEditor.ts` (webview provider, generateXC32Config refactored)
+  - `src/extension.ts` (createXC32Project with config editor integration)
+  - `devices/pic32mz-ef.json`, `devices/pic32mx.json` (config bit templates)
+  - `src/webview/configEditor.js`, `src/webview/configEditor.css` (UI)
+
+### 2. Build System Status Bar Integration (v2.5.8-2.5.12 - Jan 18, 2026)
 - **Build button**: Executes default build task (Ctrl+Shift+B equivalent)
 - **Rebuild button**: Runs `make rebuild` (or `make clean ; make` fallback)
 - **Flash button**: Flashes .hex file using MikroC bootloader
@@ -33,7 +53,15 @@
 - **Terminal integration**: Creates named terminals with proper environment variables
 - **Files**: `src/extension.ts` (buildProject, rebuildProject, flashDevice functions)
 
-### 2. XC32 Project Creation & Compiler Detection (v2.3.1-2.3.2 - Jan 13-14, 2026)
+### 3. Device-Specific Clock Configuration (v2.5.13 - Jan 19, 2026)
+- **Device-specific frequencies**: PIC32MX devices configured for 50/72/80/120MHz based on family
+- **Configuration bit variants**: 4 clock-speed-specific #pragma config templates in pic32mx.json
+- **Metadata-driven**: maxClockMHz and configVariant fields for all 104 PIC32MX devices
+- **Automatic selection**: getDeviceClockFrequency() with regex-based family detection
+- **PLL settings**: Correct FPLLIDIV/FPLLMULT/FPLLODIV for each clock speed variant
+- **Files**: `devices/pic32mx.json`, `src/deviceLoader.ts`, `src/extension.ts`
+
+### 3. XC32 Project Creation & Compiler Detection (v2.3.1-2.3.2 - Jan 13-14, 2026)
 - **Hybrid XC32 detection**: Fast common path check (99% case), manual browse fallback
 - **DFP auto-detection**: Automatically finds Device Family Packs from MPLABX installation
 - **Project templates**: Creates complete buildable projects with srcs/, incs/, objs/, bins/
@@ -44,7 +72,7 @@
 - **User guidance**: Clear installation instructions for missing DFPs
 - **Files**: `src/extension.ts` (createXC32Project, detectXC32Compiler, detectDFP, downloadDFP)
 
-### 3. MPLABX Project Import (v2.3.0-2.3.1 - Jan 11, 2026)
+### 4. MPLABX Project Import (v2.3.0-2.3.1 - Jan 11, 2026)
 - **tasks.json auto-generation**: Creates build tasks automatically during import
 - **Bundled make.exe**: Zero external dependencies - no MSYS2/Git Bash needed
 - **Ctrl+Shift+B support**: Build directly from VS Code with bundled tools
@@ -224,6 +252,101 @@ project_name/
 │
 └── README.md                   # ✅ VERIFIED - Generated
 ```
+
+---
+
+## 🚧 In Progress: Configuration Editor
+
+### Architecture (Jan 19, 2026)
+
+**Goal**: MikroC-style config editor for new project creation (NOT for imports)
+
+**Workflow Integration**:
+- Only appears during `createXC32Project()` and `createMikroCProject()`
+- NOT used when importing existing MPLABX/MikroC projects (preserve existing config)
+- Opens after device selection, before file generation
+
+**Core Design**:
+1. **Compiler-Agnostic Config Storage**
+   - Stores semantic settings in `config.json` (project root)
+   - Format: oscillator type, frequency, PLL dividers/multipliers, peripheral settings
+   - Example: `{ "oscillator": { "type": "XT", "frequency": 8000000 }, "pll": { "inputDiv": 2, "mult": 20, "outputDiv": 1 } }`
+
+2. **Device-Driven Options**
+   - Parses device JSON for valid PLL ranges, oscillator modes, config bit options
+   - Validates user selections against device constraints
+   - Example: PIC32MX allows DIV_1/2/3/4/5/8/10/12, MUL_15-24, etc.
+
+3. **Real-Time Clock Calculator**
+   - Displays calculated system clock frequency as user changes settings
+   - Formula: `(Crystal Frequency ÷ FPLLIDIV) × FPLLMULT ÷ FPLLODIV`
+   - Example: `(8MHz ÷ 2) × 20 ÷ 1 = 80MHz`
+
+4. **Dual Output Generators**
+   - **XC32 Output**: Generates exact `#pragma config` statements from config.json
+   - **MikroC Output** (future): Generates MikroC format from same config.json
+   - Maintains exact format currently used (line-by-line #pragma with comments)
+
+5. **Webview GUI**
+   - Mirrors MikroC Project Settings dialog layout (screenshots provided)
+   - Left panel: PLL settings, oscillator selection, peripheral config
+   - Right panel: Device name, calculated clock, build type, config register preview
+   - Buttons: Load Scheme, Save Scheme, Default, OK, Cancel
+
+**File Structure**:
+- `src/configEditor.ts` - Backend webview provider, config parser/generator
+- `src/webview/configEditor.html` - GUI layout matching MikroC style
+- `src/webview/configEditor.css` - Styling
+- `src/webview/configEditor.js` - Frontend logic, clock calculator, validation
+- `config.json` - Per-project configuration (gitignored in template)
+
+**Config JSON Schema**:
+```json
+{
+  "device": "32MZ2048EFH100",
+  "compiler": "XC32",
+  "oscillator": {
+    "primary": { "type": "XT", "frequency": 8000000 },
+    "secondary": { "enabled": false }
+  },
+  "pll": {
+    "inputDiv": 2,
+    "multiplier": 20,
+    "outputDiv": 1,
+    "usbInputDiv": 2,
+    "usbEnabled": false
+  },
+  "clock": {
+    "systemFrequency": 80000000,
+    "peripheralDiv": 1,
+    "switchingEnabled": false
+  },
+  "watchdog": { "enabled": false, "postscaler": "PS1048576" },
+  "debug": { "enabled": true, "icesel": "ICS_PGx2" },
+  "protection": { "codeProtect": false, "writeProtect": false },
+  "interrupts": {
+    "mode": "multi",
+    "shadowRegisters": true,
+    "srsCount": 7,
+    "vectorSpacing": 32,
+    "ebase": "0x9FC01000"
+  }
+}
+```
+
+**Integration Steps**:
+1. Parse device JSON → extract available config options
+2. Show webview with device constraints
+3. User configures oscillator/PLL/settings
+4. Calculate and display resulting clock frequency
+5. Save config.json to project root
+6. Generate #pragma config statements from config.json
+7. Insert into main.c template before code generation
+
+**Critical Constraints**:
+- Must output EXACT `#pragma config` format currently used (preserves MPLABX compatibility)
+- Config editor code must be reusable for MikroC projects (compiler-agnostic design)
+- Only shown for NEW projects, never for imports (imports preserve existing config)
 
 ---
 
