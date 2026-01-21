@@ -400,6 +400,26 @@ export class MPLABXImporter {
             fs.copyFileSync(srcFile, targetPath);
         }
 
+        // Copy user header files from .X parent directory (src/ folder)
+        const userHeaders = projectInfo.headerFiles.filter(f => 
+            !f.includes('config') && 
+            !f.includes('nbproject') &&
+            !f.includes('.X')
+        );
+
+        for (const headerFile of userHeaders) {
+            const relativePath = path.relative(projectInfo.sourceRoot!, headerFile);
+            const targetPath = path.join(targetRoot, 'srcs', relativePath);
+            
+            // Ensure target directory exists
+            const targetDir = path.dirname(targetPath);
+            if (!fs.existsSync(targetDir)) {
+                fs.mkdirSync(targetDir, { recursive: true });
+            }
+            
+            fs.copyFileSync(headerFile, targetPath);
+        }
+
         // Copy user files from .X folder (excluding nbproject, build, dist)
         if (projectInfo.xFolderPath) {
             const xFolderFiles = fs.readdirSync(projectInfo.xFolderPath, { withFileTypes: true });
