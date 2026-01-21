@@ -31,6 +31,11 @@ By importing your MPLABX projects (or creating new ones) in VS Code, you can:
 **Create New XC32 Projects:**
 - **Template Generation**: Create complete XC32 project from scratch with proper structure
 - **Device Selection**: Choose from 150+ PIC32MX/MZ devices with device-specific configuration
+- **Interactive Configuration Editor**: Visual UI for oscillator/PLL configuration (similar to MikroC Project Settings)
+  - Real-time clock calculation as you adjust PLL settings
+  - Device-specific constraints (valid PLL ranges, oscillator modes)
+  - Pre-validated #pragma config templates for each device family
+  - Watchdog, debug, and code protection settings
 - **Auto-Detection**: Automatically finds XC32 compiler and DFP (Device Family Pack)
 - **Ready to Build**: Generated with working Makefile, main.c template, and VS Code tasks
 - **Bootloader Option**: Optional MikroC bootloader startup.S generation
@@ -92,10 +97,14 @@ This extension is designed for **AI-assisted embedded development**:
 1. **Create from Template**
    - Run `XC Project Importer: Import MPLABX Project` → Choose "Create New XC32 Project"
    - Select target PIC32MX/MZ device
+   - **Configure in visual editor**: Set oscillator, PLL, watchdog, debug settings
+     - See real-time clock calculation as you adjust values
+     - Device-specific constraints prevent invalid configurations
    - Extension auto-detects XC32 compiler and DFP
 
 2. **Develop with AI Assistance**
    - Project opens with working main.c template and proper device configuration
+   - All #pragma config statements generated from your settings
    - Use GitHub Copilot to write application code
    - Build with Ctrl+Shift+B, click the Build/Rebuild buttons in the status bar, or type `make` in terminal
 
@@ -562,6 +571,13 @@ Contributions welcome! Please:
 4. Follow existing code style (TypeScript + ESLint)
 
 ## Changelog
+
+### v2.5.27 (January 2026)
+- 🐛 Fixed: User header files (app.h, etc.) from MCC Harmony projects now properly imported
+- ✨ Added: Visual configuration editor for new XC32 project creation
+  - Interactive oscillator/PLL configuration with real-time clock calculation
+  - Device-specific constraints and pre-validated #pragma config templates
+  - Mirrors MikroC Project Settings UI for familiar workflow
 
 ### v2.0.0 (December 2024)
 - 🎉 Complete rewrite focused on MPLABX import workflow
