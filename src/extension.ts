@@ -379,8 +379,16 @@ async function downloadDFP(deviceName: string): Promise<string | null> {
 
 /**
  * Clean up old extension versions from PATH and add current version
+ * 
+ * This function uses exact string matching instead of regex patterns.
+ * The exact path that was added is stored in globalState, so we can
+ * remove it precisely on updates without complex pattern matching.
+ * 
+ * @param currentPath The new path to add
+ * @param oldPath The exact old path to remove (if any)
+ * @param execAsync Promisified exec function
  */
-async function cleanupOldPathEntries(currentPath: string, execAsync: any): Promise<void> {
+async function cleanupOldPathEntries(currentPath: string, oldPath: string | null, execAsync: any): Promise<void> {
     console.log('[PATH] Cleaning up old extension versions from PATH...');
     
     const cleanupScript = `
@@ -395,9 +403,17 @@ async function cleanupOldPathEntries(currentPath: string, execAsync: any): Promi
         # Split PATH into entries
         $pathEntries = $userPath -split ';';
         
-        # Remove all entries matching the extension pattern (match both forward and backward slashes)
-        $cleanedEntries = $pathEntries | Where-Object { 
-            $_ -notmatch 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32' 
+        # Remove the exact old path if provided
+        $oldPath = '${oldPath ? oldPath.replace(/\\/g, '\\\\\\\\').replace(/'/g, "''") : ''}';
+        
+        if ($oldPath -ne '') {
+            Write-Host "Removing old extension path: $oldPath" -ForegroundColor Yellow
+            $cleanedEntries = $pathEntries | Where-Object { 
+                $_ -ne $oldPath
+            }
+        } else {
+            Write-Host "No old path to remove" -ForegroundColor Gray
+            $cleanedEntries = $pathEntries
         }
         
         # Add current version
@@ -451,6 +467,7 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
 
     const currentVersion = packageJson.version;
     const PATH_HANDLED_KEY = `pic32.path.handled.v${currentVersion}`;
+    const PATH_ADDED_KEY = 'pic32.path.addedPath';  // Stores the exact path we added
     const alreadyHandled = context.globalState.get<boolean>(PATH_HANDLED_KEY, false);
     
     if (alreadyHandled) {
@@ -466,9 +483,12 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         const { promisify } = require('util');
         const execAsync = promisify(exec);
         
-        // Check if CURRENT version's path exists, and if any old versions exist
+        // Check if CURRENT version's path exists, and if a saved old path exists
+        const savedOldPath = context.globalState.get<string>(PATH_ADDED_KEY, '');
+        
         const checkScript = `
             $currentPath = '${bundledBinPath.replace(/\\/g, '\\\\')}';
+            $savedOldPath = '${savedOldPath.replace(/\\/g, '\\\\').replace(/'/g, "''")}';
             $userPath = [Environment]::GetEnvironmentVariable('Path', 'User');
             
             if ($null -eq $userPath) { 
@@ -476,30 +496,25 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
                 exit
             }
             
-            $currentExists = $userPath -like "*$currentPath*"
+            # Split into entries for exact matching
+            $pathEntries = $userPath -split ';';
+            $currentExists = $pathEntries -contains $currentPath
+            $oldPathExists = ($savedOldPath -ne '') -and ($pathEntries -contains $savedOldPath)
             
-            # Check if any old version exists (match both forward and backward slashes)
-            # This regex matches ANY version of the extension
-            $oldVersionsExist = $userPath -match 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32'
-            
-            # Count how many versions exist in PATH
-            $allMatches = [regex]::Matches($userPath, 'davidcoetzee\\.xc-project-importer-[^;]+[/\\\\]bin[/\\\\]win32')
-            $versionCount = $allMatches.Count
-            
-            if ($currentExists -and $versionCount -eq 1) {
-                # Only current version exists, no cleanup needed
+            if ($currentExists -and -not $oldPathExists) {
+                # Current version exists and no old version - all good
                 Write-Output 'CURRENT_EXISTS_CLEAN'
                 exit
             }
             
-            if ($currentExists -and $versionCount -gt 1) {
-                # Current version exists but there are duplicates - need cleanup
-                Write-Output 'CURRENT_EXISTS_WITH_DUPLICATES'
+            if ($currentExists -and $oldPathExists -and ($currentPath -ne $savedOldPath)) {
+                # Both exist but they're different - need cleanup
+                Write-Output 'CURRENT_EXISTS_WITH_OLD'
                 exit
             }
             
-            if ($oldVersionsExist) {
-                # Old versions exist, current doesn't
+            if ($oldPathExists -and -not $currentExists) {
+                # Old version exists, current doesn't - update needed
                 Write-Output 'OLD_VERSION_EXISTS'
                 exit
             }
@@ -527,14 +542,16 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
             return;
         }
         
-        if (checkResult === 'CURRENT_EXISTS_WITH_DUPLICATES') {
-            console.log('[PATH] Current version exists but duplicates detected, cleaning up...');
-            // Auto-cleanup without prompting - remove ALL versions, then add current
-            await cleanupOldPathEntries(bundledBinPath, execAsync);
+        if (checkResult === 'CURRENT_EXISTS_WITH_OLD') {
+            console.log('[PATH] Current version exists but old version also detected, cleaning up...');
+            // Auto-cleanup without prompting - remove old version, keep current
+            await cleanupOldPathEntries(bundledBinPath, savedOldPath, execAsync);
+            // Update saved path to current
+            await context.globalState.update(PATH_ADDED_KEY, bundledBinPath);
             await context.globalState.update(PATH_HANDLED_KEY, true);
             
             vscode.window.showInformationMessage(
-                `✓ Removed duplicate extension paths from PATH (v${currentVersion} kept)\n\nRestart VS Code to apply changes.`,
+                `✓ Removed old extension path from PATH (v${currentVersion} kept)\n\nRestart VS Code to apply changes.`,
                 { modal: false }
             );
             return;
@@ -543,7 +560,9 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         if (checkResult === 'OLD_VERSION_EXISTS') {
             console.log('[PATH] Old version detected, auto-updating to current version...');
             // Auto-update without prompting - remove old, add new
-            await cleanupOldPathEntries(bundledBinPath, execAsync);
+            await cleanupOldPathEntries(bundledBinPath, savedOldPath, execAsync);
+            // Update saved path to current
+            await context.globalState.update(PATH_ADDED_KEY, bundledBinPath);
             await context.globalState.update(PATH_HANDLED_KEY, true);
             
             vscode.window.showInformationMessage(
@@ -603,6 +622,8 @@ async function addBundledToolsToPath(context: vscode.ExtensionContext): Promise<
         
         const result = addResult.trim();
         if (result === 'SUCCESS' || result === 'ALREADY_EXISTS') {
+            // Save the exact path we added for future cleanup
+            await context.globalState.update(PATH_ADDED_KEY, bundledBinPath);
             // Mark as handled so we don't prompt again
             await context.globalState.update(PATH_HANDLED_KEY, true);
             
@@ -689,6 +710,32 @@ export function activate(context: vscode.ExtensionContext) {
             const currentVersion = packageJson.version;
             await context.globalState.update(`pic32.path.handled.v${currentVersion}`, false);
             await addBundledToolsToPath(context);
+        }),
+        vscode.commands.registerCommand('pic32-ide.cleanupPath', async () => {
+            // Manual cleanup command to remove duplicate paths
+            const bundledBinPath = path.join(context.extensionPath, 'bin', 'win32');
+            const savedOldPath = context.globalState.get<string>('pic32.path.addedPath', '');
+            const { exec } = require('child_process');
+            const { promisify } = require('util');
+            const execAsync = promisify(exec);
+            
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Cleaning up duplicate extension paths from PATH...',
+                cancellable: false
+            }, async () => {
+                await cleanupOldPathEntries(bundledBinPath, savedOldPath, execAsync);
+            });
+            
+            // Save the current path and mark as handled
+            await context.globalState.update('pic32.path.addedPath', bundledBinPath);
+            const currentVersion = packageJson.version;
+            await context.globalState.update(`pic32.path.handled.v${currentVersion}`, true);
+            
+            vscode.window.showInformationMessage(
+                'PATH cleanup complete! Restart VS Code to apply changes.',
+                { modal: false }
+            );
         })
     );
     
