@@ -139,33 +139,33 @@
         const vcoFreqMHz = inputFreqMHz * multiplier;
         const systemFreqMHz = vcoFreqMHz / outputDiv;
         
+        // Check if result is a whole number (no fractional MHz)
+        const hasRemainder = !Number.isInteger(systemFreqMHz);
+        
         // Validate against max clock
         const isPIC32MZ = deviceName.startsWith('32MZ');
         const maxClockMHz = isPIC32MZ ? 200 : (deviceName.match(/32MX[34]/) ? 120 : 80);
         
-        if (systemFreqMHz > maxClockMHz) {
-            document.getElementById('clockFrequency').value = 'INVALID';
+        // Always display the calculated value
+        document.getElementById('clockFrequency').value = systemFreqMHz.toFixed(6);
+        
+        // Show in red if invalid (has remainder or exceeds max)
+        if (systemFreqMHz > maxClockMHz || hasRemainder) {
             document.getElementById('clockFrequency').style.color = 'red';
-            return;
+        } else {
+            document.getElementById('clockFrequency').style.color = '#000';
         }
         
         // Validate PLL input frequency (4-5 MHz for MX, 5-10 MHz for MZ)
         if (isPIC32MZ) {
             if (inputFreqMHz < 5 || inputFreqMHz > 10) {
-                document.getElementById('clockFrequency').value = 'INVALID';
                 document.getElementById('clockFrequency').style.color = 'red';
-                return;
             }
         } else {
             if (inputFreqMHz < 4 || inputFreqMHz > 5) {
-                document.getElementById('clockFrequency').value = 'INVALID';
                 document.getElementById('clockFrequency').style.color = 'red';
-                return;
             }
         }
-        
-        document.getElementById('clockFrequency').value = systemFreqMHz.toFixed(6);
-        document.getElementById('clockFrequency').style.color = '#000';
         
         // Update config preview
         updateConfigPreview();
