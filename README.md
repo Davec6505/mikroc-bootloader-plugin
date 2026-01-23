@@ -46,8 +46,8 @@ By importing your MPLABX projects (or creating new ones) in VS Code, you can:
 
 ### 📦 MikroC Project Import
 - **In-Place Import**: Import MikroC PRO projects directly (no file copying)
-- **Universal Support**: Works with all MikroC compilers (PIC32, PIC, dsPIC, AVR, ARM)
-- **Auto-Detection**: Finds any `.mcp*` file (.mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar)
+- **PIC32 Support**: Works with MikroC PRO for PIC32 compiler
+- **Auto-Detection**: Finds any `.mcp32` file
 - **Makefile Generation**: Creates GNU Makefile with all project settings preserved
 - **Compiler Detection**: Automatically finds MikroC installation or allows custom path
 - **Auto-Open**: Project opens automatically after successful import
@@ -70,7 +70,7 @@ This extension is designed for **AI-assisted embedded development**:
 - **Context-Aware Help**: Copilot understands MCC-generated code structure
 - **Faster Development**: Let AI help with boilerplate, drivers, and configuration
 - **Learning Tool**: Use Copilot to understand complex peripheral interactions
-- **Works with PIC32 Devices**: Full support for PIC32 (XC32). PIC10/12/16/18 (XC8) and PIC24/dsPIC (XC16) coming soon
+- **PIC32M Family Only**: Full support for all PIC32MX/MZ devices (XC32)
 
 ## How It Works
 
@@ -137,16 +137,10 @@ This extension is designed for **AI-assisted embedded development**:
 
 #### 1. Software (Required)
 - **VS Code** 1.106.1 or later
-- **XC Compiler** OR **MikroC Compiler** - One or more of:
-  - **XC32** (32-bit PIC32) - **Currently Supported**
-  - **XC16** (16-bit PIC24, dsPIC30/33) - Coming soon
-  - **XC8** (8-bit PIC10/12/16/18, AVR) - Coming soon
+- **XC32 Compiler** OR **MikroC PRO for PIC32 Compiler**:
+  - **XC32** (32-bit PIC32MX/MZ) - All variants supported
   - **MikroC PRO for PIC32** (PIC32 with MikroElektronika libraries)
-  - **MikroC PRO for PIC** (8-bit PIC with MikroE libraries)
-  - **MikroC PRO for dsPIC** (dsPIC with MikroE libraries)
-  - **MikroC PRO for AVR** (AVR with MikroE libraries)
-  - **MikroC PRO for ARM** (ARM with MikroE libraries)
-  - Download XC: [Microchip](https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers)
+  - Download XC32: [Microchip](https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers)
   - Download MikroC: [MikroElektronika](https://www.mikroe.com/mikroc)
 - **DFP (Device Family Pack)** - Installed with MPLABX or standalone (XC compilers only)
 - **MPLABX IDE** (optional) - For using MCC to configure peripherals (XC workflow)
@@ -237,20 +231,19 @@ If automatic setup fails, add manually:
 5. **Build with `Ctrl+Shift+B`** - All tools bundled, no setup needed!
 6. **Start coding with AI assistance!**
 
-_Currently supports XC32 projects. XC16 and XC8 support coming soon._
+_Supports XC32 projects for all PIC32MX and PIC32MZ devices._
 
 ### Import MikroC Project
 
 1. **Open VS Code**
 2. Press `Ctrl+Shift+P` and type "**XC Project Importer: Import MikroC Project**"
-3. Select your MikroC project folder (contains .mcp32/.mcp16/etc.)
+3. Select your MikroC project folder (contains .mcp32 file)
 4. Extension auto-detects compiler and generates Makefile
 5. **Project opens automatically - ready to build!**
 
 **Key Features:**
 - ✅ **In-place import** - No file copying, Makefile created in your project folder
-- ✅ **All MikroC variants** - PIC32, PIC, dsPIC, AVR, ARM
-- ✅ **All .mcp* files** - .mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar
+- ✅ **PIC32 only** - MikroC PRO for PIC32 (.mcp32 files)
 - ✅ **Flexible compiler paths** - Auto-detect or specify custom location
 - ✅ **Build with Ctrl+Shift+B** - Integrated VS Code tasks
 
@@ -258,7 +251,7 @@ _Currently supports XC32 projects. XC16 and XC8 support coming soon._
 1. Import once when you need to build outside MikroC IDE
 2. Edit code in VS Code with AI assistance
 3. Build with `make`, Ctrl+Shift+B, or click Build/Rebuild buttons in status bar
-4. Re-open `.mcp*` file in MikroC IDE when you need to change project settings
+4. Re-open `.mcp32` file in MikroC IDE when you need to change project settings
 5. Re-import to update Makefile
 
 ### Example: Using Copilot
