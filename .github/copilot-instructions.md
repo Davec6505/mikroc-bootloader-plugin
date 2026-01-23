@@ -48,6 +48,29 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 - **[deviceLoader.ts](../src/deviceLoader.ts)**: Loads device definitions from JSON, provides device-specific clock frequencies and config options
 - **[configEditor.ts](../src/configEditor.ts)**: Webview provider for oscillator/PLL configuration (new project creation only)
 
+### PIC32MZ Peripheral Bus Clock Architecture (v2.5.31)
+
+PIC32MZ devices have **7 peripheral bus clocks (PBCLK1-7)** configured at runtime, not via config bits:
+
+- **PBCLK1**: System Bus (CPU, Flash, Interrupts, DMA) - Always enabled, divider configurable (÷1 to ÷8)
+- **PBCLK2**: Communication (UART, SPI, I2C) - Enable/disable + divider (÷1 to ÷8)
+- **PBCLK3**: Timers/PWM (Timer2-9, Input Capture, Output Compare) - Enable/disable + divider (÷1 to ÷8)
+- **PBCLK4**: GPIO Ports - Enable/disable + divider (÷1 to ÷8)
+- **PBCLK5**: Flash Controller, EBI, SQI - Enable/disable + divider (÷1 to ÷8)
+- **PBCLK6**: Reserved/ADC - Enable/disable + divider (÷1 to ÷8)
+- **PBCLK7**: High-speed peripherals (USB, CAN, Ethernet) - Always enabled, **NO DIVIDER** (always SYSCLK)
+
+**IMPORTANT**: There is **NO PBCLK8** - PIC32MZ-EF datasheet only documents 7 peripheral bus clocks.
+
+**Formula**: `PBCLK = SYSCLK / (divider + 1)` where divider = 0-7 (÷1 to ÷8)
+
+**Configuration**:
+- Config editor UI shows PBCLK section only for devices starting with "32MZ"
+- Generates `configure_peripheral_clocks()` function called early in main.c startup
+- Runtime configuration via PB1DIV-PB6DIV registers (PB7 has no control register)
+- PB2-PB6 have ON/OFF control via `PBxDIVbits.ON`
+- PB1 and PB7 always enabled (no ON bit)
+
 ## Critical Development Rules
 
 ### Before Changing Code
@@ -181,16 +204,25 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
 
 ## Roadmap & Known Issues
 
-**Current Focus** (Jan 19, 2026): Configuration Editor for new project creation
+**Current Status** (Jan 22, 2026): Production maintenance and bug fixes
 
-**In Development**:
-- **Config Editor Webview** (configEditor.ts) - Oscillator/PLL configuration for new XC32/MikroC projects
+**Recently Completed** (v2.5.29-2.5.30):
+- **Config Editor Clock Validation** (v2.5.30) - Displays actual calculated MHz values in red when invalid (fractional, exceeds max, or PLL input out of range)
+  - Fixed: Shows calculated frequency instead of "INVALID" text
+  - Uses Number.isInteger() to detect fractional MHz values
+  - Visual indicator: Red color for invalid frequencies
+  
+- **PATH Environment Management** (v2.5.29) - Exact string tracking to prevent duplicates
+  - Saves exact added path to VS Code globalState (PATH_ADDED_KEY)
+  - Removes old extension paths using PowerShell exact string matching
+  - Manual cleanup command: `pic32-ide.cleanupPath`
+
+- **Config Editor Integration** (v2.5.26) - Oscillator/PLL configuration for new XC32/MikroC projects
   - Compiler-agnostic design: config.json → XC32 #pragma OR MikroC format
   - Only for NEW projects (createXC32Project, createMikroCProject)
   - NOT used for imports (MPLABX/MikroC imports preserve existing config)
   - Real-time clock calculator based on oscillator + PLL settings
   - Device-driven options from JSON (valid PLL ranges, oscillator modes)
-  - Mirrors MikroC Project Settings dialog UX
 
 **Next Priority**: Hardware debug support (ICD/PICkit/SNAP integration)
 

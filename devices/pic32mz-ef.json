@@ -60,6 +60,10 @@
       "description": "2MB Flash, 512KB RAM, 100-pin (EFG - No CAN)"
     },
     {
+      "label": "32MZ2048EFG124",
+      "description": "2MB Flash, 512KB RAM, 124-pin (EFG - No CAN)"
+    },
+    {
       "label": "32MZ2048EFG144",
       "description": "2MB Flash, 512KB RAM, 144-pin (EFG - No CAN)"
     },
@@ -70,6 +74,10 @@
     {
       "label": "32MZ2048EFH100",
       "description": "2MB Flash, 512KB RAM, 100-pin (EFH - CAN, 252MHz)"
+    },
+    {
+      "label": "32MZ2048EFH124",
+      "description": "2MB Flash, 512KB RAM, 124-pin (EFH - CAN, 252MHz)"
     },
     {
       "label": "32MZ2048EFH144",
@@ -84,6 +92,10 @@
       "description": "2MB Flash, 512KB RAM, 100-pin (EFM - CAN+Crypto)"
     },
     {
+      "label": "32MZ2048EFM124",
+      "description": "2MB Flash, 512KB RAM, 124-pin (EFM - CAN+Crypto)"
+    },
+    {
       "label": "32MZ2048EFM144",
       "description": "2MB Flash, 512KB RAM, 144-pin (EFM - CAN+Crypto)"
     },
@@ -94,6 +106,10 @@
     {
       "label": "32MZ1024EFG100",
       "description": "1MB Flash, 512KB RAM, 100-pin (EFG - No CAN)"
+    },
+    {
+      "label": "32MZ1024EFG124",
+      "description": "1MB Flash, 512KB RAM, 124-pin (EFG - No CAN)"
     },
     {
       "label": "32MZ1024EFG144",
@@ -108,6 +124,10 @@
       "description": "1MB Flash, 512KB RAM, 100-pin (EFH - CAN)"
     },
     {
+      "label": "32MZ1024EFH124",
+      "description": "1MB Flash, 512KB RAM, 124-pin (EFH - CAN)"
+    },
+    {
       "label": "32MZ1024EFH144",
       "description": "1MB Flash, 512KB RAM, 144-pin (EFH - CAN)"
     },
@@ -118,6 +138,10 @@
     {
       "label": "32MZ1024EFM100",
       "description": "1MB Flash, 512KB RAM, 100-pin (EFM - CAN+Crypto)"
+    },
+    {
+      "label": "32MZ1024EFM124",
+      "description": "1MB Flash, 512KB RAM, 124-pin (EFM - CAN+Crypto)"
     },
     {
       "label": "32MZ1024EFM144",
@@ -132,6 +156,10 @@
       "description": "1MB Flash, 256KB RAM, 100-pin (EFE - No CAN)"
     },
     {
+      "label": "32MZ1024EFE124",
+      "description": "1MB Flash, 256KB RAM, 124-pin (EFE - No CAN)"
+    },
+    {
       "label": "32MZ1024EFE144",
       "description": "1MB Flash, 256KB RAM, 144-pin (EFE - No CAN)"
     },
@@ -142,6 +170,10 @@
     {
       "label": "32MZ1024EFF100",
       "description": "1MB Flash, 256KB RAM, 100-pin (EFF - CAN)"
+    },
+    {
+      "label": "32MZ1024EFF124",
+      "description": "1MB Flash, 256KB RAM, 124-pin (EFF - CAN)"
     },
     {
       "label": "32MZ1024EFF144",
@@ -156,6 +188,10 @@
       "description": "1MB Flash, 256KB RAM, 100-pin (EFK - CAN+Crypto)"
     },
     {
+      "label": "32MZ1024EFK124",
+      "description": "1MB Flash, 256KB RAM, 124-pin (EFK - CAN+Crypto)"
+    },
+    {
       "label": "32MZ1024EFK144",
       "description": "1MB Flash, 256KB RAM, 144-pin (EFK - CAN+Crypto)"
     },
@@ -166,6 +202,10 @@
     {
       "label": "32MZ0512EFE100",
       "description": "512KB Flash, 128KB RAM, 100-pin (EFE - No CAN)"
+    },
+    {
+      "label": "32MZ0512EFE124",
+      "description": "512KB Flash, 128KB RAM, 124-pin (EFE - No CAN)"
     },
     {
       "label": "32MZ0512EFE144",
@@ -180,6 +220,10 @@
       "description": "512KB Flash, 128KB RAM, 100-pin (EFF - CAN)"
     },
     {
+      "label": "32MZ0512EFF124",
+      "description": "512KB Flash, 128KB RAM, 124-pin (EFF - CAN)"
+    },
+    {
       "label": "32MZ0512EFF144",
       "description": "512KB Flash, 128KB RAM, 144-pin (EFF - CAN)"
     },
@@ -190,6 +234,10 @@
     {
       "label": "32MZ0512EFK100",
       "description": "512KB Flash, 128KB RAM, 100-pin (EFK - CAN+Crypto)"
+    },
+    {
+      "label": "32MZ0512EFK124",
+      "description": "512KB Flash, 128KB RAM, 124-pin (EFK - CAN+Crypto)"
     },
     {
       "label": "32MZ0512EFK144",

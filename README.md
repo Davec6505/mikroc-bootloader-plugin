@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**AI-Assisted Microchip Development in VS Code** - Import existing MPLABX/MikroC projects OR create new XC32 projects from scratch. Leverage GitHub Copilot for embedded development with full XC32 compiler support (XC8 and XC16 import coming in future releases).
+**AI-Assisted Microchip Development in VS Code** - Import existing MPLABX/MikroC projects OR create new XC32 projects from scratch. Leverage GitHub Copilot for embedded development with full XC32 compiler support for MIPS32 architecture (PIC32MX/MZ).
 
 ## Why This Extension?
 
@@ -22,7 +22,7 @@ By importing your MPLABX projects (or creating new ones) in VS Code, you can:
 
 **Import Existing Projects:**
 - **One-Click Import**: Select your `.X` folder and automatically import entire MPLABX project
-- **XC32 Compiler Support**: Currently supports XC32 (32-bit PIC32). XC8 (8-bit PIC/AVR) and XC16 (16-bit PIC24/dsPIC) coming soon
+- **XC32 Compiler Support**: Full support for XC32 (32-bit MIPS32 PIC32MX/MZ devices)
 - **MCC Compatible**: Preserves all MCC-generated peripheral libraries and structure (MCC Classic & Harmony 3)
 - **Flag Preservation**: Extracts and preserves CFLAGS and LDFLAGS from original Makefiles
 - **Startup Detection**: Automatically detects CRT0 vs custom startup.S configuration (XC32)

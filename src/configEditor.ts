@@ -38,7 +38,17 @@ export interface ProjectConfig {
     };
     clock: {
         systemFrequency: number;
-        peripheralDiv: number;
+        peripheralDiv: number;  // PIC32MX only: FPBDIV (1, 2, 4, 8)
+        peripheralBuses?: {     // PIC32MZ only: 8 peripheral buses (runtime config)
+            pb1: { enabled: boolean; divider: number };  // Always enabled = true
+            pb2: { enabled: boolean; divider: number };
+            pb3: { enabled: boolean; divider: number };
+            pb4: { enabled: boolean; divider: number };
+            pb5: { enabled: boolean; divider: number };
+            pb6: { enabled: boolean; divider: number };
+            pb7: { enabled: boolean; divider: number };  // Always enabled = true, divider = 0
+
+        };
         switchingEnabled: boolean;
         fcksm?: string;       // Clock Switching and Monitor Selection
         fsoscen?: string;     // Secondary Oscillator Enable
@@ -251,6 +261,15 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 clock: {
                     systemFrequency: 200000000,
                     peripheralDiv: 1,
+                    peripheralBuses: {
+                        pb1: { enabled: true, divider: 1 },   // 200MHz / 2 = 100MHz (System)
+                        pb2: { enabled: true, divider: 1 },   // 100MHz (UART/SPI/I2C)
+                        pb3: { enabled: true, divider: 1 },   // 100MHz (Timers)
+                        pb4: { enabled: true, divider: 1 },   // 100MHz (Ports)
+                        pb5: { enabled: true, divider: 1 },   // 100MHz (Flash)
+                        pb6: { enabled: true, divider: 1 },   // 100MHz (Reserved)
+                        pb7: { enabled: true, divider: 0 }    // 200MHz (USB/CAN/Ethernet - no divider)
+                    },
                     switchingEnabled: false,
                     fcksm: 'CSECME',
                     fsoscen: 'OFF',
@@ -462,6 +481,106 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     <option value="4">Pb_Clk is Sys_Clk/4</option>
                     <option value="8">Pb_Clk is Sys_Clk/8</option>
                 </select>
+            </div>
+            
+            <!-- Peripheral Bus Clocks (PIC32MZ only) -->
+            <div id="pbclkSection" class="pbclk-section" style="display:none;">
+                <h4>Peripheral Bus Clocks (PIC32MZ Runtime Configuration)</h4>
+                <div class="pbclk-row">
+                    <label>PBCLK1 (System Bus)</label>
+                    <select id="pb1">
+                        <option value="1">÷1</option>
+                        <option value="2">÷2</option>
+                        <option value="3">÷3</option>
+                        <option value="4">÷4</option>
+                        <option value="5">÷5</option>
+                        <option value="6">÷6</option>
+                        <option value="7">÷7</option>
+                        <option value="8">÷8</option>
+                    </select>
+                    <span class="pbclk-freq" id="pb1Freq">100 MHz</span>
+                </div>
+                
+                <div class="pbclk-row">
+                    <label><input type="checkbox" id="pb2Enable" checked> PBCLK2 (UART/SPI/I2C)</label>
+                    <select id="pb2">
+                        <option value="1">÷1</option>
+                        <option value="2">÷2</option>
+                        <option value="3">÷3</option>
+                        <option value="4">÷4</option>
+                        <option value="5">÷5</option>
+                        <option value="6">÷6</option>
+                        <option value="7">÷7</option>
+                        <option value="8">÷8</option>
+                    </select>
+                    <span class="pbclk-freq" id="pb2Freq">100 MHz</span>
+                </div>
+                
+                <div class="pbclk-row">
+                    <label><input type="checkbox" id="pb3Enable" checked> PBCLK3 (Timers/PWM)</label>
+                    <select id="pb3">
+                        <option value="1">÷1</option>
+                        <option value="2">÷2</option>
+                        <option value="3">÷3</option>
+                        <option value="4">÷4</option>
+                        <option value="5">÷5</option>
+                        <option value="6">÷6</option>
+                        <option value="7">÷7</option>
+                        <option value="8">÷8</option>
+                    </select>
+                    <span class="pbclk-freq" id="pb3Freq">100 MHz</span>
+                </div>
+                
+                <div class="pbclk-row">
+                    <label><input type="checkbox" id="pb4Enable" checked> PBCLK4 (GPIO Ports)</label>
+                    <select id="pb4">
+                        <option value="1">÷1</option>
+                        <option value="2">÷2</option>
+                        <option value="3">÷3</option>
+                        <option value="4">÷4</option>
+                        <option value="5">÷5</option>
+                        <option value="6">÷6</option>
+                        <option value="7">÷7</option>
+                        <option value="8">÷8</option>
+                    </select>
+                    <span class="pbclk-freq" id="pb4Freq">100 MHz</span>
+                </div>
+                
+                <div class="pbclk-row">
+                    <label><input type="checkbox" id="pb5Enable" checked> PBCLK5 (Flash/EBI/SQI)</label>
+                    <select id="pb5">
+                        <option value="1">÷1</option>
+                        <option value="2">÷2</option>
+                        <option value="3">÷3</option>
+                        <option value="4">÷4</option>
+                        <option value="5">÷5</option>
+                        <option value="6">÷6</option>
+                        <option value="7">÷7</option>
+                        <option value="8">÷8</option>
+                    </select>
+                    <span class="pbclk-freq" id="pb5Freq">100 MHz</span>
+                </div>
+                
+                <div class="pbclk-row">
+                    <label><input type="checkbox" id="pb6Enable" checked> PBCLK6 (Reserved)</label>
+                    <select id="pb6">
+                        <option value="1">÷1</option>
+                        <option value="2">÷2</option>
+                        <option value="3">÷3</option>
+                        <option value="4">÷4</option>
+                        <option value="5">÷5</option>
+                        <option value="6">÷6</option>
+                        <option value="7">÷7</option>
+                        <option value="8">÷8</option>
+                    </select>
+                    <span class="pbclk-freq" id="pb6Freq">100 MHz</span>
+                </div>
+                
+                <div class="pbclk-row">
+                    <label>PBCLK7 (USB/CAN/Ethernet) - No Divider</label>
+                    <input type="text" value="No divider (SYSCLK)" readonly style="border:none;background:transparent;">
+                    <span class="pbclk-freq" id="pb7Freq">200 MHz</span>
+                </div>
             </div>
             
             <div class="config-section">
@@ -707,4 +826,69 @@ export function generateXC32Config(config: ProjectConfig, familyName: string): s
     });
     
     return lines;
+}
+
+/**
+ * Generate PIC32MZ Peripheral Bus Clock configuration startup code
+ * PBCLKs are configured at runtime (not config bits)
+ */
+export function generatePBCLKStartup(config: ProjectConfig): string {
+    if (!config.clock.peripheralBuses) {
+        return ''; // PIC32MX - no PBCLK runtime config
+    }
+    
+    const buses = config.clock.peripheralBuses;
+    const sysclk = config.clock.systemFrequency;
+    
+    const calculateFreq = (divider: number): number => {
+        return Math.round(sysclk / (divider + 1) / 1000000);
+    };
+    
+    return `
+/**
+ * Configure Peripheral Bus Clocks (PIC32MZ)
+ * Called early in startup before main()
+ */
+void configure_peripheral_clocks(void) {
+    // Unlock system
+    SYSKEY = 0x00000000;
+    SYSKEY = 0xAA996655;
+    SYSKEY = 0x556699AA;
+    
+    // PBCLK1 (System Bus - CPU, Flash, Interrupts, DMA) - Always ON
+    PB1DIVbits.PBDIV = ${buses.pb1.divider};  // ${calculateFreq(buses.pb1.divider)} MHz
+    while (PB1DIVbits.PBDIVRDY == 0);
+    
+    // PBCLK2 (Communication Peripherals - UART, SPI, I2C)
+    PB2DIVbits.ON = ${buses.pb2.enabled ? '1' : '0'};
+    PB2DIVbits.PBDIV = ${buses.pb2.divider};  // ${calculateFreq(buses.pb2.divider)} MHz
+    while (PB2DIVbits.PBDIVRDY == 0);
+    
+    // PBCLK3 (Timers/PWM - Timer2-9, Input Capture, Output Compare)
+    PB3DIVbits.ON = ${buses.pb3.enabled ? '1' : '0'};
+    PB3DIVbits.PBDIV = ${buses.pb3.divider};  // ${calculateFreq(buses.pb3.divider)} MHz
+    while (PB3DIVbits.PBDIVRDY == 0);
+    
+    // PBCLK4 (Ports - GPIO operations)
+    PB4DIVbits.ON = ${buses.pb4.enabled ? '1' : '0'};
+    PB4DIVbits.PBDIV = ${buses.pb4.divider};  // ${calculateFreq(buses.pb4.divider)} MHz
+    while (PB4DIVbits.PBDIVRDY == 0);
+    
+    // PBCLK5 (Flash Controller, EBI, SQI)
+    PB5DIVbits.ON = ${buses.pb5.enabled ? '1' : '0'};
+    PB5DIVbits.PBDIV = ${buses.pb5.divider};  // ${calculateFreq(buses.pb5.divider)} MHz
+    while (PB5DIVbits.PBDIVRDY == 0);
+    
+    // PBCLK6 (Reserved/Undocumented)
+    PB6DIVbits.ON = ${buses.pb6.enabled ? '1' : '0'};
+    PB6DIVbits.PBDIV = ${buses.pb6.divider};  // ${calculateFreq(buses.pb6.divider)} MHz
+    while (PB6DIVbits.PBDIVRDY == 0);
+    
+    // PBCLK7 (USB, CAN, Ethernet, ADC - Reference Clock, No Divider)
+    // Note: PBCLK7 has no control register, always enabled at SYSCLK = ${sysclk / 1000000} MHz
+    
+    // Lock system
+    SYSKEY = 0x33333333;
+}
+`;
 }

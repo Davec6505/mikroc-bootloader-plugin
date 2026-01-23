@@ -40,6 +40,19 @@
         document.getElementById('oscMode').addEventListener('change', calculateClock);
         document.getElementById('pbDiv').addEventListener('change', calculateClock);
         
+        // PBCLK dividers (PIC32MZ only)
+        for (let i = 1; i <= 8; i++) {
+            const divSelect = document.getElementById(`pb${i}Div`);
+            if (divSelect && i !== 7) { // PB7 has no divider
+                divSelect.addEventListener('change', calculatePBCLK);
+            }
+            
+            const enableCheckbox = document.getElementById(`pb${i}Enable`);
+            if (enableCheckbox) {
+                enableCheckbox.addEventListener('change', calculatePBCLK);
+            }
+        }
+        
         // Update config preview on any change
         document.querySelectorAll('select, input').forEach(el => {
             el.addEventListener('change', updateConfigPreview);
@@ -61,6 +74,20 @@
         
         // Set device name
         document.getElementById('deviceName').textContent = deviceName;
+        
+        // Show/hide PBCLK section based on device family
+        const isPIC32MZ = deviceName.startsWith('32MZ');
+        console.log('[ConfigEditor] Device:', deviceName, 'isPIC32MZ:', isPIC32MZ);
+        
+        const pbclkSection = document.getElementById('pbclkSection');
+        console.log('[ConfigEditor] PBCLK section element:', pbclkSection);
+        
+        if (pbclkSection) {
+            pbclkSection.style.display = isPIC32MZ ? 'block' : 'none';
+            console.log('[ConfigEditor] Set PBCLK display to:', pbclkSection.style.display);
+        } else {
+            console.error('[ConfigEditor] PBCLK section not found in DOM!');
+        }
         
         // Populate dropdown options based on constraints
         populateDropdown('pllInputDiv', constraints.pllInputDiv, 'DIV_');
@@ -119,8 +146,27 @@
         document.getElementById('bwp').value = config.protection.bwp || 'OFF';
         document.getElementById('codeProtect').value = config.protection.codeProtect ? 'ON' : 'OFF';
         
+        // PBCLK settings (PIC32MZ only)
+        if (config.clock.peripheralBuses) {
+            for (let i = 1; i <= 8; i++) {
+                const bus = config.clock.peripheralBuses[`pb${i}`];
+                if (bus) {
+                    const divSelect = document.getElementById(`pb${i}Div`);
+                    if (divSelect && i !== 7) { // PB7 has no divider
+                        divSelect.value = bus.divider;
+                    }
+                    
+                    const enableCheckbox = document.getElementById(`pb${i}Enable`);
+                    if (enableCheckbox) {
+                        enableCheckbox.checked = bus.enabled;
+                    }
+                }
+            }
+        }
+        
         // Calculate and display clock
         calculateClock();
+        calculatePBCLK();
     }
     
     function calculateClock() {
@@ -171,6 +217,62 @@
         updateConfigPreview();
     }
     
+    function calculatePBCLK() {
+        // Only for PIC32MZ devices
+        if (!deviceName.startsWith('32MZ')) {
+            return;
+        }
+        
+        // Get system clock frequency
+        const systemFreqMHz = parseFloat(document.getElementById('clockFrequency').value);
+        
+        if (isNaN(systemFreqMHz) || systemFreqMHz === 0) {
+            return;
+        }
+        
+        // Calculate each PBCLK frequency (PB1-PB7 only)
+        for (let i = 1; i <= 7; i++) {
+            const freqSpan = document.getElementById(`pb${i}Freq`);
+            if (!freqSpan) {
+                continue;
+            }
+            
+            let pbclkMHz;
+            
+            if (i === 7) {
+                // PBCLK7 has no divider - always equals SYSCLK
+                pbclkMHz = systemFreqMHz;
+            } else {
+                // Get divider value
+                const divSelect = document.getElementById(`pb${i}Div`);
+                if (!divSelect) {
+                    continue;
+                }
+                
+                const divider = parseInt(divSelect.value);
+                if (isNaN(divider)) {
+                    continue;
+                }
+                
+                // Formula: PBCLK = SYSCLK / (divider + 1)
+                pbclkMHz = systemFreqMHz / (divider + 1);
+            }
+            
+            // Check if result is a whole number
+            const hasRemainder = !Number.isInteger(pbclkMHz);
+            
+            // Display frequency
+            freqSpan.textContent = `${pbclkMHz.toFixed(0)} MHz`;
+            
+            // Validate: show red if fractional or exceeds 100MHz
+            if (hasRemainder || pbclkMHz > 100) {
+                freqSpan.className = 'pbclk-freq invalid';
+            } else {
+                freqSpan.className = 'pbclk-freq';
+            }
+        }
+    }
+    
     function updateConfigPreview() {
         const clockFreq = parseFloat(document.getElementById('clockFrequency').value);
         
@@ -194,7 +296,7 @@
         const oscFreqHz = parseFloat(document.getElementById('oscFrequency').value) * 1000000;
         const systemFreqHz = parseFloat(document.getElementById('clockFrequency').value) * 1000000;
         
-        return {
+        const config = {
             device: deviceName,
             compiler: currentConfig.compiler,
             oscillator: {
@@ -248,6 +350,46 @@
                 ebase: '0x9FC01000'
             } : undefined
         };
+        
+        // Add PBCLK settings for PIC32MZ
+        if (deviceName.startsWith('32MZ')) {
+            config.clock.peripheralBuses = {
+                pb1: {
+                    enabled: true, // PB1 always enabled
+                    divider: parseInt(document.getElementById('pb1Div').value)
+                },
+                pb2: {
+                    enabled: document.getElementById('pb2Enable').checked,
+                    divider: parseInt(document.getElementById('pb2Div').value)
+                },
+                pb3: {
+                    enabled: document.getElementById('pb3Enable').checked,
+                    divider: parseInt(document.getElementById('pb3Div').value)
+                },
+                pb4: {
+                    enabled: document.getElementById('pb4Enable').checked,
+                    divider: parseInt(document.getElementById('pb4Div').value)
+                },
+                pb5: {
+                    enabled: document.getElementById('pb5Enable').checked,
+                    divider: parseInt(document.getElementById('pb5Div').value)
+                },
+                pb6: {
+                    enabled: document.getElementById('pb6Enable').checked,
+                    divider: parseInt(document.getElementById('pb6Div').value)
+                },
+                pb7: {
+                    enabled: true, // PB7 always enabled
+                    divider: 0 // PB7 has no divider
+                },
+                pb8: {
+                    enabled: document.getElementById('pb8Enable').checked,
+                    divider: parseInt(document.getElementById('pb8Div').value)
+                }
+            };
+        }
+        
+        return config;
     }
     
     function handleOK() {

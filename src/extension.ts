@@ -14,7 +14,7 @@ import { MikroCImporter } from './mikrocImporter';
 import { BootloaderUpdater } from './bootloaderUpdater';
 import { BundledToolsManager } from './bundledTools';
 import { loadDeviceDefinitions, getAllDevicesFlat, DeviceDefinition, detectDeviceFamily, getConfigBits, getDeviceClockFrequency } from './deviceLoader';
-import { ConfigEditorProvider, generateXC32Config } from './configEditor';
+import { ConfigEditorProvider, generateXC32Config, generatePBCLKStartup } from './configEditor';
 
 // Device definitions loaded from JSON files at runtime
 let SUPPORTED_DEVICES: Record<string, DeviceDefinition[]> = {
@@ -1145,6 +1145,11 @@ async function createXC32Project(context: vscode.ExtensionContext) {
             
             // Use calculated system clock frequency from config editor
             const sysClockFreq = `${projectConfig.clock.systemFrequency}UL`;
+            
+            // Generate PBCLK startup code for PIC32MZ
+            const pbclkStartup = deviceName.startsWith('32MZ') 
+                ? generatePBCLKStartup(projectConfig) 
+                : '';
         
         // Generate main.c template with device-specific configuration
         const mainTemplate = `/**
@@ -1160,7 +1165,7 @@ async function createXC32Project(context: vscode.ExtensionContext) {
 ${configBits}
 
 #define SYS_CLK_FREQ ${sysClockFreq}   // System clock frequency (Hz) - ${projectConfig.clock.systemFrequency / 1000000}MHz
-
+${pbclkStartup}
 void delay_ms(uint32_t ms) {
     uint32_t ticks = (SYS_CLK_FREQ / 2000) * ms;
     _CP0_SET_COUNT(0);
@@ -1168,7 +1173,7 @@ void delay_ms(uint32_t ms) {
 }
 
 int main(void) {
-    // Initialize LED (example: RB9)
+${deviceName.startsWith('32MZ') ? '    // Configure peripheral bus clocks (PIC32MZ)\n    configure_peripheral_clocks();\n    \n' : ''}    // Initialize LED (example: RB9)
     ANSELB &= ~(1 << 9);   // Digital mode
     TRISB &= ~(1 << 9);    // Output
     LATB = 0;              // Initial state

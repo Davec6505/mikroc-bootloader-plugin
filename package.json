@@ -1,8 +1,8 @@
 {
   "name": "xc-project-importer",
   "displayName": "XC Project Importer: AI-Assisted Embedded Development",
-  "description": "Import MPLABX projects to VS Code and leverage GitHub Copilot for embedded development. Currently supports XC32 compiler with MCC Harmony 3 compatibility (XC8/16 coming soon).",
-  "version": "2.5.30",
+  "description": "Import MPLABX projects to VS Code and leverage GitHub Copilot for embedded development. Full XC32 compiler support for MIPS32 architecture (PIC32MX/MZ) with MCC Harmony 3 compatibility.",
+  "version": "2.5.31",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
@@ -19,9 +19,8 @@
   },
   "homepage": "https://github.com/Davec6505/mikroc-bootloader-plugin#readme",
   "keywords": [
-    "xc8",
-    "xc16",
     "xc32",
+    "pic32",
     "mplabx",
     "embedded",
     "microchip",

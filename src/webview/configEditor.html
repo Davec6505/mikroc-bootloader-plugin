@@ -88,6 +88,153 @@
                     </select>
                 </label>
 
+                <!-- Peripheral Bus Clocks (PIC32MZ Only) -->
+                <div id="pbclkSection" class="pbclk-section" style="display:none;">
+                    <h4>Peripheral Bus Clocks (PIC32MZ)</h4>
+                    <p class="pbclk-info">Configure individual peripheral bus clock dividers. Frequency = SYSCLK / (Divider + 1)</p>
+                    
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <strong>PBCLK1</strong> (System)
+                            <span class="pbclk-desc">CPU, Cache, DMA, Flash Controller</span>
+                        </label>
+                        <select id="pb1Div" class="pbclk-select">
+                            <option value="0">÷1</option>
+                            <option value="1" selected>÷2</option>
+                            <option value="2">÷3</option>
+                            <option value="3">÷4</option>
+                            <option value="4">÷5</option>
+                            <option value="5">÷6</option>
+                            <option value="6">÷7</option>
+                            <option value="7">÷8</option>
+                        </select>
+                        <span id="pb1Freq" class="pbclk-freq">100 MHz</span>
+                    </div>
+
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <input type="checkbox" id="pb2Enable" checked>
+                            <strong>PBCLK2</strong> (Communication)
+                            <span class="pbclk-desc">UART, SPI, I2C</span>
+                        </label>
+                        <select id="pb2Div" class="pbclk-select">
+                            <option value="0">÷1</option>
+                            <option value="1" selected>÷2</option>
+                            <option value="2">÷3</option>
+                            <option value="3">÷4</option>
+                            <option value="4">÷5</option>
+                            <option value="5">÷6</option>
+                            <option value="6">÷7</option>
+                            <option value="7">÷8</option>
+                        </select>
+                        <span id="pb2Freq" class="pbclk-freq">100 MHz</span>
+                    </div>
+
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <input type="checkbox" id="pb3Enable" checked>
+                            <strong>PBCLK3</strong> (Timers)
+                            <span class="pbclk-desc">Timer2-9, Input Capture, Output Compare, PWM</span>
+                        </label>
+                        <select id="pb3Div" class="pbclk-select">
+                            <option value="0">÷1</option>
+                            <option value="1" selected>÷2</option>
+                            <option value="2">÷3</option>
+                            <option value="3">÷4</option>
+                            <option value="4">÷5</option>
+                            <option value="5">÷6</option>
+                            <option value="6">÷7</option>
+                            <option value="7">÷8</option>
+                        </select>
+                        <span id="pb3Freq" class="pbclk-freq">100 MHz</span>
+                    </div>
+
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <input type="checkbox" id="pb4Enable" checked>
+                            <strong>PBCLK4</strong> (Ports)
+                            <span class="pbclk-desc">GPIO Port Operations</span>
+                        </label>
+                        <select id="pb4Div" class="pbclk-select">
+                            <option value="0">÷1</option>
+                            <option value="1" selected>÷2</option>
+                            <option value="2">÷3</option>
+                            <option value="3">÷4</option>
+                            <option value="4">÷5</option>
+                            <option value="5">÷6</option>
+                            <option value="6">÷7</option>
+                            <option value="7">÷8</option>
+                        </select>
+                        <span id="pb4Freq" class="pbclk-freq">100 MHz</span>
+                    </div>
+
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <input type="checkbox" id="pb5Enable" checked>
+                            <strong>PBCLK5</strong> (Flash/Memory)
+                            <span class="pbclk-desc">Flash Controller, EBI, SQI</span>
+                        </label>
+                        <select id="pb5Div" class="pbclk-select">
+                            <option value="0">÷1</option>
+                            <option value="1" selected>÷2</option>
+                            <option value="2">÷3</option>
+                            <option value="3">÷4</option>
+                            <option value="4">÷5</option>
+                            <option value="5">÷6</option>
+                            <option value="6">÷7</option>
+                            <option value="7">÷8</option>
+                        </select>
+                        <span id="pb5Freq" class="pbclk-freq">100 MHz</span>
+                    </div>
+
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <input type="checkbox" id="pb6Enable" checked>
+                            <strong>PBCLK6</strong> (Reserved)
+                            <span class="pbclk-desc">Reserved/Undocumented</span>
+                        </label>
+                        <select id="pb6Div" class="pbclk-select">
+                            <option value="0">÷1</option>
+                            <option value="1" selected>÷2</option>
+                            <option value="2">÷3</option>
+                            <option value="3">÷4</option>
+                            <option value="4">÷5</option>
+                            <option value="5">÷6</option>
+                            <option value="6">÷7</option>
+                            <option value="7">÷8</option>
+                        </select>
+                        <span id="pb6Freq" class="pbclk-freq">100 MHz</span>
+                    </div>
+
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <strong>PBCLK7</strong> (Reference Clock)
+                            <span class="pbclk-desc">USB, CAN, Ethernet - No Divider (Always = SYSCLK)</span>
+                        </label>
+                        <input type="text" id="pb7Div" class="pbclk-select" value="No Divider" readonly disabled>
+                        <span id="pb7Freq" class="pbclk-freq">200 MHz</span>
+                    </div>
+
+                    <div class="pbclk-row">
+                        <label class="pbclk-label">
+                            <input type="checkbox" id="pb8Enable" checked>
+                            <strong>PBCLK8</strong> (Undocumented)
+                            <span class="pbclk-desc">Not documented in most datasheets</span>
+                        </label>
+                        <select id="pb8Div" class="pbclk-select">
+                            <option value="0">÷1</option>
+                            <option value="1" selected>÷2</option>
+                            <option value="2">÷3</option>
+                            <option value="3">÷4</option>
+                            <option value="4">÷5</option>
+                            <option value="5">÷6</option>
+                            <option value="6">÷7</option>
+                            <option value="7">÷8</option>
+                        </select>
+                        <span id="pb8Freq" class="pbclk-freq">100 MHz</span>
+                    </div>
+                </div>
+
                 <label>
                     Clock Switching and Monitor Selection (FCKSM):
                     <select id="fcksm" class="config-select">

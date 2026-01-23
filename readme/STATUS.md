@@ -1,49 +1,81 @@
 # Project Status
 
-**Last Updated**: January 20, 2026  
-**Version**: 2.5.26  
+**Last Updated**: January 23, 2026  
+**Version**: 2.5.31  
 **Branch**: master
 
 ---
 
 ## 🎯 Development Roadmap
 
-### Current Focus: Config Editor Integration Complete - Ready for Testing
+### Current Focus: Production Maintenance & Bug Fixes
 
 **Priority Order**:
-1. **Config Editor Testing** (Current - Jan 20, 2026) - End-to-end validation of XC32 project creation workflow
+1. **Config Editor Refinements** (Current - Jan 23, 2026) - Peripheral bus clock configuration
 2. **Debug Support** (Next) - ICD/PICkit/SNAP integration, F5 debugging in VS Code
 3. **XC8 Support** (Future) - 8-bit PIC and AVR after XC32 is rock-solid
 
 **Not Pursuing**: MCC/Harmony project generation (too complex, leave to MPLABX)
 
 **Recently Completed**: 
-- Config editor JSON-based #pragma config generation (v2.5.26 - Jan 20, 2026)
-- Config editor Promise resolution race condition fixed (v2.5.26 - Jan 20, 2026)
-- MakefileGenerator integration for project creation (v2.5.26 - Jan 20, 2026)
+- PIC32MZ peripheral bus clock configuration (v2.5.31 - Jan 23, 2026)
+- Config editor clock frequency validation UX fix (v2.5.30 - Jan 22, 2026)
+- PATH management exact string tracking (v2.5.29 - Jan 21, 2026)
 
 ---
 
 ## ✅ Completed Features
 
-### 1. Configuration Editor Integration (v2.5.26 - Jan 20, 2026) ⚠️ READY FOR TESTING
+### 1. Peripheral Bus Clock Configuration (v2.5.31 - Jan 23, 2026) ✅ PRODUCTION
+- **PIC32MZ PBCLK controls**: 7 peripheral bus clocks with individual divider configuration
+- **Architecture-aware UI**: PBCLK section visible only for PIC32MZ devices, hidden for PIC32MX
+- **Real-time frequency calculation**: Displays calculated MHz for each PBCLK (formula: SYSCLK/(divider+1))
+- **Clock assignments**: PB1=System, PB2=UART/SPI/I2C, PB3=Timers, PB4=Ports, PB5=Flash, PB6=Reserved, PB7=USB/CAN/Ethernet (no divider)
+- **Enable/disable controls**: Individual ON/OFF for PB2-PB6, PB1 and PB7 always enabled
+- **Startup code generation**: Generates configure_peripheral_clocks() C function for main.c
+- **Runtime configuration**: PBCLKs configured via PBxDIV registers (not config bits)
+- **Validation**: Red frequency display for invalid clock values (fractional, exceeds max)
+- **Inline HTML fix**: Added PBCLK section to _getHtmlForWebview() method
+- **Datasheet compliance**: Removed non-existent PBCLK8, only PB1-PB7 as per PIC32MZ-EF datasheet
+- **Status**: Deployed, fully functional
+- **Files**: 
+  - `src/configEditor.ts` (peripheralBuses interface, generatePBCLKStartup, inline HTML)
+  - `src/webview/configEditor.html` (PBCLK section markup)
+  - `src/webview/configEditor.css` (PBCLK grid layout)
+  - `src/webview/configEditor.js` (calculatePBCLK function, PB1-PB7 support)
+  - `src/extension.ts` (main.c template with PBCLK startup call)
+  - `devices/pic32mz-ef.json` (added 18 missing 124-pin variants)
+
+### 2. Configuration Editor Integration (v2.5.30 - Jan 22, 2026) ✅ PRODUCTION
 - **Config Editor UI**: 21 configuration options (oscillator, PLL, watchdog, debug, protection)
 - **Real-time clock calculator**: Dynamic PLL math with system frequency display
+- **Visual validation**: Displays calculated MHz values in red when invalid (fractional, exceeds max, or out of PLL input range)
+- **UX improvement**: Shows actual calculated values instead of "INVALID" text (v2.5.30)
 - **Modal workflow**: Integrated into new XC32 project creation
 - **Promise resolution fix**: Resolve config before panel dispose to prevent race condition
 - **MakefileGenerator integration**: Uses proven MPLABX importer templates
 - **JSON-based config bits**: Pre-validated #pragma config from device JSON files
 - **PLL value substitution**: User's PLL settings merged into device-specific templates
 - **Family-aware**: Automatic PIC32MZ vs PIC32MX config bit selection
-- **Status**: Compiled and ready for end-to-end testing
-- **Next**: Delete C:\Temp\XC2, recreate project, verify compilation succeeds
+- **Status**: Deployed to VS Code Marketplace, fully functional
 - **Files**: 
   - `src/configEditor.ts` (webview provider, generateXC32Config refactored)
   - `src/extension.ts` (createXC32Project with config editor integration)
+  - `src/webview/configEditor.js` (clock calculator with Number.isInteger validation)
   - `devices/pic32mz-ef.json`, `devices/pic32mx.json` (config bit templates)
-  - `src/webview/configEditor.js`, `src/webview/configEditor.css` (UI)
+  - `src/webview/configEditor.css` (UI styling)
 
-### 2. Build System Status Bar Integration (v2.5.8-2.5.12 - Jan 18, 2026)
+### 2. PATH Environment Management (v2.5.29 - Jan 21, 2026) ✅ PRODUCTION
+- **Exact string tracking**: Saves exact added path to globalState (PATH_ADDED_KEY)
+- **Precise cleanup**: Removes old extension paths using exact string matching
+- **No regex patterns**: Replaced unreliable regex with PowerShell `$pathEntries -contains` checks
+- **Auto-update handling**: Detects old version paths and replaces with current version
+- **Manual cleanup command**: `pic32-ide.cleanupPath` for manual PATH maintenance
+- **User prompts**: Asks permission on first run, auto-updates on version changes
+- **Persistent storage**: Uses VS Code globalState for cross-session path tracking
+- **Files**: `src/extension.ts` (addBundledToolsToPath, cleanupOldPathEntries)
+
+### 3. Build System Status Bar Integration (v2.5.8-2.5.12 - Jan 18, 2026)
 - **Build button**: Executes default build task (Ctrl+Shift+B equivalent)
 - **Rebuild button**: Runs `make rebuild` (or `make clean ; make` fallback)
 - **Flash button**: Flashes .hex file using MikroC bootloader
@@ -53,7 +85,7 @@
 - **Terminal integration**: Creates named terminals with proper environment variables
 - **Files**: `src/extension.ts` (buildProject, rebuildProject, flashDevice functions)
 
-### 3. Device-Specific Clock Configuration (v2.5.13 - Jan 19, 2026)
+### 4. Device-Specific Clock Configuration (v2.5.13 - Jan 19, 2026)
 - **Device-specific frequencies**: PIC32MX devices configured for 50/72/80/120MHz based on family
 - **Configuration bit variants**: 4 clock-speed-specific #pragma config templates in pic32mx.json
 - **Metadata-driven**: maxClockMHz and configVariant fields for all 104 PIC32MX devices
@@ -61,7 +93,7 @@
 - **PLL settings**: Correct FPLLIDIV/FPLLMULT/FPLLODIV for each clock speed variant
 - **Files**: `devices/pic32mx.json`, `src/deviceLoader.ts`, `src/extension.ts`
 
-### 3. XC32 Project Creation & Compiler Detection (v2.3.1-2.3.2 - Jan 13-14, 2026)
+### 5. XC32 Project Creation & Compiler Detection (v2.3.1-2.3.2 - Jan 13-14, 2026)
 - **Hybrid XC32 detection**: Fast common path check (99% case), manual browse fallback
 - **DFP auto-detection**: Automatically finds Device Family Packs from MPLABX installation
 - **Project templates**: Creates complete buildable projects with srcs/, incs/, objs/, bins/
@@ -72,14 +104,14 @@
 - **User guidance**: Clear installation instructions for missing DFPs
 - **Files**: `src/extension.ts` (createXC32Project, detectXC32Compiler, detectDFP, downloadDFP)
 
-### 4. MPLABX Project Import (v2.3.0-2.3.1 - Jan 11, 2026)
+### 6. MPLABX Project Import (v2.3.0-2.3.1 - Jan 11, 2026)
 - **tasks.json auto-generation**: Creates build tasks automatically during import
 - **Bundled make.exe**: Zero external dependencies - no MSYS2/Git Bash needed
 - **Ctrl+Shift+B support**: Build directly from VS Code with bundled tools
 - **Enhanced Makefile help**: Detailed `make help` with DRY_RUN options
 - **Files**: `src/extension.ts` (tasks.json generation), `src/templates/xc32/tasks.json.template`
 
-### 4. MikroC Project Import (Dec 21-22, 2025)
+### 7. MikroC Project Import (Dec 21-22, 2025)
 - **Universal compiler support**: PIC32, PIC, dsPIC, AVR, ARM
 - **All .mcp* file types**: .mcp32, .mcp16, .mcp8, .mcp18, .mcppi, .mcpdsp, .mcpav, .mcpar
 - **In-place import**: No file copying, Makefile created in project folder

@@ -252,3 +252,97 @@ select {
     background-position: right 8px center;
     padding-right: 28px;
 }
+
+/* Peripheral Bus Clock Configuration (PIC32MZ) */
+.pbclk-section {
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #fafafa;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+}
+
+.pbclk-section h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0078d4;
+}
+
+.pbclk-info {
+    margin: 0 0 12px 0;
+    font-size: 11px;
+    color: #666;
+    font-style: italic;
+}
+
+.pbclk-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 80px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+}
+
+.pbclk-row:hover {
+    background-color: #f8f8f8;
+    border-color: #c0c0c0;
+}
+
+.pbclk-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+}
+
+.pbclk-label strong {
+    font-weight: 600;
+    color: #000;
+}
+
+.pbclk-label input[type="checkbox"] {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.pbclk-desc {
+    font-size: 10px;
+    color: #666;
+    font-style: italic;
+}
+
+.pbclk-select {
+    padding: 4px 8px;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    background-color: white;
+    font-size: 12px;
+    text-align: center;
+}
+
+.pbclk-select:disabled {
+    background-color: #f0f0f0;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.pbclk-freq {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0078d4;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.pbclk-freq.invalid {
+    color: #d13438;
+}
+
+.pbclk-freq.warning {
+    color: #ff8c00;
+}
