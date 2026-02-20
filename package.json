@@ -1,8 +1,8 @@
 {
   "name": "xc-project-importer",
-  "displayName": "XC Project Importer: AI-Assisted Embedded Development",
-  "description": "Import MPLABX projects to VS Code and leverage GitHub Copilot for embedded development. Full XC32 compiler support for MIPS32 architecture (PIC32MX/MZ) with MCC Harmony 3 compatibility.",
-  "version": "2.5.32",
+  "displayName": "XC PIC32MX/MZ Project Importer & Creator for VS Code",
+  "description": "Create new XC32 projects OR import existing MPLABX projects for PIC32MX/MZ. AI-assisted embedded development with GitHub Copilot. Visual config editor, MCC Harmony 3 compatible, build & flash from VS Code.",
+  "version": "2.5.33",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
@@ -52,7 +52,7 @@
     "commands": [
       {
         "command": "pic32-ide.importMPLABX",
-        "title": "XC32 Project Importer"
+        "title": "XC PIC32: Import MPLABX Project or Create New Project"
       },
       {
         "command": "pic32-ide.importMikroC",

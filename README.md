@@ -1,14 +1,16 @@
-# XC Project Importer for VS Code
+# XC PIC32MX/MZ Project Importer & Creator for VS Code
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/DavidCoetzee.xc-project-importer)](https://marketplace.visualstudio.com/items?itemName=DavidCoetzee.xc-project-importer)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/DavidCoetzee.xc-project-importer)](https://marketplace.visualstudio.com/items?itemName=DavidCoetzee.xc-project-importer)
 
-**AI-Assisted Microchip Development in VS Code** - Import existing MPLABX/MikroC projects OR create new XC32 projects from scratch. Leverage GitHub Copilot for embedded development with full XC32 compiler support for MIPS32 architecture (PIC32MX/MZ).
+**Create new PIC32 projects OR import existing MPLABX projects** - Full XC32 compiler support for PIC32MX/MZ with visual configuration editor, AI-assisted development (GitHub Copilot), and native build/flash from VS Code.
 
 ## Why This Extension?
 
-This extension was created to solve a fundamental problem: **modern AI coding assistants like GitHub Copilot work best in VS Code, but Microchip embedded development traditionally happens in MPLABX IDE.**
+This extension was created to solve a fundamental problem: **modern AI coding assistants like GitHub Copilot work best in VS Code, but Microchip PIC32 embedded development traditionally happens in MPLABX IDE.**
 
-By importing your MPLABX projects (or creating new ones) in VS Code, you can:
+By **creating new PIC32 projects** or **importing existing MPLABX projects** into VS Code, you can:
 - ✨ **Get AI assistance** - Let Copilot help write peripheral drivers, debug code, and understand complex configurations
 - 🚀 **Use modern tooling** - Leverage VS Code's superior editing, search, and extension ecosystem
 - 🔄 **Keep MCC workflow** - Continue using MPLABX/MCC for peripheral configuration, then import back to VS Code
@@ -16,6 +18,18 @@ By importing your MPLABX projects (or creating new ones) in VS Code, you can:
 
 **Perfect for developers who want to use AI assistance while working with MCC generated code or building new projects for any Microchip device.**
 
+## Quick Start
+
+1. **Install XC32 Compiler** ([Download](https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers))
+2. **Open Command Palette** (`Ctrl+Shift+P`)
+3. **Run:** `XC Project Importer: Import MPLABX Project`
+4. **Choose:**
+   - **Create New XC32 Project** → Select device → Configure clocks → Start coding
+   - **Import Existing MPLABX Project** → Select .X folder → Start coding
+5. **Build:** Press `Ctrl+Shift+B` or click **Build** button in status bar
+6. **Flash:** Click **⚡ Flash** button (requires bootloader or MPLABX IPE)
+
+**That's it!** Your project is ready for AI-assisted development with GitHub Copilot.
 ## Features
 
 ### 📥 MPLABX Project Import & Creation
