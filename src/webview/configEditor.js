@@ -213,7 +213,8 @@
             }
         }
         
-        // Update config preview
+        // Update PBCLK labels and config preview
+        calculatePBCLK();
         updateConfigPreview();
     }
     
