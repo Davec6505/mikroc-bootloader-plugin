@@ -177,7 +177,8 @@
         const outputDiv = parseInt(document.getElementById('pllOutputDiv').value);
         
         if (isNaN(oscFreqMHz) || isNaN(inputDiv) || isNaN(multiplier) || isNaN(outputDiv)) {
-            document.getElementById('clockFrequency').value = '0.000000';
+            calculatedSystemFreqMHz = 0;
+            document.getElementById('clockFrequency').textContent = '0 MHz';
             return;
         }
         
@@ -280,9 +281,10 @@
     }
     
     function updateConfigPreview() {
-        const clockFreq = parseFloat(document.getElementById('clockFrequency').value);
+        // Use module-level variable — clockFrequency is a <div>, not an input
+        const clockFreq = calculatedSystemFreqMHz;
         
-        if (isNaN(clockFreq) || clockFreq === 0) {
+        if (!clockFreq || clockFreq === 0) {
             document.getElementById('configPreview').value = 'Invalid configuration';
             return;
         }
