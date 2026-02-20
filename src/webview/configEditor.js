@@ -10,6 +10,7 @@
     let constraints = null;
     let deviceName = '';
     let deviceFamily = '';
+    let calculatedSystemFreqMHz = 0; // Tracks calculated SYSCLK for use in getCurrentConfig/calculatePBCLK
     
     // Wait for DOM to be ready
     document.addEventListener('DOMContentLoaded', () => {
@@ -40,8 +41,8 @@
         document.getElementById('oscMode').addEventListener('change', calculateClock);
         document.getElementById('pbDiv').addEventListener('change', calculateClock);
         
-        // PBCLK dividers (PIC32MZ only)
-        for (let i = 1; i <= 8; i++) {
+        // PBCLK dividers (PIC32MZ only) - PB1-PB7, no PB8 on PIC32MZ
+        for (let i = 1; i <= 7; i++) {
             const divSelect = document.getElementById(`pb${i}Div`);
             if (divSelect && i !== 7) { // PB7 has no divider
                 divSelect.addEventListener('change', calculatePBCLK);
@@ -192,14 +193,18 @@
         const isPIC32MZ = deviceName.startsWith('32MZ');
         const maxClockMHz = isPIC32MZ ? 200 : (deviceName.match(/32MX[34]/) ? 120 : 80);
         
-        // Always display the calculated value
-        document.getElementById('clockFrequency').value = systemFreqMHz.toFixed(6);
+        // Store calculated value in module variable (clockFrequency is a div, not an input)
+        calculatedSystemFreqMHz = systemFreqMHz;
+        
+        // Update the display div
+        const freqDisplay = document.getElementById('clockFrequency');
+        freqDisplay.textContent = `${systemFreqMHz.toFixed(3)} MHz`;
         
         // Show in red if invalid (has remainder or exceeds max)
         if (systemFreqMHz > maxClockMHz || hasRemainder) {
-            document.getElementById('clockFrequency').style.color = 'red';
+            freqDisplay.style.color = 'red';
         } else {
-            document.getElementById('clockFrequency').style.color = '#000';
+            freqDisplay.style.color = '';
         }
         
         // Validate PLL input frequency (4-5 MHz for MX, 5-10 MHz for MZ)
@@ -224,10 +229,10 @@
             return;
         }
         
-        // Get system clock frequency
-        const systemFreqMHz = parseFloat(document.getElementById('clockFrequency').value);
+        // Use module-level variable (clockFrequency is a div, not readable via .value)
+        const systemFreqMHz = calculatedSystemFreqMHz;
         
-        if (isNaN(systemFreqMHz) || systemFreqMHz === 0) {
+        if (!systemFreqMHz || systemFreqMHz === 0) {
             return;
         }
         
@@ -295,7 +300,8 @@
     
     function getCurrentConfig() {
         const oscFreqHz = parseFloat(document.getElementById('oscFrequency').value) * 1000000;
-        const systemFreqHz = parseFloat(document.getElementById('clockFrequency').value) * 1000000;
+        // Use module-level variable — clockFrequency is a <div> so .value is undefined
+        const systemFreqHz = calculatedSystemFreqMHz * 1000000;
         
         const config = {
             device: deviceName,
@@ -380,12 +386,8 @@
                     divider: parseInt(document.getElementById('pb6Div').value)
                 },
                 pb7: {
-                    enabled: true, // PB7 always enabled
-                    divider: 0 // PB7 has no divider
-                },
-                pb8: {
-                    enabled: document.getElementById('pb8Enable').checked,
-                    divider: parseInt(document.getElementById('pb8Div').value)
+                    enabled: true, // PB7 always enabled, no divider (always SYSCLK)
+                    divider: 0
                 }
             };
         }
