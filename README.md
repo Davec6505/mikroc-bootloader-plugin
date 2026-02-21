@@ -91,6 +91,18 @@ Four status bar buttons give you one-click access to every stage:
 - Auto-updates daily from [MikroC_bootloader](https://github.com/Davec6505/MikroC_bootloader) GitHub releases
 - Device must be running the MikroE PIC32 USB HID bootloader firmware
 
+### 🔌 USB HID Debug Monitor *(In Development — DAP-DEV branch)*
+
+A serial-free, hardware-debugger-free live debug channel over the existing MikroE USB HID bootloader link:
+
+- **No extra hardware** — uses the same USB cable and VID/PID as the bootloader
+- **Live memory/SFR reads** — poll any 32-bit address at ~10Hz from VS Code
+- **10-slot watch list** — configure addresses once, watch values update live in a WebView panel
+- **Reset to Bootloader** — one-click software reset into flash mode, no physical reset button needed
+- **Interrupt-driven** — USB HID runs in interrupt context; zero impact on your application timing
+- **Opt-in** — controlled by `DEBUG_STUB_ENABLED` compile-time flag in the bootloader stub
+- **Debug stub shipped as template** — auto-copied into new projects when debug mode is selected
+
 ### 🤖 AI-First Development
 This extension is designed for **AI-assisted embedded development**:
 - **GitHub Copilot Integration**: Get intelligent code suggestions for any Microchip peripheral
@@ -594,6 +606,14 @@ Contributions welcome! Please:
 4. Follow existing code style (TypeScript + ESLint)
 
 ## Changelog
+
+### v2.6.0 *(Planned — DAP-DEV branch)*
+- 🚧 **USB HID Debug Monitor** — live debug over existing bootloader USB link
+  - Phase 1: All 4 projects (MZ bootloader, MX bootloader, mikro_hb host tool, extension) building in VS Code
+  - Phase 2: Bootloader HID protocol documented; command namespace confirmed collision-free
+  - Phase 3: `debug_stub.c` running on PIC32MZ hardware — `0xD1` read verified
+  - Phase 4: VS Code Debug Panel WebView — live watch list, SFR browser, Reset to Bootloader
+  - Phase 5: Watch list persistence, session save/restore, shipped as extension template
 
 ### v2.5.38 (February 2026)
 - 🐛 Fixed: **PBCLK per-bus maximum MHz** corrected per DS60001320 PIC32MZ EF datasheet
