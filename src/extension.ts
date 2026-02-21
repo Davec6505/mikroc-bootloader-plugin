@@ -1575,8 +1575,8 @@ DEVICE = ${mikroCDevice}
 CLOCK  = ${clockMHz}
 
 # Auto-discover all .c files in this folder and quote each one
-SOURCES_RAW := $$(wildcard *.c)
-SOURCES     := $$(foreach src,$$(SOURCES_RAW),"$$(src)")
+SOURCES_RAW := $(wildcard *.c)
+SOURCES     := $(foreach src,$(SOURCES_RAW),"$(src)")
 
 # Library files - each individually quoted (base runtime libs first)
 LIBS := ${allLibs}
@@ -1587,12 +1587,12 @@ CFLAGS := ${cflags}
 .PHONY: all rebuild clean
 
 all:
-\t& "$$(COMPILER)" $$(CFLAGS) -N"$$(SRC_DIR)\\$$(MODULE).mcp32" -SP"$$(DEFS_DIR)\\" -SP"$$(USES_DIR)\\" -SP"$$(SRC_DIR)\\" -IP"$$(USES_DIR)\\" -IP"$$(SRC_DIR)" $$(SOURCES) $$(LIBS)
-\tif (Test-Path "$$(MODULE).hex") { Write-Host "Build complete! Output: $$(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
+\t& "$(COMPILER)" $(CFLAGS) -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
+\tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
 rebuild:
-\t& "$$(COMPILER)" $$(CFLAGS) -RA -N"$$(SRC_DIR)\\$$(MODULE).mcp32" -SP"$$(DEFS_DIR)\\" -SP"$$(USES_DIR)\\" -SP"$$(SRC_DIR)\\" -IP"$$(USES_DIR)\\" -IP"$$(SRC_DIR)" $$(SOURCES) $$(LIBS)
-\tif (Test-Path "$$(MODULE).hex") { Write-Host "Build complete! Output: $$(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
+\t& "$(COMPILER)" $(CFLAGS) -RA -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
+\tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
 clean:
 \tGet-ChildItem . -Include *.emcl,*.asm,*.lst,*.log,*.mcl,*.user.dic -ErrorAction SilentlyContinue | Remove-Item -Force

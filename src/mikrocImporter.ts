@@ -542,142 +542,80 @@ export class MikroCImporter {
      */
     async generateMakefile(projectInfo: MikroCProjectInfo, compilerPaths: MikroCCompilerPaths): Promise<void> {
         const makefilePath = path.join(projectInfo.projectPath, 'Makefile');
-        
-        // Build source file list with escaped quotes around each file
-        const sources = projectInfo.sourceFiles
-            .map(f => `\\"${path.relative(projectInfo.projectPath, f).replace(/\\/g, '/')}\\"`)
-            .join(' ');
-        
-        // Build library list (.emcl files - already converted) with escaped quotes
-        const libs = projectInfo.libraries.map(lib => `\\"${lib}\\"`).join(' ');
-        
-        // Build PLD file list with escaped quotes
-        const plds = projectInfo.pldFiles.map(pld => `\\"${pld}\\"`).join(' ');
-        
-        // Build search path flags with Windows backslashes and trailing backslashes
-        // Filter out paths that don't exist to avoid compiler warnings
-        const validSearchPaths = projectInfo.searchPaths
-            .map(p => path.resolve(projectInfo.projectPath, p))
-            .filter(p => {
-                try {
-                    return fs.existsSync(p);
-                } catch {
-                    return false;
-                }
-            });
-        
-        const validIncludePaths = projectInfo.includePaths
-            .map(p => path.resolve(projectInfo.projectPath, p))
-            .filter(p => {
-                try {
-                    return fs.existsSync(p);
-                } catch {
-                    return false;
-                }
-            });
-        
-        // Format paths with Windows backslashes and trailing backslashes (MikroC requires this)
-        const searchPathFlags = validSearchPaths
-            .map(p => `-SP"${p}\\\\"`)
-            .join(' ');
-        
-        const includePathFlags = validIncludePaths
-            .map(p => `-IP"${p}\\\\"`)
-            .join(' ');
-        
-        // Always include standard paths with Windows backslashes  
-        const projectPathWin = projectInfo.projectPath.replace(/\//g, '\\\\');
-        const stdPaths = `-SP$(MIKROC_PATH)\\\\Defs\\\\\\" -SP$(MIKROC_PATH)\\\\Uses\\\\\\" -SP\\"${projectPathWin}\\\\\\" -IP$(MIKROC_PATH)\\\\Uses\\\\\\" -IP\\"${projectPathWin}\\"`;
-        
-        // Build flags (NOTE: -Y flag must come AFTER -HEAP and BEFORE -DL for proper parsing)
-        let flags = `-MSF -DBG -p${projectInfo.deviceName}`;
-        
-        if (projectInfo.heapSize) {
-            flags += ` -HEAP ${projectInfo.heapSize}`;
-        }
-        
-        // Add -Y flag here (after HEAP, before DL)
-        flags += ` -Y`;
-        
-        flags += ` -DL -SSA`;
-        
+
+        const installWin = compilerPaths.installPath.replace(/\//g, '\\');
+        const projWin    = projectInfo.projectPath.replace(/\//g, '\\');
+        const clockMHz   = Math.floor(projectInfo.clockFrequency / 1_000_000);
+        const heapSize   = projectInfo.heapSize || 4096;
+
+        // Base runtime libs required by MikroC linker (prepended before user libs)
+        const isMZ = projectInfo.deviceName.toUpperCase().includes('MZ');
+        const baseLibs = isMZ
+            ? ['"__Lib_CP0.emcl"', '"__Lib_System_MZ_EF.emcl"']
+            : ['"__Lib_CP0.emcl"', '"__Lib_System.emcl"'];
+
+        // User libs — each individually quoted (deduplicate base libs)
+        const baseLibNames = baseLibs.map(l => l.replace(/"/g, ''));
+        const userLibs = projectInfo.libraries
+            .filter(l => !baseLibNames.includes(l))
+            .map(l => `"${l}"`);
+        // PLD files individually quoted
+        const plds = projectInfo.pldFiles.map(p => `"${p}"`);
+        const allLibs = [...baseLibs, ...userLibs, ...plds].join(' ');
+
+        let ebaseFlag = '';
         if (projectInfo.ebase) {
-            // Add 0x prefix if not present
-            const ebaseValue = projectInfo.ebase.startsWith('0x') || projectInfo.ebase.startsWith('0X') 
-                ? projectInfo.ebase 
-                : `0x${projectInfo.ebase}`;
-            flags += ` -EBASE ${ebaseValue}`;
+            const ebaseValue = projectInfo.ebase.startsWith('0x') || projectInfo.ebase.startsWith('0X')
+                ? projectInfo.ebase : `0x${projectInfo.ebase}`;
+            ebaseFlag = ` -EBASE ${ebaseValue}`;
         }
-        
-        if (projectInfo.interruptDef) {
-            flags += ` -INTDEF ${projectInfo.interruptDef}`;
-        }
-        
-        flags += ` -O11111113 -fo${Math.floor(projectInfo.clockFrequency / 1000000)}`;
-        
-        // Add -N flag with project file
-        flags += ` -N\\"${projectInfo.projectFile}\\"`;
-        
-        // Add search/include paths
-        flags += ` ${stdPaths}`;
-        if (searchPathFlags) {
-            flags += ` ${searchPathFlags}`;
-        }
-        if (includePathFlags) {
-            flags += ` ${includePathFlags}`;
-        }
-        
+        const intdefFlag = projectInfo.interruptDef ? ` -INTDEF ${projectInfo.interruptDef}` : '';
+
+        const cflags = `-MSF -DBG -p$(DEVICE) -HEAP ${heapSize} -Y -DL -SSA${ebaseFlag}${intdefFlag} -O11111113 -fo$(CLOCK)`;
+
         const makefileContent = `# MikroC Project Makefile
 # Generated by XC Project Importer
 # Project: ${projectInfo.projectName}
 # Device: ${projectInfo.deviceName}
 # Compiler: MikroC PRO for ${projectInfo.compilerType}
 
-# Compiler path (can be overridden with: make MIKROC_PATH="/custom/path")
-MIKROC_PATH ?= \\"${compilerPaths.installPath.replace(/\\/g, '\\\\')}
-MIKROC := \$(MIKROC_PATH)\\\\mikroC${projectInfo.compilerType}.exe\\"
+SHELL := powershell.exe
+.SHELLFLAGS := -NoProfile -Command
+
+# Compiler and paths (override: make COMPILER="your\\path\\mikroC${projectInfo.compilerType}.exe")
+COMPILER := ${installWin}\\mikroC${projectInfo.compilerType}.exe
+DEFS_DIR  := ${installWin}\\Defs
+USES_DIR  := ${installWin}\\Uses
+SRC_DIR   := ${projWin}
 
 # Project settings
+MODULE = ${projectInfo.projectName}
 DEVICE = ${projectInfo.deviceName}
-CLOCK = ${projectInfo.clockFrequency}
-PROJECT_NAME = ${projectInfo.projectName}
+CLOCK  = ${clockMHz}
 
-# Source files
-SRCS = ${sources}
+# Auto-discover all .c files in this folder and quote each one
+SOURCES_RAW := $(wildcard *.c)
+SOURCES     := $(foreach src,$(SOURCES_RAW),"$(src)")
 
-# Library files (MikroC compiled libraries)
-LIBS = ${libs}
-
-# Project definition files
-PLDS = ${plds}
+# Library files - each individually quoted (base runtime libs first)
+LIBS := ${allLibs}
 
 # Compiler flags
-FLAGS = ${flags}
+CFLAGS := ${cflags}
 
-# Build target (incremental - fast when used after IDE build)
+.PHONY: all rebuild clean
+
 all:
-\t@echo Building \$(PROJECT_NAME) for \$(DEVICE)...
-\t@powershell -Command "& \$(MIKROC) \$(FLAGS) \$(SRCS) \$(LIBS) \$(PLDS)"
-\t@test -f \$(PROJECT_NAME).hex && echo \"Build complete! Output: \$(PROJECT_NAME).hex\" || (echo \"Build FAILED - no hex file generated\" && exit 1)
+\t& "$(COMPILER)" $(CFLAGS) -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
+\tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
-# Rebuild all files (forces recompilation)
 rebuild:
-\t@echo Rebuilding all files for \$(PROJECT_NAME)...
-\t@powershell -Command "& \$(MIKROC) \$(FLAGS) -RA \$(SRCS) \$(LIBS) \$(PLDS)"
-\t@test -f \$(PROJECT_NAME).hex && echo \"Build complete! Output: \$(PROJECT_NAME).hex\" || (echo \"Build FAILED - no hex file generated\" && exit 1)
+\t& "$(COMPILER)" $(CFLAGS) -RA -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
+\tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
-# Clean build artifacts
 clean:
-\t@echo Cleaning build artifacts...
-\t@rm -f *.emcl *.asm *.lst *.log *.mcl *.user.dic 2>nul || true
-\t@echo Clean complete!
-
-# Flash using MikroC bootloader
-flash: all
-\t@echo Flashing $(PROJECT_NAME).hex...
-\t@"bin/mikro_hb.exe" "$(PROJECT_NAME).hex"
-
-.PHONY: all rebuild clean flash
+\tGet-ChildItem . -Include *.emcl,*.asm,*.lst,*.log,*.mcl,*.user.dic -ErrorAction SilentlyContinue | Remove-Item -Force
+\tWrite-Host "Clean complete."
 `;
         
         fs.writeFileSync(makefilePath, makefileContent, 'utf-8');
