@@ -1755,7 +1755,48 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
         if (!compilerPaths) {
             return;
         }
-        
+
+        // Ask where to create the VS Code project (same pattern as MPLABX importer)
+        const outputFolders = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            openLabel: 'Select Output Folder',
+            title: 'Where should the VS Code project be created?'
+        });
+
+        if (!outputFolders || outputFolders.length === 0) {
+            return;
+        }
+
+        const outputPath = path.join(outputFolders[0].fsPath, projectInfo.projectName);
+
+        // Create destination folder
+        if (!fs.existsSync(outputPath)) {
+            fs.mkdirSync(outputPath, { recursive: true });
+        }
+
+        // Copy entire source project to the new output folder
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Copying project files to ${outputPath}...`,
+            cancellable: false
+        }, async () => {
+            fs.cpSync(projectPath, outputPath, { recursive: true });
+        });
+
+        // Remap projectInfo so all paths point into the new output folder
+        const oldProjectPath = projectInfo.projectPath;
+        projectInfo.projectPath = outputPath;
+        projectInfo.sourceFiles = projectInfo.sourceFiles.map(f =>
+            path.join(outputPath, path.relative(oldProjectPath, f))
+        );
+        projectInfo.headerFiles = projectInfo.headerFiles.map(f =>
+            path.join(outputPath, path.relative(oldProjectPath, f))
+        );
+
+        console.log(`MikroC import: Project files copied to: ${outputPath}`);
+
         // Generate Makefile
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -1768,7 +1809,7 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
         console.log('MikroC import: Makefile generated successfully');
         
         // Generate .vscode/tasks.json
-        const vscodeDir = path.join(projectPath, '.vscode');
+        const vscodeDir = path.join(outputPath, '.vscode');
         if (!fs.existsSync(vscodeDir)) {
             fs.mkdirSync(vscodeDir, { recursive: true });
         }
@@ -1812,7 +1853,7 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
         
         // Ask how to open the project — modal so it cannot be missed
         const openAction = await vscode.window.showInformationMessage(
-            `MikroC project "${projectInfo.projectName}" imported successfully!\n\nDevice: ${projectInfo.deviceName}\nMakefile generated in: ${projectPath}\n\nHow would you like to open it?`,
+            `MikroC project "${projectInfo.projectName}" imported successfully!\n\nDevice: ${projectInfo.deviceName}\nProject created at: ${outputPath}\n\nHow would you like to open it?`,
             { modal: true },
             'Add to Workspace',
             'Open in New Window',
@@ -1821,11 +1862,11 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
 
         if (openAction === 'Add to Workspace') {
             const currentFolders = vscode.workspace.workspaceFolders?.length ?? 0;
-            vscode.workspace.updateWorkspaceFolders(currentFolders, 0, { uri: vscode.Uri.file(projectPath) });
+            vscode.workspace.updateWorkspaceFolders(currentFolders, 0, { uri: vscode.Uri.file(outputPath) });
         } else if (openAction === 'Open in New Window') {
-            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath), true);
+            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), true);
         } else if (openAction === 'Open Project') {
-            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath), false);
+            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), false);
         }
         
     } catch (error) {
