@@ -15,8 +15,10 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 2. **MikroC Project Import** ([mikrocImporter.ts](../src/mikrocImporter.ts))
    - Parse `.mcp*` files (INI format) for device, clock, source files, libraries
    - Scan source code for function usage → auto-detect required `.emcl` libraries
-   - Generate in-place Makefile with PowerShell call operator for MikroC compiler
+   - Generate in-place Makefile using `SHELL := powershell.exe` + `& "$(COMPILER)"` call operator
    - **Critical**: Quote each file/library individually in Makefile, NOT as batch string
+   - **Flat structure**: MikroC cannot handle subfolders — all `.c`, `.h`, `.emcl`, `.mcp32` live in the project root
+   - **No `incs/` folder** for MikroC projects; output `.hex` is moved to `bins/` by the Makefile recipe
 
 3. **XC32 Project Creation** ([extension.ts](../src/extension.ts) → `createXC32Project`)
    - Detect XC32 compiler via quick check of common paths (instant, no PowerShell timeout)
@@ -117,27 +119,54 @@ PIC32MZ EF devices have **7 peripheral bus clocks** configured at runtime (verif
    content.replace('// Header\r\n', replacement);
    ```
 
-2. **MikroC Makefile Quoting (160+ second bug)**
+2. **MikroC Makefile — Working Pattern (confirmed building)**
    ```makefile
-   # ❌ WRONG - Batch quoted string (160+ sec builds)
-   SRCS = "Main.c Config.c Stepper.c"
+   SHELL := powershell.exe
+   .SHELLFLAGS := -NoProfile -Command
+   COMPILER := C:\path\to\mikroCPIC32.exe
+   DEFS_DIR  := C:\path\to\Defs
+   USES_DIR  := C:\path\to\Uses
+   SRC_DIR   := C:\path\to\project
+   SOURCES_RAW := $(wildcard *.c)
+   SOURCES     := $(foreach src,$(SOURCES_RAW),"$(src)")
+   LIBS := "__Lib_CP0.emcl" "__Lib_System_MZ_EF.emcl" "__Lib_Delays.emcl"
+   all:
+   	& "$(COMPILER)" $(CFLAGS) -N"$(SRC_DIR)\$(MODULE).mcp32" -SP"$(DEFS_DIR)\" -SP"$(SRC_DIR)\" $(SOURCES) $(LIBS)
+   	if (Test-Path "$(MODULE).hex") { New-Item -ItemType Directory -Force bins | Out-Null; Move-Item -Force "$(MODULE).hex" "bins\$(MODULE).hex"; Write-Host "Build complete!" } else { Write-Error "FAILED"; exit 1 }
+   ```
+   - **`-SP` paths require trailing `\`** before the closing quote
+   - **Base runtime libs MUST be first**: `__Lib_CP0.emcl` + `__Lib_System_MZ_EF.emcl` (MZ) or `__Lib_System.emcl` (MX)
+   - `.hex` output moved to `bins/` by the recipe — `bins/` folder pre-created at project creation/import
+
+3. **TypeScript Template Literal Escaping for Makefiles**
+   ```typescript
+   // $(…) in template literals is NOT interpolation — only ${…} is
+   // So Make variables need NO escaping:
+   `$(wildcard *.c)`    // ✅ outputs: $(wildcard *.c)
+   `$$(wildcard *.c)`   // ❌ outputs: $$(wildcard *.c)  — WRONG
    
-   # ✅ CORRECT - Each file individually quoted
-   SRCS = \"Main.c\" \"Config.c\" \"Stepper.c\"
-   
-   # ✅ Split quotes across variable definition
-   MIKROC_PATH ?= \"C:\\Program Files\\mikroC PRO for PIC32
-   MIKROC := $(MIKROC_PATH)\\mikroCPIC32.exe\"
+   // Backslash escaping:
+   `\\`   // outputs single backslash \   (path separator in Makefile string)
+   `\\"`  // outputs \" (trailing backslash before closing quote for -SP paths)
    ```
 
-3. **MikroC Compiler Exit Code**
+4. **MikroC Compiler Exit Code**
    - `mikroCPIC32.exe` **always returns 0**, even on failure
    - Must check for `.hex` file existence instead of exit code
 
-4. **XC32 Startup Detection**
+5. **MikroC Flat Project Structure (no subfolders)**
+   - MikroC compiler cannot find headers/libs in subdirectories
+   - All files (`.c`, `.h`, `.emcl`, `.mcp32`) must be in the **project root**
+   - Do NOT create `incs/` or `srcs/` for MikroC projects
+   - Only `bins/` subfolder is acceptable (output only, not searched by compiler)
+
+6. **XC32 Startup Detection**
+   ```typescript
+   // Check linker flags for -nostartfiles (NOT -no-startup-files)
+   const usesCrt0 = !ldflags.includes('-nostartfiles');
    ```
 
-5. **XC32 Compiler Detection (Hybrid Approach)**
+7. **XC32 Compiler Detection (Hybrid Approach)**
    ```typescript
    // ✅ CORRECT - Fast common path check first (99% case)
    const commonPaths = [
@@ -154,9 +183,7 @@ PIC32MZ EF devices have **7 peripheral bus clocks** configured at runtime (verif
    - XC32 v4.0+ requires `-mdfp` flag for all builds
    - Standard location: `C:/Program Files/Microchip/MPLABX/v6.25/packs/Microchip/PIC32MZ-EF_DFP/<version>`
    - Always detect and include in Makefile: `CFLAGS = -mprocessor=$(DEVICE) -mdfp="$(DFP_PATH)" -O2`
-   - Guide users to download from `https://packs.download.microchip.com/` if missingtypescript
-   // Check linker flags for -nostartfiles (NOT -no-startup-files)
-   const usesCrt0 = !ldflags.includes('-nostartfiles');
+   - Guide users to download from `https://packs.download.microchip.com/` if missing
    ```
 
 ## Development Workflow
@@ -232,9 +259,31 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
 
 ## Roadmap & Known Issues
 
-**Current Status** (Feb 21, 2026): Active development — Edit Config command added, PBCLK max MHz corrected per datasheet
+**Current Status** (Feb 21, 2026): Active development — MikroC create + import flows building successfully; v2.5.46 published
 
-**Recently Completed** (v2.5.33-v2.5.38):
+**Recently Completed** (v2.5.39-v2.5.46):
+
+- **MikroC bins/ output, flat structure** (v2.5.46)
+  - Both Makefile generators (create + import) move `.hex` to `bins\<project>.hex` after build
+  - `clean` also removes `bins\*.hex`
+  - `bins/` folder pre-created by extension on project creation and import
+  - No `incs/` folder for MikroC — all files stay flat in project root (MikroC compiler requirement)
+
+- **MikroC Makefile template literal escaping fixed** (v2.5.45)
+  - Both `extension.ts` (`generateMikroCMakefileContent`) and `mikrocImporter.ts` (`generateMakefile`) use correct escaping
+  - `$(…)` used directly for Make vars (not `$$(…)` — that was the bug)
+  - `\\` for single backslash, `\\"`  for trailing backslash-quote in `-SP` paths
+
+- **MikroC Makefile generator rewritten to PowerShell pattern** (v2.5.44)
+  - `SHELL := powershell.exe` + `.SHELLFLAGS := -NoProfile -Command`
+  - Recipe: `& "$(COMPILER)" $(CFLAGS) …` (PowerShell call operator)
+  - Source files auto-discovered via `$(wildcard *.c)` + individually quoted via `$(foreach …)`
+  - Base runtime libs always prepended: `__Lib_CP0.emcl` + `__Lib_System_MZ_EF.emcl` (MZ) or `__Lib_System.emcl` (MX)
+  - Build success checked by `Test-Path` on `.hex` (compiler always exits 0)
+
+- **MikroC project creator wired to config editor** (v2.5.42)
+  - Create flow opens config editor webview, generates `.mcp32` + Makefile from config
+  - Device-aware: MZ generates `configure_peripheral_clocks()` in main.c, MX does not
 
 - **PBCLK Max MHz Per Bus Corrected** (v2.5.38) - Datasheet-verified per-bus speed limits
   - PB1 (System Bus) and PB8 (USB/CAN/Ethernet) correctly allow up to 200 MHz — no longer flagged red
