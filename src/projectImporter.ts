@@ -46,6 +46,7 @@ export interface ProjectMetadata {
     device: string;
     imported: string;               // ISO date
     lastSync: string;               // ISO date
+    usesBootloader?: boolean;       // true = MikroE HID bootloader (Flash button); false = ICSP (Program button)
     toolchain: {
         compiler: string;
         compilerPath: string;

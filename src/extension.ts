@@ -761,15 +761,64 @@ export function activate(context: vscode.ExtensionContext) {
     flashStatusBarItem.command = 'pic32-ide.flash';
     flashStatusBarItem.text = '$(zap) Flash';
     flashStatusBarItem.tooltip = 'Flash .hex file to PIC32 device via MikroE bootloader';
-    flashStatusBarItem.show();
 
     programStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
     programStatusBarItem.command = 'pic32-ide.programDevice';
     programStatusBarItem.text = '$(chip) Program';
     programStatusBarItem.tooltip = 'Program device via ICSP (PICkit/ICD/SNAP) using MPLAB IPE';
-    programStatusBarItem.show();
 
     context.subscriptions.push(buildStatusBarItem, rebuildStatusBarItem, flashStatusBarItem, programStatusBarItem);
+
+    // Show the correct flash/program button based on current workspace project type
+    updateStatusBarForWorkspace();
+
+    // Re-evaluate whenever the user opens a different folder
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeWorkspaceFolders(() => updateStatusBarForWorkspace())
+    );
+}
+
+/**
+ * Show/hide Flash vs Program status bar buttons based on pic32-project.json.
+ *   usesBootloader: true  → Flash (MikroE HID), hide Program (ICSP)
+ *   usesBootloader: false → Program (ICSP),     hide Flash
+ *   No metadata file      → show both (unknown project / fresh workspace)
+ */
+function updateStatusBarForWorkspace(): void {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+        // No folder open — show both so buttons are always visible
+        flashStatusBarItem.show();
+        programStatusBarItem.show();
+        return;
+    }
+
+    const metaPath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'pic32-project.json');
+    if (!fs.existsSync(metaPath)) {
+        // Not one of our projects — show both
+        flashStatusBarItem.show();
+        programStatusBarItem.show();
+        return;
+    }
+
+    try {
+        const meta: ProjectMetadata = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+        if (meta.usesBootloader === true) {
+            flashStatusBarItem.show();
+            programStatusBarItem.hide();
+        } else if (meta.usesBootloader === false) {
+            flashStatusBarItem.hide();
+            programStatusBarItem.show();
+        } else {
+            // Field absent (older projects) — show both
+            flashStatusBarItem.show();
+            programStatusBarItem.show();
+        }
+    } catch {
+        // Malformed JSON — show both as safe fallback
+        flashStatusBarItem.show();
+        programStatusBarItem.show();
+    }
 }
 
 /**
@@ -901,6 +950,8 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
         device: projectInfo.deviceName,
         imported: new Date().toISOString(),
         lastSync: new Date().toISOString(),
+        // Bootloader projects use startup.S with -nostartfiles; CRT0 projects use ICSP
+        usesBootloader: !projectInfo.usesCrt0,
         toolchain: {
             compiler: projectInfo.compiler,
             compilerPath: projectInfo.compilerBinDir || '',
@@ -912,6 +963,9 @@ async function importMPLABXProject(context: vscode.ExtensionContext) {
         },
     };
     saveMetadata(outputPath, metadata);
+
+    // Update status bar immediately so buttons reflect this project's flash method
+    updateStatusBarForWorkspace();
 
     // Generate tasks.json from template
     const vscodeDir = path.join(outputPath, '.vscode');
@@ -1336,6 +1390,27 @@ Generated: ${new Date().toLocaleString()}
 `;
 
         fs.writeFileSync(path.join(outputPath, 'README.md'), readmeContent, 'utf-8');
+
+        // Save project metadata so status bar buttons show correctly on next open
+        const projMetadata: ProjectMetadata = {
+            projectType: 'mplabx',
+            sourceProject: outputPath,
+            device: deviceName,
+            imported: new Date().toISOString(),
+            lastSync: new Date().toISOString(),
+            usesBootloader: useMikroBootloader,
+            toolchain: {
+                compiler: 'XC32',
+                compilerPath: finalXC32Path ? path.join(finalXC32Path, 'bin').replace(/\\/g, '/') : '',
+                dfpPath: finalDfpPath || undefined,
+            },
+            folders: {
+                mccGenerated: '',
+                userCode: ['srcs'],
+            },
+        };
+        saveMetadata(outputPath, projMetadata);
+
         } catch (error) {
             console.error('[ERROR] Project creation failed:', error);
             vscode.window.showErrorMessage(`Failed to create project: ${error instanceof Error ? error.message : String(error)}`);

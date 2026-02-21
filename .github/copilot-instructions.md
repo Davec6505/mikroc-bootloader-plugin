@@ -35,7 +35,13 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 4. **Build System Status Bar Buttons** ([extension.ts](../src/extension.ts))
    - **Build button**: Executes `workbench.action.tasks.build` (runs default build task)
    - **Rebuild button**: Creates terminal with bundled make, checks for `rebuild` target in Makefile
-   - **Flash button**: Creates terminal, calls `mikro_hb.exe` with selected .hex file
+   - **Flash button** (`$(zap) Flash`): Creates terminal, calls `mikro_hb.exe` with selected .hex file — MikroE HID bootloader path
+   - **Program button** (`$(chip) Program`): ICSP programming via `ipecmd.exe` (MPLAB IPE CLI)
+     - Auto-detects `ipecmd.exe` under `C:\Program Files\Microchip\MPLABX\v*\mplab_platform\mplab_ipe\` (latest version)
+     - Falls back to manual Browse dialog if MPLAB X IDE not installed
+     - Quick-pick programmer: PICkit 4, PICkit 5, ICD 4, ICD 5, SNAP
+     - Reads device name from `.vscode/pic32-project.json`, falls back to manual input box
+     - Command: `& "ipecmd.exe" -TP<TOOL> -P<DEVICE> -F"<hex>" -E -M`
    - **PowerShell syntax**: Uses `&` call operator for quoted paths: `& "path/to/make.exe" rebuild`
    - **Makefile rebuild target**: Template includes `rebuild: all` (clean + build)
    - **Environment setup**: Adds bundled bin path to PATH, sets SHELL to bundled sh.exe
@@ -46,7 +52,11 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 - **[bootloaderUpdater.ts](../src/bootloaderUpdater.ts)**: Auto-checks GitHub releases for `mikro_hb.exe`, downloads to `globalStorageUri` (survives extension updates)
 - **[makefileGenerator.ts](../src/makefileGenerator.ts)**: Generates cross-platform Makefiles with proper escaping for paths with spaces
 - **[deviceLoader.ts](../src/deviceLoader.ts)**: Loads device definitions from JSON, provides device-specific clock frequencies and config options
-- **[configEditor.ts](../src/configEditor.ts)**: Webview provider for oscillator/PLL configuration (new project creation only)
+- **[configEditor.ts](../src/configEditor.ts)**: Webview provider for oscillator/PLL + build settings configuration (new project creation only)
+  - `ProjectConfig` interface includes `build?: { heapSize, stackSize, optLevel, buildType }` section
+  - Build settings saved to `config.json` and used by `MakefileGenerator` via `{{HEAP_SIZE}}`, `{{STACK_SIZE}}`, `{{OPT_LEVEL}}` tokens
+  - Config editor HTML is a TypeScript template string in `_getHtmlForWebview()` — **`src/webview/configEditor.html` is DEAD/unused**
+  - Frontend JS is `src/webview/configEditor.js` (copied to `out/webview/` at compile time)
 
 ### PIC32MZ EF Peripheral Bus Clock Architecture
 
@@ -209,27 +219,40 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
 
 ## Roadmap & Known Issues
 
-**Current Status** (Jan 22, 2026): Production maintenance and bug fixes
+**Current Status** (Feb 21, 2026): Active development — ICSP programming added, DAP-DEV branch open for debug research
 
-**Recently Completed** (v2.5.29-2.5.30):
-- **Config Editor Clock Validation** (v2.5.30) - Displays actual calculated MHz values in red when invalid (fractional, exceeds max, or PLL input out of range)
-  - Fixed: Shows calculated frequency instead of "INVALID" text
-  - Uses Number.isInteger() to detect fractional MHz values
-  - Visual indicator: Red color for invalid frequencies
-  
+**Recently Completed** (v2.5.33-v2.5.35):
+
+- **Program Device Button via ICSP** (v2.5.35) - New `$(chip) Program` status bar button for direct hardware programming
+  - Detects `ipecmd.exe` from any MPLAB X IDE installation automatically (latest version wins)
+  - Programmer quick-pick: PICkit 4, PICkit 5, ICD 4, ICD 5, SNAP
+  - Device auto-read from `.vscode/pic32-project.json`; manual input fallback
+  - ipecmd flags: `-E` (erase) + `-M` (program) via PowerShell `&` call operator
+  - Branch **DAP-DEV** created for future custom Debug Adapter Protocol research
+
+- **Build Settings Panel in Config Editor** (v2.5.34) - Right panel now includes editable build parameters
+  - Heap Size (bytes, default 4096) — feeds `{{HEAP_SIZE}}` Makefile token
+  - Stack Size (bytes, default 4096) — feeds `{{STACK_SIZE}}` Makefile token
+  - Optimization Level select (-O0/-O1/-O2/-O3/-Os) — feeds `{{OPT_LEVEL}}` token
+  - Build Type radio (Release / ICD Debug) — stored in config.json
+  - All values saved in `config.json` under `build:` key and read back by `extension.ts`
+
+- **PIC32MZ EF PBCLK Architecture Corrections** (v2.5.34) - Verified from DFP headers
+  - Removed PB6 (register does not exist on EF family — causes compiler error)
+  - Added PB8 (USB/CAN/Ethernet, PBDIV=0 → ÷1 → 200 MHz default)
+  - PBDIV option labels changed to show raw register values `0 (÷1)` through `7 (÷8)`
+  - PBCLK event listeners in `configEditor.js` fixed: loop `[1,2,3,4,5,7,8]` (was wrong `1..6`)
+  - Real-time MHz display per bus, red if fractional or >100 MHz
+
+- **Config Editor JS Complete Rewrite** (v2.5.33) - Correct HTML element IDs
+  - All element IDs sourced from the real TypeScript template string in `configEditor.ts`
+  - Previous `configEditor.html` was a dead file — all HTML lives in `_getHtmlForWebview()`
+  - OK button now correctly builds and posts full config including PBCLK and build sections
+
 - **PATH Environment Management** (v2.5.29) - Exact string tracking to prevent duplicates
-  - Saves exact added path to VS Code globalState (PATH_ADDED_KEY)
-  - Removes old extension paths using PowerShell exact string matching
-  - Manual cleanup command: `pic32-ide.cleanupPath`
 
-- **Config Editor Integration** (v2.5.26) - Oscillator/PLL configuration for new XC32/MikroC projects
-  - Compiler-agnostic design: config.json → XC32 #pragma OR MikroC format
-  - Only for NEW projects (createXC32Project, createMikroCProject)
-  - NOT used for imports (MPLABX/MikroC imports preserve existing config)
-  - Real-time clock calculator based on oscillator + PLL settings
-  - Device-driven options from JSON (valid PLL ranges, oscillator modes)
-
-**Next Priority**: Hardware debug support (ICD/PICkit/SNAP integration)
+**Active Branch**: `DAP-DEV` — researching custom VS Code Debug Adapter Protocol for PIC32 hardware debug
+**Next Priority**: DAP server research — Microchip MPLAB Extensions DAP analysis
 
 **Not Pursuing**: MCC/Harmony code generation (too complex, 1000+ .ftl templates)
 
