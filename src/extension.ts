@@ -1435,10 +1435,187 @@ Generated: ${new Date().toLocaleString()}
 }
 
 /**
- * Create new MikroC Project with basic template
+ * Convert MikroC library short name to device-aware .emcl filename
+ */
+function libraryShortNameToEmcl(shortName: string, deviceName: string): string {
+    const isMZ = deviceName.toUpperCase().includes('MZ');
+    const isEF = deviceName.toUpperCase().includes('EF');
+    const map: Record<string, string> = {
+        'Delays':      '__Lib_Delays.emcl',
+        'CP0':         '__Lib_CP0.emcl',
+        'System':      (isMZ && isEF) ? '__Lib_System_MZ_EF.emcl'    : '__Lib_System.emcl',
+        'SoftReset':   '__Lib_SoftResetDma.emcl',
+        'Math':        '__Lib_Math.emcl',
+        'MathDouble':  (isMZ && isEF) ? '__Lib_MathDouble_MZ_EF.emcl' : '__Lib_MathDouble.emcl',
+        'C_String':    '__Lib_CString.emcl',
+        'C_Stdlib':    (isMZ && isEF) ? '__Lib_CStdlib_EF.emcl'      : '__Lib_CStdlib.emcl',
+        'C_Type':      '__Lib_CType.emcl',
+        'C_Math':      (isMZ && isEF) ? '__Lib_CMath_EF.emcl'        : '__Lib_CMath.emcl',
+        'Sprintf':     (isMZ && isEF) ? '__Lib_Sprintf_EF.emcl'      : '__Lib_Sprintf.emcl',
+        'Sprinti':     '__Lib_Sprinti.emcl',
+        'Sprintl':     '__Lib_Sprintl.emcl',
+        'Conversions': (isMZ && isEF) ? '__Lib_Conversions_EF.emcl'  : '__Lib_Conversions.emcl',
+        'MemManager':  '__Lib_MemManager.emcl',
+        'UART':        isMZ ? '__Lib_UART_123456_MZ.emcl' : '__Lib_UART.emcl',
+        'SPI':         '__Lib_SPI.emcl',
+        'I2C':         '__Lib_I2C.emcl',
+        'USB':         '__Lib_USB.emcl',
+        'FLASH':       '__Lib_FLASH.emcl',
+        'CAN':         '__Lib_CAN.emcl',
+    };
+    return map[shortName] || `__Lib_${shortName}.emcl`;
+}
+
+/**
+ * Generate MikroC .mcp32 project file content (INI format)
+ * Compatible with MikroC PRO for PIC32 IDE — can be opened directly in the IDE.
+ */
+function generateMCP32Content(
+    config: import('./configEditor').ProjectConfig,
+    projectName: string,
+    sourceFiles: string[],
+    libraries: string[]     // short names e.g. ['Delays', 'USB']
+): string {
+    const mikroCDevice = 'P' + config.device;
+    const clock        = Math.round(config.clock.systemFrequency);
+    const heapSize     = config.build?.heapSize ?? 4096;
+    const fileLines    = sourceFiles.map((f, i) => `File${i}=${f}`).join('\r\n');
+    const libLines     = libraries.map((l, i) => `File${i}=${l}`).join('\r\n');
+    return [
+        '[DEVICE]',
+        `Name=${mikroCDevice}`,
+        `Clock=${clock}`,
+        '[MEMORY_MODEL]',
+        'Value=0',
+        '[BUILD_TYPE]',
+        'Value=0',
+        '[USE_EEPROM]',
+        'Value=0',
+        '[EEPROM_DEFINITION]',
+        'Value=',
+        '[USE_HEAP]',
+        'Value=1',
+        '[HEAP_SIZE]',
+        `Value=${heapSize}`,
+        '[FILES]',
+        ...(sourceFiles.length ? [fileLines] : []),
+        `Count=${sourceFiles.length}`,
+        '[BINARIES]',
+        'Count=0',
+        '[SEARCH_PATH]',
+        'Count=0',
+        '[HEADER_PATH]',
+        'Count=0',
+        '[HEADERS]',
+        'Count=0',
+        '[PLDS]',
+        'Count=0',
+        '[Useses]',
+        ...(libraries.length ? [libLines] : []),
+        `Count=${libraries.length}`,
+        '[INTERRUPT_DEFS]',
+        'EBASE=9FC01000',
+        'VECTOR_SPACEING=32',
+        'VECTOR_MODE=1',
+        'USE_SRS=7',
+    ].join('\r\n') + '\r\n';
+}
+
+/**
+ * Generate MikroC Makefile content from ProjectConfig
+ */
+function generateMikroCMakefileContent(
+    config: import('./configEditor').ProjectConfig,
+    compilerInstallPath: string,
+    projectName: string,
+    sourceFiles: string[],   // relative file names e.g. ['main.c']
+    emclLibs: string[],      // e.g. ['__Lib_Delays.emcl']
+    _makePath: string,
+    binPath: string,
+    shPath: string,
+    projectPath: string      // absolute path for search paths
+): string {
+    const mikroCDevice = 'P' + config.device;
+    const clock        = Math.round(config.clock.systemFrequency);
+    const clockMHz     = Math.floor(clock / 1_000_000);
+    const heapSize     = config.build?.heapSize ?? 4096;
+
+    const srcs       = sourceFiles.map(f => `\\"${f}\\"`).join(' ');
+    const libs        = emclLibs.map(l => `\\"${l}\\"`).join(' ');
+    const installEsc  = compilerInstallPath.replace(/\\/g, '\\\\');
+    const projWin     = projectPath.replace(/\//g, '\\');
+    const bundledBin  = binPath.replace(/\\/g, '/');
+
+    const flags = [
+        '-MSF', '-DBG',
+        `-p${mikroCDevice}`,
+        `-HEAP ${heapSize}`,
+        '-Y', '-DL', '-SSA',
+        '-EBASE 0x9FC01000',
+        '-INTDEF MV_SRS7_IS32',
+        '-O11111113',
+        `-fo${clockMHz}`,
+        `-N\\"${projectName}.mcp32\\"`,
+        `-SP$(MIKROC_PATH)\\\\Defs\\\\"`,
+        `-SP$(MIKROC_PATH)\\\\Uses\\\\"`,
+        `-SP\\"${projWin}\\\\"`,
+        `-IP$(MIKROC_PATH)\\\\Uses\\\\"`,
+        `-IP\\"${projWin}\\"`,
+    ].join(' ');
+
+    return `# MikroC Project Makefile
+# Generated by XC Project Importer
+# Project: ${projectName}
+# Device: ${mikroCDevice}
+# Compiler: MikroC PRO for PIC32
+SHELL = ${shPath}
+export PATH := ${bundledBin}:$(PATH)
+
+# MikroC compiler path (can be overridden: make MIKROC_PATH="your/path")
+MIKROC_PATH ?= \\"${installEsc}
+MIKROC := $(MIKROC_PATH)\\\\mikroCPIC32.exe\\"
+
+# Project settings
+PROJECT_NAME = ${projectName}
+DEVICE       = ${mikroCDevice}
+CLOCK        = ${clock}
+
+# Source files (add more as needed — wrap each in escaped quotes)
+SRCS = ${srcs}
+
+# Library files
+LIBS = ${libs}
+
+# Compiler flags
+FLAGS = ${flags}
+
+all:
+\t@echo Building $(PROJECT_NAME) for $(DEVICE)...
+\t@powershell -Command "& $(MIKROC) $(FLAGS) $(SRCS) $(LIBS)"
+\t@test -f $(PROJECT_NAME).hex && echo "Build complete! Output: $(PROJECT_NAME).hex" || (echo "Build FAILED - no hex file generated" && exit 1)
+
+rebuild:
+\t@echo Rebuilding all files for $(PROJECT_NAME)...
+\t@powershell -Command "& $(MIKROC) $(FLAGS) -RA $(SRCS) $(LIBS)"
+\t@test -f $(PROJECT_NAME).hex && echo "Build complete! Output: $(PROJECT_NAME).hex" || (echo "Build FAILED - no hex file generated" && exit 1)
+
+clean:
+\t@echo Cleaning build artifacts...
+\t@rm -f *.emcl *.asm *.lst *.log *.mcl *.user.dic 2>nul || true
+\t@echo Clean complete!
+
+flash: all
+\t@echo Flashing $(PROJECT_NAME).hex...
+
+.PHONY: all rebuild clean flash
+`;
+}
+
+/**
+ * Create new MikroC Project — calls config editor, generates .mcp32, Makefile and metadata
  */
 async function createMikroCProject(context: vscode.ExtensionContext) {
-    // Get project name
+    // Step 1: Project name
     const projectName = await vscode.window.showInputBox({
         prompt: 'Enter project name',
         placeHolder: 'MyMikroCProject',
@@ -1446,33 +1623,35 @@ async function createMikroCProject(context: vscode.ExtensionContext) {
             if (!value || value.trim().length === 0) {
                 return 'Project name cannot be empty';
             }
-            if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
-                return 'Project name can only contain letters, numbers, underscores, and hyphens';
+            if (!/^[a-zA-Z0-9_\-\s]+$/.test(value)) {
+                return 'Only letters, numbers, spaces, underscores and hyphens allowed';
             }
             return null;
         }
     });
+    if (!projectName) { return; }
 
-    if (!projectName) {
-        return;
-    }
-
-    // Get target device from dropdown
+    // Step 2: Device picker
     const allDevices = Object.values(SUPPORTED_DEVICES).flat();
     const deviceChoice = await vscode.window.showQuickPick(allDevices, {
         placeHolder: 'Select target PIC32 device',
         title: 'Choose Device',
         matchOnDescription: true
     });
+    if (!deviceChoice) { return; }
 
-    if (!deviceChoice) {
-        return;
-    }
+    const deviceName = deviceChoice.label;   // e.g. '32MZ2048EFH064'
+    const familyName = detectDeviceFamily(deviceName) || 'PIC32MZ-EF';
 
-    // MikroC uses P prefix (P32MZ... instead of 32MZ...)
-    const mikroCDevice = 'P' + deviceChoice.label;
+    // Step 3: Config editor (MikroC-aware — shows library selector, hides pragma config)
+    const configProvider = new ConfigEditorProvider(
+        context.extensionUri,
+        { deviceName, deviceFamily: familyName, compiler: 'MikroC' }
+    );
+    const config = await configProvider.showModal();
+    if (!config) { return; }  // user cancelled
 
-    // Select output folder
+    // Step 4: Output folder
     const outputFolders = await vscode.window.showOpenDialog({
         canSelectFiles: false,
         canSelectFolders: true,
@@ -1480,195 +1659,188 @@ async function createMikroCProject(context: vscode.ExtensionContext) {
         openLabel: 'Select Location for New Project',
         title: 'Where should the project be created?'
     });
-
-    if (!outputFolders || outputFolders.length === 0) {
-        return;
-    }
+    if (!outputFolders || outputFolders.length === 0) { return; }
 
     const outputPath = path.join(outputFolders[0].fsPath, projectName);
 
-    // Check if directory already exists
     if (fs.existsSync(outputPath)) {
         const overwrite = await vscode.window.showWarningMessage(
-            `Folder "${projectName}" already exists. Overwrite?`,
-            'Yes', 'No'
+            `Folder "${projectName}" already exists. Overwrite?`, 'Yes', 'No'
         );
-        if (overwrite !== 'Yes') {
+        if (overwrite !== 'Yes') { return; }
+    }
+
+    // Step 5: Detect MikroC compiler
+    const importer = new MikroCImporter();
+    let compilerPaths = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Detecting MikroC PRO for PIC32...',
+        cancellable: false
+    }, async () => importer.detectCompilerPath('PIC32'));
+
+    if (!compilerPaths) {
+        const choice = await vscode.window.showWarningMessage(
+            'MikroC PRO for PIC32 not found in standard locations.',
+            'Specify Path', 'Use Template Paths', 'Cancel'
+        );
+        if (choice === 'Specify Path') {
+            const picked = await vscode.window.showOpenDialog({
+                canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
+                openLabel: 'Select MikroC PRO for PIC32 Installation Folder'
+            });
+            if (picked && picked.length > 0) {
+                compilerPaths = await importer.validateCompilerPath(picked[0].fsPath, 'PIC32');
+            }
+        } else if (choice === 'Use Template Paths') {
+            const tmpl = 'C:\\Users\\Public\\Documents\\Mikroelektronika\\mikroC PRO for PIC32';
+            compilerPaths = {
+                compilerExe: `${tmpl}\\mikroCPIC32.exe`,
+                installPath: tmpl,
+                defsPath: `${tmpl}\\Defs`,
+                usesPath: `${tmpl}\\Uses`
+            };
+        } else {
             return;
         }
     }
+    if (!compilerPaths) { return; }
 
-    // Create project structure
+    // Step 6: Generate all project files
+    const libraries    = config.libraries ?? ['Delays'];
+    const emclLibs     = libraries.map(l => libraryShortNameToEmcl(l, deviceName));
+    const isPIC32MZ    = deviceName.startsWith('32MZ');
+    const mikroCDevice = 'P' + deviceName;
+    const sysclkMHz    = Math.round(config.clock.systemFrequency / 1_000_000);
+
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: `Creating MikroC project "${projectName}"...`,
         cancellable: false
     }, async () => {
-        // Create flat directory structure (MikroC style)
         fs.mkdirSync(outputPath, { recursive: true });
 
-        // Generate main.c template
-        const mainTemplate = `/**
+        // main.c — MikroC syntax (.Fn bit notation, no #pragma config)
+        const pbclkCode = isPIC32MZ ? generatePBCLKStartup(config) : '';
+        const mainC = `/**
  * ${projectName}
- * MikroC Project
+ * MikroC PRO for PIC32
  * Device: ${mikroCDevice}
+ * SYSCLK: ${sysclkMHz} MHz
  * Generated: ${new Date().toLocaleDateString()}
+ *
+ * Configuration bits are stored in ${projectName}.mcp32
+ * To edit: Command Palette → "XC Project Importer: Edit Project Configuration"
  */
-
+${pbclkCode}
 void main() {
-    // Configure LED pin (example: RB9)
-    ANSELB &= ~(1 << 9);   // Digital mode
-    TRISB &= ~(1 << 9);    // Output
-    LATB = 0;              // Initial state
+${isPIC32MZ ? '    configure_peripheral_clocks();   // Set up peripheral bus clocks\n' : ''}
+    // Example: RB9 LED  (MikroC .Fn bit-field notation)
+    ANSELB.F9 = 0;   // Digital mode
+    TRISB.F9  = 0;   // Output
+    LATB.F9   = 0;   // Initial low
 
     while (1) {
-        LATBINV = (1 << 9);  // Toggle LED
-        Delay_ms(500);       // MikroC built-in delay
+        LATB.F9 = ~LATB.F9;   // Toggle
+        Delay_ms(500);
     }
 }
 `;
+        fs.writeFileSync(path.join(outputPath, 'main.c'), mainC, 'utf-8');
 
-        fs.writeFileSync(path.join(outputPath, 'main.c'), mainTemplate, 'utf-8');
+        // .mcp32 project file (INI format — MikroC IDE compatible)
+        const mcp32 = generateMCP32Content(config, projectName, ['main.c'], libraries);
+        fs.writeFileSync(path.join(outputPath, `${projectName}.mcp32`), mcp32, 'utf-8');
 
-        // Generate basic Makefile template (user must configure compiler paths)
-        const makefileTemplate = `# ${projectName} - MikroC Makefile
-# Device: ${mikroCDevice}
-# Generated: ${new Date().toLocaleDateString()}
-# NOTE: Configure MIKROC_PATH for your MikroC installation
+        // Makefile
+        const makePath  = bundledTools.getMakePath() || 'make';
+        const binPath   = bundledTools.getBinPath();
+        const shPath    = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
+        const makefile  = generateMikroCMakefileContent(
+            config, compilerPaths!.installPath, projectName,
+            ['main.c'], emclLibs, makePath, binPath, shPath, outputPath
+        );
+        fs.writeFileSync(path.join(outputPath, 'Makefile'), makefile, 'utf-8');
 
-PROJECT_NAME = ${projectName}
-
-# MikroC compiler path (UPDATE THIS PATH)
-MIKROC_PATH ?= \"C:\\Users\\Public\\Documents\\Mikroelektronika\\mikroC PRO for PIC32
-MIKROC := $(MIKROC_PATH)\\mikroCPIC32.exe\"
-
-# Device (UPDATE FOR YOUR TARGET)
-DEVICE = ${mikroCDevice}
-
-# Source files (add more as needed)
-SRCS = \"main.c\"
-
-# Common libraries (auto-detected, add custom libraries manually)
-LIBS = \"__Lib_Delays.emcl\" \"__Lib_Math.emcl\"
-
-# Compiler flags
-FLAGS = -MSF -DBG -p$(DEVICE)
-
-# Build target
-.PHONY: all clean flash
-
-all:
-	@echo Building $(PROJECT_NAME)...
-	@powershell -Command "& $(MIKROC) $(FLAGS) $(SRCS) $(LIBS)"
-	@if exist $(PROJECT_NAME).hex (echo Build complete! Hex file: $(PROJECT_NAME).hex) else (echo Build failed! && exit 1)
-
-clean:
-	@echo Cleaning build artifacts...
-	@if exist *.asm del /Q *.asm
-	@if exist *.lst del /Q *.lst
-	@if exist *.mcl del /Q *.mcl
-	@if exist *.hex del /Q *.hex
-	@echo Clean complete.
-
-flash: all
-	@echo Flashing $(PROJECT_NAME).hex...
-	@echo TODO: Configure mikro_hb.exe path
-`;
-
-        fs.writeFileSync(path.join(outputPath, 'Makefile'), makefileTemplate, 'utf-8');
-
-        // Generate .vscode/tasks.json
-        const vscodeDir = path.join(outputPath, '.vscode');
+        // .vscode/tasks.json
+        const vscodeDir  = path.join(outputPath, '.vscode');
         fs.mkdirSync(vscodeDir, { recursive: true });
-
-        const tasksContent = {
-            "version": "2.0.0",
-            "tasks": [
+        const makeBinDir = binPath.replace(/\\/g, '/');
+        const bundledMake = bundledTools.getMakePath() || 'make';
+        const tasks = {
+            version: '2.0.0',
+            tasks: [
                 {
-                    "label": "Build MikroC Project",
-                    "type": "shell",
-                    "command": "make",
-                    "group": {
-                        "kind": "build",
-                        "isDefault": true
-                    },
-                    "problemMatcher": []
+                    label: 'Build MikroC Project',
+                    type: 'shell',
+                    command: bundledMake,
+                    args: [],
+                    options: { env: { PATH: `${makeBinDir};${process.env.PATH ?? ''}` } },
+                    group: { kind: 'build', isDefault: true },
+                    problemMatcher: []
                 },
                 {
-                    "label": "Clean Build Artifacts",
-                    "type": "shell",
-                    "command": "make clean",
-                    "problemMatcher": []
+                    label: 'Rebuild MikroC Project',
+                    type: 'shell',
+                    command: bundledMake,
+                    args: ['rebuild'],
+                    options: { env: { PATH: `${makeBinDir};${process.env.PATH ?? ''}` } },
+                    problemMatcher: []
                 },
                 {
-                    "label": "Flash Device",
-                    "type": "shell",
-                    "command": "make flash",
-                    "problemMatcher": []
+                    label: 'Clean Build Artifacts',
+                    type: 'shell',
+                    command: bundledMake,
+                    args: ['clean'],
+                    options: { env: { PATH: `${makeBinDir};${process.env.PATH ?? ''}` } },
+                    problemMatcher: []
                 }
             ]
         };
+        fs.writeFileSync(path.join(vscodeDir, 'tasks.json'), JSON.stringify(tasks, null, 4), 'utf-8');
 
-        fs.writeFileSync(path.join(vscodeDir, 'tasks.json'), JSON.stringify(tasksContent, null, 4), 'utf-8');
+        // config.json (same format as XC32 — used by editProjectConfig)
+        fs.writeFileSync(path.join(outputPath, 'config.json'), JSON.stringify(config, null, 4), 'utf-8');
 
-        // Generate README
-        const readmeContent = `# ${projectName}
-
-Basic MikroC project created with PIC32-IDE-VSCode extension.
-
-## Project Structure
-
-MikroC uses a flat folder structure:
-
-\`\`\`
-${projectName}/
-├── main.c           # Main application code
-├── Makefile         # Build configuration
-└── .vscode/
-    └── tasks.json   # VS Code build tasks
-\`\`\`
-
-## Build Instructions
-
-1. **Configure MikroC Path**: Edit \`Makefile\` and set \`MIKROC_PATH\` to your installation
-2. **Configure Device**: Set \`DEVICE\` in \`Makefile\` to your target PIC32 device
-3. **Build**: Press \`Ctrl+Shift+B\` or run \`make\`
-4. **Flash**: Configure bootloader path and run \`make flash\`
-
-## Adding Files
-
-- Place all source files (\`.c\`) in the project root directory
-- Update \`SRCS\` variable in \`Makefile\` to include new files
-- Add required MikroC libraries to \`LIBS\` variable
-
-## Notes
-
-- MikroC uses a flat project structure (no subdirectories)
-- Built-in functions like \`Delay_ms()\` require \`__Lib_Delays.emcl\`
-- For advanced configuration, open \`.mcp32\` file in MikroC IDE
-
-Generated: ${new Date().toLocaleString()}
-`;
-
-        fs.writeFileSync(path.join(outputPath, 'README.md'), readmeContent, 'utf-8');
+        // .vscode/pic32-project.json metadata
+        const metadata: ProjectMetadata = {
+            projectType: 'mikroc',
+            sourceProject: outputPath,
+            device: deviceName,              // WITHOUT 'P' prefix so detectDeviceFamily() works
+            imported: new Date().toISOString(),
+            lastSync: new Date().toISOString(),
+            usesBootloader: true,
+            toolchain: {
+                compiler: 'MikroC',
+                compilerPath: compilerPaths!.installPath,
+                dfpPath: ''
+            },
+            folders: { mccGenerated: '', userCode: ['.'] }
+        };
+        saveMetadata(outputPath, metadata);
     });
 
-    // Show success and open project
+    updateStatusBarForWorkspace();
+
     const openAction = await vscode.window.showInformationMessage(
-        `MikroC project "${projectName}" created successfully!\n\nNext: Configure MIKROC_PATH and DEVICE in Makefile, then build with Ctrl+Shift+B`,
-        'Open Project',
-        'Open in New Window'
+        `MikroC project "${projectName}" created!\n\nDevice: ${mikroCDevice}  |  SYSCLK: ${sysclkMHz} MHz\nLocation: ${outputPath}`,
+        { modal: true },
+        'Add to Workspace',
+        'Open in New Window',
+        'Open Project'
     );
 
-    if (openAction === 'Open Project') {
-        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), false);
+    if (openAction === 'Add to Workspace') {
+        const n = vscode.workspace.workspaceFolders?.length ?? 0;
+        vscode.workspace.updateWorkspaceFolders(n, 0, { uri: vscode.Uri.file(outputPath) });
     } else if (openAction === 'Open in New Window') {
         await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), true);
+    } else if (openAction === 'Open Project') {
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(outputPath), false);
     }
 }
 
 /**
- * Import MikroC Project (in-place, no copy)
+ * Import MikroC Project (copy source to new output folder, generate Makefile)
  */
 async function importMikroCProject(context: vscode.ExtensionContext) {
     // Select MikroC project folder
@@ -1995,7 +2167,7 @@ async function flashDevice() {
 async function editProjectConfig(context: vscode.ExtensionContext) {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) {
-        vscode.window.showErrorMessage('No workspace folder open. Open your XC32 project folder first.');
+        vscode.window.showErrorMessage('No workspace folder open. Open your XC32 or MikroC project folder first.');
         return;
     }
 
@@ -2055,62 +2227,110 @@ async function editProjectConfig(context: vscode.ExtensionContext) {
     // Write config.json
     fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 4), 'utf-8');
 
-    // Regenerate the Makefile with updated build settings (heap/stack/optLevel)
-    const compilerBinDir = meta.toolchain?.compilerPath || '';
-    const dfpPath = meta.toolchain?.dfpPath || '';
-    const projectName = path.basename(root);
+    const compilerType = (meta.toolchain?.compiler as 'XC32' | 'MikroC') || 'XC32';
+    const projectName  = path.basename(root);
 
-    const projectInfo: ProjectInfo = {
-        projectType: 'mplabx',
-        projectName,
-        deviceName,
-        compilerBinDir: compilerBinDir || undefined,
-        dfpPath: dfpPath || undefined,
-        compiler: 'XC32',
-        sourceFiles: [],
-        headerFiles: [],
-        includePaths: [],
-        defines: new Map<string, string>(),
-        heapSize: String(updatedConfig.build?.heapSize ?? 4096),
-        stackSize: String(updatedConfig.build?.stackSize ?? 4096),
-        usesCrt0: meta.usesBootloader !== true,
-        cflags: [],
-        ldflags: meta.usesBootloader ? ['-nostartfiles'] : []
-    };
+    const clockChanged = !existingConfig ||
+        existingConfig.pll?.multiplier !== updatedConfig.pll?.multiplier ||
+        existingConfig.pll?.inputDiv   !== updatedConfig.pll?.inputDiv   ||
+        existingConfig.pll?.outputDiv  !== updatedConfig.pll?.outputDiv  ||
+        existingConfig.oscillator?.primary?.frequency !== updatedConfig.oscillator?.primary?.frequency;
 
-    try {
-        const generator = new MakefileGenerator();
-        const makePath = bundledTools.getMakePath() || 'make';
-        const binPath  = bundledTools.getBinPath();
-        const shPath   = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
+    if (compilerType === 'MikroC') {
+        // ── MikroC branch: regenerate Makefile + .mcp32 ──────────────────────────
+        try {
+            const compilerInstallPath = meta.toolchain?.compilerPath || '';
+            const binPath  = bundledTools.getBinPath();
+            const shPath   = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
+            const libraries = updatedConfig.libraries ?? ['Delays'];
+            const emclLibs  = libraries.map(l => libraryShortNameToEmcl(l, deviceName));
 
-        await generator.generate({
-            projectInfo,
-            outputPath: root,
-            optimizationLevel: `-O${updatedConfig.build?.optLevel ?? '2'}`,
-            makePath,
-            binPath,
-            shPath
-        });
-
-        const clockChanged = !existingConfig ||
-            existingConfig.pll?.multiplier !== updatedConfig.pll?.multiplier ||
-            existingConfig.pll?.inputDiv   !== updatedConfig.pll?.inputDiv   ||
-            existingConfig.pll?.outputDiv  !== updatedConfig.pll?.outputDiv  ||
-            existingConfig.oscillator?.primary?.frequency !== updatedConfig.oscillator?.primary?.frequency;
-
-        const msg = clockChanged
-            ? 'Config saved and Makefile updated. ⚠️ Clock/PLL changed — update #pragma config in your source and rebuild.'
-            : 'Config saved and Makefile updated. Run Build to apply changes.';
-
-        vscode.window.showInformationMessage(msg, 'Build Now').then(action => {
-            if (action === 'Build Now') {
-                vscode.commands.executeCommand('workbench.action.tasks.build');
+            // Find existing .mcp32 to discover source file list
+            const mcp32File = fs.readdirSync(root).find(f => f.toLowerCase().endsWith('.mcp32'));
+            const sourceFiles: string[] = ['main.c'];    // safe fallback
+            if (mcp32File) {
+                try {
+                    const ini = fs.readFileSync(path.join(root, mcp32File), 'utf-8');
+                    const filesSection = ini.match(/\[FILES\]([\s\S]*?)(?=\[)/);
+                    if (filesSection) {
+                        const matches = [...filesSection[1].matchAll(/^File\d+=(.+)$/mg)];
+                        if (matches.length) {
+                            sourceFiles.length = 0;
+                            matches.forEach(m => sourceFiles.push(m[1].trim()));
+                        }
+                    }
+                } catch { /* keep fallback */ }
             }
-        });
 
-    } catch (err) {
-        vscode.window.showErrorMessage(`Makefile regeneration failed: ${err instanceof Error ? err.message : String(err)}`);
+            // Regenerate Makefile
+            const makefile = generateMikroCMakefileContent(
+                updatedConfig, compilerInstallPath, projectName,
+                sourceFiles, emclLibs,
+                bundledTools.getMakePath() || 'make', binPath, shPath, root
+            );
+            fs.writeFileSync(path.join(root, 'Makefile'), makefile, 'utf-8');
+
+            // Regenerate .mcp32
+            const mcp32Out = mcp32File
+                ? path.join(root, mcp32File)
+                : path.join(root, `${projectName}.mcp32`);
+            fs.writeFileSync(mcp32Out, generateMCP32Content(updatedConfig, projectName, sourceFiles, libraries), 'utf-8');
+
+            const msg = clockChanged
+                ? 'Config saved, Makefile and .mcp32 updated. ⚠️ Clock/PLL changed — rebuild to apply.'
+                : 'Config saved, Makefile and .mcp32 updated. Run Build to apply changes.';
+            vscode.window.showInformationMessage(msg, 'Build Now').then(action => {
+                if (action === 'Build Now') { vscode.commands.executeCommand('workbench.action.tasks.build'); }
+            });
+        } catch (err) {
+            vscode.window.showErrorMessage(`Makefile regeneration failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+
+    } else {
+        // ── XC32 branch: regenerate Makefile via MakefileGenerator ───────────────
+        const compilerBinDir = meta.toolchain?.compilerPath || '';
+        const dfpPath        = meta.toolchain?.dfpPath || '';
+
+        const projectInfo: ProjectInfo = {
+            projectType: 'mplabx',
+            projectName,
+            deviceName,
+            compilerBinDir: compilerBinDir || undefined,
+            dfpPath: dfpPath || undefined,
+            compiler: 'XC32',
+            sourceFiles: [],
+            headerFiles: [],
+            includePaths: [],
+            defines: new Map<string, string>(),
+            heapSize:  String(updatedConfig.build?.heapSize  ?? 4096),
+            stackSize: String(updatedConfig.build?.stackSize ?? 4096),
+            usesCrt0:  meta.usesBootloader !== true,
+            cflags:  [],
+            ldflags: meta.usesBootloader ? ['-nostartfiles'] : []
+        };
+
+        try {
+            const generator = new MakefileGenerator();
+            const makePath  = bundledTools.getMakePath() || 'make';
+            const binPath   = bundledTools.getBinPath();
+            const shPath    = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
+
+            await generator.generate({
+                projectInfo,
+                outputPath: root,
+                optimizationLevel: `-O${updatedConfig.build?.optLevel ?? '2'}`,
+                makePath, binPath, shPath
+            });
+
+            const msg = clockChanged
+                ? 'Config saved and Makefile updated. ⚠️ Clock/PLL changed — update #pragma config in your source and rebuild.'
+                : 'Config saved and Makefile updated. Run Build to apply changes.';
+            vscode.window.showInformationMessage(msg, 'Build Now').then(action => {
+                if (action === 'Build Now') { vscode.commands.executeCommand('workbench.action.tasks.build'); }
+            });
+        } catch (err) {
+            vscode.window.showErrorMessage(`Makefile regeneration failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
     }
 }
 

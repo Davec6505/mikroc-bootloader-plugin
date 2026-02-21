@@ -84,6 +84,7 @@ export interface ProjectConfig {
         optLevel: string;    // '0','1','2','3','s'
         buildType: string;   // 'Release' | 'Debug'
     };
+    libraries?: string[];    // MikroC only: short lib names e.g. ['Delays', 'USB']
 }
 
 export class ConfigEditorProvider implements vscode.WebviewViewProvider {
@@ -303,7 +304,8 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     stackSize: 4096,
                     optLevel: '2',
                     buildType: 'Release'
-                }
+                },
+                libraries: ['Delays']
             };
         } else {
             // PIC32MX default: 8MHz crystal → 80MHz
@@ -360,7 +362,8 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     stackSize: 4096,
                     optLevel: '2',
                     buildType: 'Release'
-                }
+                },
+                libraries: ['Delays']
             };
         }
     }
@@ -797,9 +800,49 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     </div>
                 </div>
                 
-                <div class="config-registers">
+                <div class="config-registers" id="configRegistersSection">
                     <label>Configuration Registers</label>
                     <textarea id="configPreview" readonly></textarea>
+                </div>
+                
+                <!-- Library Selector (MikroC compiler only) -->
+                <div id="librarySection" style="display:none;">
+                    <h4 style="margin:0 0 8px 0;">Libraries</h4>
+                    <div class="library-grid">
+                        <div class="library-category">
+                            <strong>System</strong>
+                            <label><input type="checkbox" name="lib" value="Delays" checked> Delays</label>
+                            <label><input type="checkbox" name="lib" value="CP0"> CP0</label>
+                            <label><input type="checkbox" name="lib" value="System"> System</label>
+                            <label><input type="checkbox" name="lib" value="SoftReset"> SoftReset/DMA</label>
+                        </div>
+                        <div class="library-category">
+                            <strong>Math</strong>
+                            <label><input type="checkbox" name="lib" value="Math"> Math</label>
+                            <label><input type="checkbox" name="lib" value="MathDouble"> MathDouble</label>
+                            <label><input type="checkbox" name="lib" value="C_Math"> C_Math</label>
+                        </div>
+                        <div class="library-category">
+                            <strong>String / IO</strong>
+                            <label><input type="checkbox" name="lib" value="C_String"> C_String</label>
+                            <label><input type="checkbox" name="lib" value="C_Stdlib"> C_Stdlib</label>
+                            <label><input type="checkbox" name="lib" value="C_Type"> C_Type</label>
+                            <label><input type="checkbox" name="lib" value="Sprintf"> Sprintf</label>
+                            <label><input type="checkbox" name="lib" value="Sprinti"> Sprinti</label>
+                            <label><input type="checkbox" name="lib" value="Sprintl"> Sprintl</label>
+                            <label><input type="checkbox" name="lib" value="Conversions"> Conversions</label>
+                            <label><input type="checkbox" name="lib" value="MemManager"> MemManager</label>
+                        </div>
+                        <div class="library-category">
+                            <strong>Peripherals</strong>
+                            <label><input type="checkbox" name="lib" value="UART"> UART</label>
+                            <label><input type="checkbox" name="lib" value="SPI"> SPI</label>
+                            <label><input type="checkbox" name="lib" value="I2C"> I2C</label>
+                            <label><input type="checkbox" name="lib" value="USB"> USB</label>
+                            <label><input type="checkbox" name="lib" value="FLASH"> Flash</label>
+                            <label><input type="checkbox" name="lib" value="CAN"> CAN</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             

@@ -8,6 +8,7 @@
 
     let currentConfig = null;
     let deviceName = '';
+    let currentCompiler = 'XC32';
 
     // Wait for DOM to be ready
     document.addEventListener('DOMContentLoaded', () => {
@@ -49,14 +50,26 @@
     }
     
     function handleInit(message) {
-        deviceName    = message.deviceName;
-        currentConfig = message.config;
+        deviceName      = message.deviceName;
+        currentConfig   = message.config;
+        currentCompiler = message.compiler || 'XC32';
 
         document.getElementById('deviceName').textContent = deviceName;
 
         const pbclkSection = document.getElementById('pbclkSection');
         if (pbclkSection) {
             pbclkSection.style.display = deviceName.startsWith('32MZ') ? 'block' : 'none';
+        }
+
+        // Show library section for MikroC; show config registers for XC32
+        const libSection = document.getElementById('librarySection');
+        const cfgRegs    = document.getElementById('configRegistersSection');
+        if (currentCompiler === 'MikroC') {
+            if (libSection) { libSection.style.display = 'block'; }
+            if (cfgRegs)    { cfgRegs.style.display    = 'none';  }
+        } else {
+            if (libSection) { libSection.style.display = 'none';  }
+            if (cfgRegs)    { cfgRegs.style.display    = 'block'; }
         }
 
         // Populate PLL dropdowns from constraints
@@ -138,6 +151,12 @@
         const buildTypeRadios = document.querySelectorAll('input[name="buildType"]');
         const buildType = build.buildType || 'Release';
         buildTypeRadios.forEach(r => { r.checked = (r.value === buildType); });
+
+        // Library checkboxes (MikroC)
+        const selectedLibs = Array.isArray(config.libraries) ? config.libraries : [];
+        document.querySelectorAll('input[name="lib"]').forEach(cb => {
+            cb.checked = selectedLibs.includes(cb.value);
+        });
 
         calculateClock();
     }
@@ -286,6 +305,12 @@
             optLevel:  optEl   ? optEl.value             : '2',
             buildType: buildTypeEl ? buildTypeEl.value   : 'Release'
         };
+
+        // Libraries (MikroC only — collected regardless, backend ignores for XC32)
+        config.libraries = [];
+        document.querySelectorAll('input[name="lib"]:checked').forEach(cb => {
+            config.libraries.push(cb.value);
+        });
 
         return config;
     }
