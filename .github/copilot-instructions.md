@@ -75,13 +75,23 @@ PIC32MZ EF devices have **7 peripheral bus clocks** configured at runtime (verif
 
 **Formula**: `PBCLK = SYSCLK / (PBDIV + 1)` where PBDIV register value = 0-7
 
-**Typical defaults (200 MHz SYSCLK)**:
-- PB1-PB5, PB7: PBDIV=1 → ÷2 → 100 MHz
-- PB8: PBDIV=0 → ÷1 → 200 MHz (USB/CAN need full SYSCLK)
+**Typical defaults (200 MHz SYSCLK)** — confirmed DS60001320 PIC32MZ EF datasheet:
+- PB1, PB2-PB5, PB7: PBDIV=1 → ÷2 → 100 MHz
+- PB8: PBDIV=0 → ÷1 → 200 MHz (USB/CAN/Ethernet need full SYSCLK)
+
+**Per-bus maximum clock (datasheet limits)**:
+- **PB1** (System Bus): max **200 MHz** — runs at SYSCLK, no peripheral limit
+- **PB2–PB5, PB7**: max **100 MHz** — peripheral I/O speed limit
+- **PB8** (USB/CAN/Ethernet): max **200 MHz** — must track SYSCLK for USB timing
+- ⚠️ Do NOT flag PB1 or PB8 as red at 200 MHz — they are correct and expected
+
+**SYSCLK default**: 24 MHz ÷ 3 × 50 ÷ 2 = **200 MHz** (FPLLICLK=PoSC, FPLLIDIV=÷3, FPLLMULT=×50, FPLLODIV=÷2)
 
 **Configuration**:
 - Config editor UI shows PBCLK section only for devices starting with "32MZ"
+- PBCLK section header shows **"SYSCLK: X MHz"** for reference
 - HTML select option values are **0-7** (PBDIV register values, not actual divisors)
+- MHz shown in red only when: fractional result OR PB2-PB5/PB7 exceed 100 MHz (NOT PB1/PB8)
 - Generates `configure_peripheral_clocks()` function called early in main.c startup
 - Runtime configuration via PB1DIV, PB2DIV, PB3DIV, PB4DIV, PB5DIV, PB7DIV, PB8DIV registers
 - PB2-PB8 have ON/OFF control via `PBxDIVbits.ON`; PB1 always enabled (no ON bit)
@@ -179,6 +189,9 @@ interface ProjectMetadata {
     projectType: 'mplabx' | 'mikroc';
     sourceProject: string;        // Original .X folder path
     device: string;
+    imported: string;             // ISO timestamp
+    lastSync: string;             // ISO timestamp
+    usesBootloader?: boolean;     // true=Flash button, false=Program button, absent=show both
     toolchain: { compiler, compilerPath, dfpPath };
     folders: { mccGenerated, userCode[] };
 }
@@ -219,9 +232,28 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
 
 ## Roadmap & Known Issues
 
-**Current Status** (Feb 21, 2026): Active development — ICSP programming added, DAP-DEV branch open for debug research
+**Current Status** (Feb 21, 2026): Active development — Edit Config command added, PBCLK max MHz corrected per datasheet
 
-**Recently Completed** (v2.5.33-v2.5.35):
+**Recently Completed** (v2.5.33-v2.5.38):
+
+- **PBCLK Max MHz Per Bus Corrected** (v2.5.38) - Datasheet-verified per-bus speed limits
+  - PB1 (System Bus) and PB8 (USB/CAN/Ethernet) correctly allow up to 200 MHz — no longer flagged red
+  - PB2–PB5, PB7 remain max 100 MHz (peripheral I/O speed limit)
+  - Added **"SYSCLK: X MHz"** info line at top of PBCLK section for reference
+  - Confirmed: 24 MHz ÷ 3 × 50 ÷ 2 = 200 MHz SYSCLK default from DS60001320
+
+- **Edit Project Config Command** (v2.5.37) - Open config editor on any existing project
+  - Command palette: `XC Project Importer: Edit Project Configuration (Oscillator, PLL, Build Settings)`
+  - Reads `.vscode/pic32-project.json` for device + toolchain, pre-populates editor with `config.json`
+  - On OK: writes `config.json` + regenerates Makefile with updated heap/stack/optLevel
+  - Detects PLL/clock changes and warns about needing `#pragma config` update in source
+  - Registered as `pic32-ide.editConfig`
+
+- **Smart Flash/Program Button Visibility** (v2.5.36) - Buttons shown/hidden per project type
+  - `usesBootloader: true` in metadata → show Flash (`$(zap)`), hide Program (`$(chip)`)
+  - `usesBootloader: false` → hide Flash, show Program
+  - No metadata file → show both (unknown project / fresh workspace)
+  - MPLABX import sets `usesBootloader: !usesCrt0`; XC32 create sets from user selection
 
 - **Program Device Button via ICSP** (v2.5.35) - New `$(chip) Program` status bar button for direct hardware programming
   - Detects `ipecmd.exe` from any MPLAB X IDE installation automatically (latest version wins)
@@ -242,7 +274,7 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
   - Added PB8 (USB/CAN/Ethernet, PBDIV=0 → ÷1 → 200 MHz default)
   - PBDIV option labels changed to show raw register values `0 (÷1)` through `7 (÷8)`
   - PBCLK event listeners in `configEditor.js` fixed: loop `[1,2,3,4,5,7,8]` (was wrong `1..6`)
-  - Real-time MHz display per bus, red if fractional or >100 MHz
+  - Real-time MHz display per bus, red if fractional or >100 MHz for PB2-PB5/PB7
 
 - **Config Editor JS Complete Rewrite** (v2.5.33) - Correct HTML element IDs
   - All element IDs sourced from the real TypeScript template string in `configEditor.ts`
