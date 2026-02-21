@@ -488,14 +488,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label>PBCLK1 (System Bus - always ON)</label>
                     <select id="pb1">
-                        <option value="0">÷1</option>
-                        <option value="1">÷2</option>
-                        <option value="2">÷3</option>
-                        <option value="3">÷4</option>
-                        <option value="4">÷5</option>
-                        <option value="5">÷6</option>
-                        <option value="6">÷7</option>
-                        <option value="7">÷8</option>
+                        <option value="0">0 (÷1 = SYSCLK)</option>
+                        <option value="1" selected>1 (÷2 = SYSCLK/2)</option>
+                        <option value="2">2 (÷3)</option>
+                        <option value="3">3 (÷4)</option>
+                        <option value="4">4 (÷5)</option>
+                        <option value="5">5 (÷6)</option>
+                        <option value="6">6 (÷7)</option>
+                        <option value="7">7 (÷8)</option>
                     </select>
                     <span class="pbclk-freq" id="pb1Freq">100 MHz</span>
                 </div>
@@ -503,14 +503,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb2Enable" checked> PBCLK2 (UART/SPI/I2C)</label>
                     <select id="pb2">
-                        <option value="0">÷1</option>
-                        <option value="1">÷2</option>
-                        <option value="2">÷3</option>
-                        <option value="3">÷4</option>
-                        <option value="4">÷5</option>
-                        <option value="5">÷6</option>
-                        <option value="6">÷7</option>
-                        <option value="7">÷8</option>
+                        <option value="0">0 (÷1 = SYSCLK)</option>
+                        <option value="1" selected>1 (÷2 = SYSCLK/2)</option>
+                        <option value="2">2 (÷3)</option>
+                        <option value="3">3 (÷4)</option>
+                        <option value="4">4 (÷5)</option>
+                        <option value="5">5 (÷6)</option>
+                        <option value="6">6 (÷7)</option>
+                        <option value="7">7 (÷8)</option>
                     </select>
                     <span class="pbclk-freq" id="pb2Freq">100 MHz</span>
                 </div>
@@ -518,14 +518,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb3Enable" checked> PBCLK3 (Timers/PWM)</label>
                     <select id="pb3">
-                        <option value="0">÷1</option>
-                        <option value="1">÷2</option>
-                        <option value="2">÷3</option>
-                        <option value="3">÷4</option>
-                        <option value="4">÷5</option>
-                        <option value="5">÷6</option>
-                        <option value="6">÷7</option>
-                        <option value="7">÷8</option>
+                        <option value="0">0 (÷1 = SYSCLK)</option>
+                        <option value="1" selected>1 (÷2 = SYSCLK/2)</option>
+                        <option value="2">2 (÷3)</option>
+                        <option value="3">3 (÷4)</option>
+                        <option value="4">4 (÷5)</option>
+                        <option value="5">5 (÷6)</option>
+                        <option value="6">6 (÷7)</option>
+                        <option value="7">7 (÷8)</option>
                     </select>
                     <span class="pbclk-freq" id="pb3Freq">100 MHz</span>
                 </div>
@@ -533,14 +533,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb4Enable" checked> PBCLK4 (GPIO Ports)</label>
                     <select id="pb4">
-                        <option value="0">÷1</option>
-                        <option value="1">÷2</option>
-                        <option value="2">÷3</option>
-                        <option value="3">÷4</option>
-                        <option value="4">÷5</option>
-                        <option value="5">÷6</option>
-                        <option value="6">÷7</option>
-                        <option value="7">÷8</option>
+                        <option value="0">0 (÷1 = SYSCLK)</option>
+                        <option value="1" selected>1 (÷2 = SYSCLK/2)</option>
+                        <option value="2">2 (÷3)</option>
+                        <option value="3">3 (÷4)</option>
+                        <option value="4">4 (÷5)</option>
+                        <option value="5">5 (÷6)</option>
+                        <option value="6">6 (÷7)</option>
+                        <option value="7">7 (÷8)</option>
                     </select>
                     <span class="pbclk-freq" id="pb4Freq">100 MHz</span>
                 </div>
@@ -548,14 +548,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb5Enable" checked> PBCLK5 (Flash/EBI/SQI)</label>
                     <select id="pb5">
-                        <option value="0">÷1</option>
-                        <option value="1">÷2</option>
-                        <option value="2">÷3</option>
-                        <option value="3">÷4</option>
-                        <option value="4">÷5</option>
-                        <option value="5">÷6</option>
-                        <option value="6">÷7</option>
-                        <option value="7">÷8</option>
+                        <option value="0">0 (÷1 = SYSCLK)</option>
+                        <option value="1" selected>1 (÷2 = SYSCLK/2)</option>
+                        <option value="2">2 (÷3)</option>
+                        <option value="3">3 (÷4)</option>
+                        <option value="4">4 (÷5)</option>
+                        <option value="5">5 (÷6)</option>
+                        <option value="6">6 (÷7)</option>
+                        <option value="7">7 (÷8)</option>
                     </select>
                     <span class="pbclk-freq" id="pb5Freq">100 MHz</span>
                 </div>
@@ -563,14 +563,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb7Enable" checked> PBCLK7 (ADC/Reference Clock)</label>
                     <select id="pb7">
-                        <option value="0">÷1</option>
-                        <option value="1">÷2</option>
-                        <option value="2">÷3</option>
-                        <option value="3">÷4</option>
-                        <option value="4">÷5</option>
-                        <option value="5">÷6</option>
-                        <option value="6">÷7</option>
-                        <option value="7">÷8</option>
+                        <option value="0">0 (÷1 = SYSCLK)</option>
+                        <option value="1" selected>1 (÷2 = SYSCLK/2)</option>
+                        <option value="2">2 (÷3)</option>
+                        <option value="3">3 (÷4)</option>
+                        <option value="4">4 (÷5)</option>
+                        <option value="5">5 (÷6)</option>
+                        <option value="6">6 (÷7)</option>
+                        <option value="7">7 (÷8)</option>
                     </select>
                     <span class="pbclk-freq" id="pb7Freq">100 MHz</span>
                 </div>
@@ -578,14 +578,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb8Enable" checked> PBCLK8 (USB/CAN/Ethernet)</label>
                     <select id="pb8">
-                        <option value="0">÷1</option>
-                        <option value="1">÷2</option>
-                        <option value="2">÷3</option>
-                        <option value="3">÷4</option>
-                        <option value="4">÷5</option>
-                        <option value="5">÷6</option>
-                        <option value="6">÷7</option>
-                        <option value="7">÷8</option>
+                        <option value="0" selected>0 (÷1 = SYSCLK)</option>
+                        <option value="1">1 (÷2 = SYSCLK/2)</option>
+                        <option value="2">2 (÷3)</option>
+                        <option value="3">3 (÷4)</option>
+                        <option value="4">4 (÷5)</option>
+                        <option value="5">5 (÷6)</option>
+                        <option value="6">6 (÷7)</option>
+                        <option value="7">7 (÷8)</option>
                     </select>
                     <span class="pbclk-freq" id="pb8Freq">200 MHz</span>
                 </div>
