@@ -704,6 +704,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('pic32-ide.importMikroC', () => importMikroCProject(context)),
         vscode.commands.registerCommand('pic32-ide.flash', () => flashDevice()),
         vscode.commands.registerCommand('pic32-ide.programDevice', () => programDevice()),
+        vscode.commands.registerCommand('pic32-ide.editConfig', () => editProjectConfig(context)),
         vscode.commands.registerCommand('pic32-ide.build', () => buildProject()),
         vscode.commands.registerCommand('pic32-ide.rebuild', () => rebuildProject()),
         vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates()),
@@ -1940,6 +1941,133 @@ async function flashDevice() {
     });
     terminal.show();
     terminal.sendText(`& "${bootloaderPath}" "${hexFile.fsPath}"`);
+}
+
+/**
+ * Open the Config Editor for an existing project.
+ * Reads config.json + pic32-project.json, shows the modal, then saves back
+ * and regenerates the Makefile with updated build settings.
+ */
+async function editProjectConfig(context: vscode.ExtensionContext) {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+        vscode.window.showErrorMessage('No workspace folder open. Open your XC32 project folder first.');
+        return;
+    }
+
+    const root = workspaceFolder.uri.fsPath;
+    const metaPath  = path.join(root, '.vscode', 'pic32-project.json');
+    const configPath = path.join(root, 'config.json');
+
+    // Require project metadata — we need the device name and family
+    if (!fs.existsSync(metaPath)) {
+        vscode.window.showErrorMessage(
+            'No pic32-project.json found. This command only works with projects created or imported by this extension.'
+        );
+        return;
+    }
+
+    let meta: ProjectMetadata;
+    try {
+        meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+    } catch {
+        vscode.window.showErrorMessage('Could not read .vscode/pic32-project.json — file may be corrupted.');
+        return;
+    }
+
+    const deviceName = meta.device;
+    const familyName = detectDeviceFamily(deviceName);
+    if (!familyName) {
+        vscode.window.showErrorMessage(`Unknown device family for "${deviceName}". Cannot open config editor.`);
+        return;
+    }
+
+    // Load existing config.json if present (pre-populates the editor)
+    let existingConfig: import('./configEditor').ProjectConfig | undefined;
+    if (fs.existsSync(configPath)) {
+        try {
+            existingConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        } catch {
+            vscode.window.showWarningMessage('config.json could not be parsed — opening editor with defaults.');
+        }
+    }
+
+    // Open the config editor modal
+    const configProvider = new ConfigEditorProvider(
+        context.extensionUri,
+        {
+            deviceName,
+            deviceFamily: familyName,
+            compiler: (meta.toolchain?.compiler as 'XC32' | 'MikroC') || 'XC32',
+            existingConfig
+        }
+    );
+
+    const updatedConfig = await configProvider.showModal();
+    if (!updatedConfig) {
+        return; // User cancelled
+    }
+
+    // Write config.json
+    fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 4), 'utf-8');
+
+    // Regenerate the Makefile with updated build settings (heap/stack/optLevel)
+    const compilerBinDir = meta.toolchain?.compilerPath || '';
+    const dfpPath = meta.toolchain?.dfpPath || '';
+    const projectName = path.basename(root);
+
+    const projectInfo: ProjectInfo = {
+        projectType: 'mplabx',
+        projectName,
+        deviceName,
+        compilerBinDir: compilerBinDir || undefined,
+        dfpPath: dfpPath || undefined,
+        compiler: 'XC32',
+        sourceFiles: [],
+        headerFiles: [],
+        includePaths: [],
+        defines: new Map<string, string>(),
+        heapSize: String(updatedConfig.build?.heapSize ?? 4096),
+        stackSize: String(updatedConfig.build?.stackSize ?? 4096),
+        usesCrt0: meta.usesBootloader !== true,
+        cflags: [],
+        ldflags: meta.usesBootloader ? ['-nostartfiles'] : []
+    };
+
+    try {
+        const generator = new MakefileGenerator();
+        const makePath = bundledTools.getMakePath() || 'make';
+        const binPath  = bundledTools.getBinPath();
+        const shPath   = path.join(binPath, 'sh.exe').replace(/\\/g, '/');
+
+        await generator.generate({
+            projectInfo,
+            outputPath: root,
+            optimizationLevel: `-O${updatedConfig.build?.optLevel ?? '2'}`,
+            makePath,
+            binPath,
+            shPath
+        });
+
+        const clockChanged = !existingConfig ||
+            existingConfig.pll?.multiplier !== updatedConfig.pll?.multiplier ||
+            existingConfig.pll?.inputDiv   !== updatedConfig.pll?.inputDiv   ||
+            existingConfig.pll?.outputDiv  !== updatedConfig.pll?.outputDiv  ||
+            existingConfig.oscillator?.primary?.frequency !== updatedConfig.oscillator?.primary?.frequency;
+
+        const msg = clockChanged
+            ? 'Config saved and Makefile updated. ⚠️ Clock/PLL changed — update #pragma config in your source and rebuild.'
+            : 'Config saved and Makefile updated. Run Build to apply changes.';
+
+        vscode.window.showInformationMessage(msg, 'Build Now').then(action => {
+            if (action === 'Build Now') {
+                vscode.commands.executeCommand('workbench.action.tasks.build');
+            }
+        });
+
+    } catch (err) {
+        vscode.window.showErrorMessage(`Makefile regeneration failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
 }
 
 /**
