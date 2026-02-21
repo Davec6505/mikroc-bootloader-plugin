@@ -702,6 +702,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('pic32-ide.importMPLABX', () => importMPLABXProject(context)),
         vscode.commands.registerCommand('pic32-ide.importMikroC', () => importMikroCProject(context)),
+        vscode.commands.registerCommand('pic32-ide.createMikroC', () => createMikroCProject(context)),
         vscode.commands.registerCommand('pic32-ide.flash', () => flashDevice()),
         vscode.commands.registerCommand('pic32-ide.programDevice', () => programDevice()),
         vscode.commands.registerCommand('pic32-ide.editConfig', () => editProjectConfig(context)),
@@ -1843,6 +1844,16 @@ ${isPIC32MZ ? '    configure_peripheral_clocks();   // Set up peripheral bus clo
  * Import MikroC Project (copy source to new output folder, generate Makefile)
  */
 async function importMikroCProject(context: vscode.ExtensionContext) {
+    // Offer Import or Create
+    const choice = await vscode.window.showQuickPick([
+        { label: '$(folder-opened) Import Existing MikroC Project', action: 'import' as const },
+        { label: '$(new-file) Create New MikroC Project',           action: 'create' as const }
+    ], { title: 'MikroC Project', placeHolder: 'What would you like to do?' });
+
+    if (!choice) { return; }
+    if (choice.action === 'create') { return createMikroCProject(context); }
+
+    // --- Import path ---
     // Select MikroC project folder
     const projectFolders = await vscode.window.showOpenDialog({
         canSelectFiles: false,

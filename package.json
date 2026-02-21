@@ -2,7 +2,7 @@
   "name": "xc-project-importer",
   "displayName": "XC PIC32MX/MZ Project Importer & Creator for VS Code",
   "description": "Create new XC32 projects OR import existing MPLABX projects for PIC32MX/MZ. AI-assisted embedded development with GitHub Copilot. Visual config editor, MCC Harmony 3 compatible, build & flash from VS Code.",
-  "version": "2.5.42",
+  "version": "2.5.43",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
@@ -56,7 +56,11 @@
       },
       {
         "command": "pic32-ide.importMikroC",
-        "title": "XC Project Importer: Import MikroC Project"
+        "title": "XC PIC32: Import MikroC Project or Create New Project"
+      },
+      {
+        "command": "pic32-ide.createMikroC",
+        "title": "XC PIC32: Create New MikroC Project"
       },
       {
         "command": "pic32-ide.flash",
