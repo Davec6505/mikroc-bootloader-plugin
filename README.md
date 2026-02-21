@@ -27,7 +27,7 @@ By **creating new PIC32 projects** or **importing existing MPLABX projects** int
    - **Create New XC32 Project** → Select device → Configure clocks → Start coding
    - **Import Existing MPLABX Project** → Select .X folder → Start coding
 5. **Build:** Press `Ctrl+Shift+B` or click **Build** button in status bar
-6. **Flash:** Click **⚡ Flash** button (requires bootloader or MPLABX IPE)
+6. **Flash/Program:** Click **⚡ Flash** (MikroE bootloader) or **🔌 Program** (ICSP via PICkit/ICD/SNAP)
 
 **That's it!** Your project is ready for AI-assisted development with GitHub Copilot.
 ## Features
@@ -45,11 +45,12 @@ By **creating new PIC32 projects** or **importing existing MPLABX projects** int
 **Create New XC32 Projects:**
 - **Template Generation**: Create complete XC32 project from scratch with proper structure
 - **Device Selection**: Choose from 150+ PIC32MX/MZ devices with device-specific configuration
-- **Interactive Configuration Editor**: Visual UI for oscillator/PLL configuration (similar to MikroC Project Settings)
-  - Real-time clock calculation as you adjust PLL settings
-  - Device-specific constraints (valid PLL ranges, oscillator modes)
+- **Interactive Configuration Editor**: Visual UI for full project configuration:
+  - **Oscillator & PLL**: Real-time clock calculation, device-specific PLL constraints
+  - **Peripheral Bus Clocks** (PIC32MZ EF): Independent dividers for PB1–PB5, PB7, PB8 — live MHz display per bus
+  - **Watchdog, Debug, Code Protection**: All `#pragma config` settings
+  - **Build Settings**: Heap Size, Stack Size, Optimization Level (-O0 to -Os), Build Type
   - Pre-validated #pragma config templates for each device family
-  - Watchdog, debug, and code protection settings
 - **Auto-Detection**: Automatically finds XC32 compiler and DFP (Device Family Pack)
 - **Ready to Build**: Generated with working Makefile, main.c template, and VS Code tasks
 - **Bootloader Option**: Optional MikroC bootloader startup.S generation
@@ -67,16 +68,28 @@ By **creating new PIC32 projects** or **importing existing MPLABX projects** int
 - **Auto-Open**: Project opens automatically after successful import
 - **Build Integration**: VS Code tasks for Build, Clean, Flash (Ctrl+Shift+B)
 
-### ⚡ MikroC Bootloader Support (PIC32 only)
-- **One-Click Flashing**: Flash .hex files to PIC32 devices via USB HID bootloader
-- **Status Bar Button**: Quick access "⚡ Flash PIC32" button  
-- **Auto-Discovery**: Finds .hex files in your workspace
-- **Terminal Output**: Real-time flash progress
-- **Auto-Updates**: Bootloader automatically checks for updates from [MikroC_bootloader repo](https://github.com/Davec6505/MikroC_bootloader)
-- **Manual Update**: Run "**XC Project Importer: Check for Bootloader Updates**" command
-- **Fallback Protection**: Uses bundled version if download fails
+### 🛠️ Build & Flash Buttons
 
-_Note: Bootloader flashing currently supports PIC32 only. Use MPLABX IPE for other devices._
+Four status bar buttons give you one-click access to every stage:
+
+| Button | Icon | Action |
+|--------|------|--------|
+| **Build** | `$(tools)` | Runs `make` via VS Code default build task |
+| **Rebuild** | `$(refresh)` | Runs `make clean && make` in integrated terminal |
+| **Flash** | `$(zap)` | Sends `.hex` to PIC32 via **MikroE USB HID bootloader** (`mikro_hb.exe`) |
+| **Program** | `$(chip)` | Programs device via **ICSP** using MPLAB IPE (`ipecmd.exe`) |
+
+**Program** button details:
+- Auto-detects `ipecmd.exe` from any installed MPLAB X IDE version
+- Programmer quick-pick: **PICkit 4, PICkit 5, ICD 4, ICD 5, SNAP**
+- Reads device name from project metadata (`.vscode/pic32-project.json`)
+- Runs: `ipecmd.exe -TP<TOOL> -P<DEVICE> -F<hex> -E -M` (erase + program)
+- Falls back to manual browse if MPLAB X IDE is not installed (MPLAB X IDE is free)
+
+**Flash** button details:
+- Uses bundled `mikro_hb.exe` (MikroE USB HID bootloader host)
+- Auto-updates daily from [MikroC_bootloader](https://github.com/Davec6505/MikroC_bootloader) GitHub releases
+- Device must be running the MikroE PIC32 USB HID bootloader firmware
 
 ### 🤖 AI-First Development
 This extension is designed for **AI-assisted embedded development**:
@@ -111,8 +124,9 @@ This extension is designed for **AI-assisted embedded development**:
 1. **Create from Template**
    - Run `XC Project Importer: Import MPLABX Project` → Choose "Create New XC32 Project"
    - Select target PIC32MX/MZ device
-   - **Configure in visual editor**: Set oscillator, PLL, watchdog, debug settings
-     - See real-time clock calculation as you adjust values
+   - **Configure in visual editor**: Set oscillator, PLL, peripheral bus clocks, watchdog, debug settings, AND build settings
+     - See real-time clock calculation as you adjust values; each peripheral bus shows its resulting MHz
+     - Set Heap Size, Stack Size, Optimization Level — written directly into your Makefile
      - Device-specific constraints prevent invalid configurations
    - Extension auto-detects XC32 compiler and DFP
 
@@ -431,8 +445,8 @@ void configure_motor_pwm(uint32_t frequency_hz, uint8_t duty_percent) {
 | **Git Integration** | ⚠️ Limited | ✅ Excellent |
 | **Extensions** | ❌ Limited | ✅ Thousands available |
 | **Build System** | ✅ Integrated | ✅ Makefile-based |
-| **Debugging** | ✅ Full MPLAB debugger | ⚠️ Use MPLABX for debugging |
-| **Programming** | ✅ All programmers | ⚠️ PIC32 bootloader or MPLABX |
+| **Debugging** | ✅ Full MPLAB debugger | ⚠️ Use MPLABX for step-debug (DAP research in progress) |
+| **Programming** | ✅ All programmers | ✅ PIC32 bootloader  +  ICSP via PICkit/ICD/SNAP (`ipecmd`) |
 
 **Recommendation**: Use MPLABX for initial setup and debugging, VS Code for development.
 
@@ -578,6 +592,29 @@ Contributions welcome! Please:
 4. Follow existing code style (TypeScript + ESLint)
 
 ## Changelog
+
+### v2.5.35 (February 2026)
+- ✨ Added: **Program Device button** — ICSP programming via MPLAB IPE (`ipecmd.exe`)
+  - Supports PICkit 4, PICkit 5, ICD 4, ICD 5, SNAP (quick-pick selection)
+  - Auto-detects `ipecmd.exe` from MPLAB X IDE installation; manual browse fallback
+  - Device name auto-read from project metadata
+  - Runs erase + program in integrated terminal
+- 🔧 Branch `DAP-DEV` created for hardware debug adapter protocol research
+
+### v2.5.34 (February 2026)
+- ✨ Added: **Build Settings panel** in Config Editor right panel
+  - Heap Size (bytes) — mapped to `{{HEAP_SIZE}}` Makefile token
+  - Stack Size (bytes) — mapped to `{{STACK_SIZE}}` Makefile token
+  - Optimization Level select: -O0, -O1, -O2 (default), -O3, -Os
+  - Build Type radio: Release / ICD Debug
+  - All saved in `config.json` and applied when generating Makefile
+- 🐛 Fixed: **PIC32MZ EF PBCLK architecture** corrected from hardware datasheet
+  - Removed PB6 (register does not exist on EF family — compiler error if used)
+  - Added PB8 for USB/CAN/Ethernet (PBDIV=0 → ÷1 → 200 MHz default)
+  - PBDIV option labels now show raw register values (0–7) matching the datasheet
+  - Each peripheral bus shows live MHz calculation, highlighted red if invalid
+- 🐛 Fixed: Config Editor JS event listeners now correctly target `[1,2,3,4,5,7,8]` bus IDs
+- 🐛 Fixed: OK button now reliably generates code (JS rewritten with correct HTML element IDs)
 
 ### v2.5.27 (January 2026)
 - 🐛 Fixed: User header files (app.h, etc.) from MCC Harmony projects now properly imported
