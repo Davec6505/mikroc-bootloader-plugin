@@ -183,6 +183,7 @@ let SUPPORTED_DEVICES: Record<string, DeviceDefinition[]> = {
 };
 
 let flashStatusBarItem: vscode.StatusBarItem;
+let programStatusBarItem: vscode.StatusBarItem;
 let buildStatusBarItem: vscode.StatusBarItem;
 let rebuildStatusBarItem: vscode.StatusBarItem;
 let bootloaderUpdater: BootloaderUpdater;
@@ -702,6 +703,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('pic32-ide.importMPLABX', () => importMPLABXProject(context)),
         vscode.commands.registerCommand('pic32-ide.importMikroC', () => importMikroCProject(context)),
         vscode.commands.registerCommand('pic32-ide.flash', () => flashDevice()),
+        vscode.commands.registerCommand('pic32-ide.programDevice', () => programDevice()),
         vscode.commands.registerCommand('pic32-ide.build', () => buildProject()),
         vscode.commands.registerCommand('pic32-ide.rebuild', () => rebuildProject()),
         vscode.commands.registerCommand('pic32-ide.updateBootloader', () => bootloaderUpdater.forceCheckForUpdates()),
@@ -758,10 +760,16 @@ export function activate(context: vscode.ExtensionContext) {
     flashStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     flashStatusBarItem.command = 'pic32-ide.flash';
     flashStatusBarItem.text = '$(zap) Flash';
-    flashStatusBarItem.tooltip = 'Flash .hex file to PIC32 device';
+    flashStatusBarItem.tooltip = 'Flash .hex file to PIC32 device via MikroE bootloader';
     flashStatusBarItem.show();
 
-    context.subscriptions.push(buildStatusBarItem, rebuildStatusBarItem, flashStatusBarItem);
+    programStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
+    programStatusBarItem.command = 'pic32-ide.programDevice';
+    programStatusBarItem.text = '$(chip) Program';
+    programStatusBarItem.tooltip = 'Program device via ICSP (PICkit/ICD/SNAP) using MPLAB IPE';
+    programStatusBarItem.show();
+
+    context.subscriptions.push(buildStatusBarItem, rebuildStatusBarItem, flashStatusBarItem, programStatusBarItem);
 }
 
 /**
@@ -1857,6 +1865,124 @@ async function flashDevice() {
     });
     terminal.show();
     terminal.sendText(`& "${bootloaderPath}" "${hexFile.fsPath}"`);
+}
+
+/**
+ * Detect ipecmd.exe from MPLAB X IDE installation (Windows)
+ * Searches standard Microchip installation path and returns the latest version found.
+ */
+async function detectIpecmd(): Promise<string | null> {
+    const mplabBase = 'C:\\Program Files\\Microchip\\MPLABX';
+    if (!fs.existsSync(mplabBase)) {
+        return null;
+    }
+    // Find all version folders (vX.XX), pick latest
+    const versions = fs.readdirSync(mplabBase)
+        .filter(d => /^v\d/.test(d))
+        .sort()
+        .reverse();
+    for (const ver of versions) {
+        const candidate = path.join(mplabBase, ver, 'mplab_platform', 'mplab_ipe', 'ipecmd.exe');
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+    return null;
+}
+
+/**
+ * Program PIC32 device via ICSP using MPLAB IPE (ipecmd.exe)
+ * Supports PICkit 4/5, ICD 4/5, MPLAB SNAP
+ */
+async function programDevice() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+        vscode.window.showErrorMessage('No workspace folder open');
+        return;
+    }
+
+    // Find .hex files
+    const hexFiles = await vscode.workspace.findFiles('**/*.hex', '**/node_modules/**', 100);
+    if (hexFiles.length === 0) {
+        vscode.window.showErrorMessage('No .hex files found. Build the project first.');
+        return;
+    }
+
+    let hexFile: vscode.Uri;
+    if (hexFiles.length === 1) {
+        hexFile = hexFiles[0];
+    } else {
+        const items = hexFiles.map(uri => ({
+            label: path.basename(uri.fsPath),
+            description: path.relative(workspaceFolder.uri.fsPath, uri.fsPath),
+            uri
+        }));
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Select .hex file to program'
+        });
+        if (!selected) { return; }
+        hexFile = selected.uri;
+    }
+
+    // Detect ipecmd.exe
+    let ipecmdPath = await detectIpecmd();
+    if (!ipecmdPath) {
+        const action = await vscode.window.showWarningMessage(
+            'MPLAB IPE (ipecmd.exe) not found. Install MPLAB X IDE (free) from microchip.com/mplabx, or browse to ipecmd.exe manually.',
+            'Browse...', 'Cancel'
+        );
+        if (action !== 'Browse...') { return; }
+        const picked = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            filters: { 'Executable': ['exe'] },
+            title: 'Locate ipecmd.exe'
+        });
+        if (!picked || picked.length === 0) { return; }
+        ipecmdPath = picked[0].fsPath;
+    }
+
+    // Programmer tool selection
+    const programmers = [
+        { label: '$(plug) PICkit 4',  description: 'Microchip PICkit 4', flag: 'PK4' },
+        { label: '$(plug) PICkit 5',  description: 'Microchip PICkit 5', flag: 'PK5' },
+        { label: '$(plug) ICD 4',     description: 'Microchip MPLAB ICD 4', flag: 'ICD4' },
+        { label: '$(plug) ICD 5',     description: 'Microchip MPLAB ICD 5', flag: 'ICD5' },
+        { label: '$(plug) SNAP',      description: 'Microchip MPLAB SNAP', flag: 'SNAP' },
+    ];
+    const progChoice = await vscode.window.showQuickPick(programmers, {
+        placeHolder: 'Select programming tool connected to your PC'
+    });
+    if (!progChoice) { return; }
+
+    // Read device name from project metadata
+    let deviceName = '';
+    const metaPath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'pic32-project.json');
+    if (fs.existsSync(metaPath)) {
+        try {
+            const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+            deviceName = meta.device || '';
+        } catch { /* ignore parse errors */ }
+    }
+    if (!deviceName) {
+        const entered = await vscode.window.showInputBox({
+            prompt: 'Enter device part number',
+            placeHolder: '32MZ2048EFH064',
+            value: '32MZ2048EFH064'
+        });
+        if (!entered) { return; }
+        deviceName = entered.trim();
+    }
+
+    // Build and run ipecmd command via terminal
+    // Flags: -TP<tool>  -P<device>  -F"<hex>"  -E (erase)  -M (program)
+    const terminal = vscode.window.createTerminal({
+        name: 'PIC32 Program (ICSP)',
+        cwd: workspaceFolder.uri.fsPath
+    });
+    terminal.show();
+    terminal.sendText(`& "${ipecmdPath}" -TP${progChoice.flag} -P${deviceName} -F"${hexFile.fsPath}" -E -M`);
 }
 
 export function deactivate() {}
