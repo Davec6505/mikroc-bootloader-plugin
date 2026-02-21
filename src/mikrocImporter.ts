@@ -607,14 +607,15 @@ CFLAGS := ${cflags}
 
 all:
 \t& "$(COMPILER)" $(CFLAGS) -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
-\tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
+	if (Test-Path "$(MODULE).hex") { New-Item -ItemType Directory -Force bins | Out-Null; Move-Item -Force "$(MODULE).hex" "bins\\$(MODULE).hex"; Write-Host "Build complete! bins\\$(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
 rebuild:
-\t& "$(COMPILER)" $(CFLAGS) -RA -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
-\tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
+	& "$(COMPILER)" $(CFLAGS) -RA -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
+	if (Test-Path "$(MODULE).hex") { New-Item -ItemType Directory -Force bins | Out-Null; Move-Item -Force "$(MODULE).hex" "bins\\$(MODULE).hex"; Write-Host "Build complete! bins\\$(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
 clean:
-\tGet-ChildItem . -Include *.emcl,*.asm,*.lst,*.log,*.mcl,*.user.dic -ErrorAction SilentlyContinue | Remove-Item -Force
+	Get-ChildItem . -Include *.emcl,*.asm,*.lst,*.log,*.mcl,*.user.dic -ErrorAction SilentlyContinue | Remove-Item -Force
+	if (Test-Path bins) { Remove-Item -Force bins\\*.hex -ErrorAction SilentlyContinue }
 \tWrite-Host "Clean complete."
 `;
         

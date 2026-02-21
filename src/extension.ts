@@ -1707,6 +1707,7 @@ async function createMikroCProject(context: vscode.ExtensionContext) {
         cancellable: false
     }, async () => {
         fs.mkdirSync(outputPath, { recursive: true });
+        fs.mkdirSync(path.join(outputPath, 'bins'), { recursive: true });
 
         // main.c — MikroC syntax (.Fn bit notation, no #pragma config)
         const pbclkCode = isPIC32MZ ? generatePBCLKStartup(config) : '';
@@ -1954,6 +1955,7 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
             cancellable: false
         }, async () => {
             fs.cpSync(projectPath, outputPath, { recursive: true });
+            fs.mkdirSync(path.join(outputPath, 'bins'), { recursive: true });
         });
 
         // Remap projectInfo so all paths point into the new output folder
