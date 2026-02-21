@@ -115,9 +115,9 @@
         document.getElementById('bwp').value         = config.protection.bwp || 'OFF';
         document.getElementById('codeProtect').value = config.protection.codeProtect ? 'ON' : 'OFF';
 
-        // PBCLK (PIC32MZ) — HTML option values are 1-8 (actual divisors)
+        // PBCLK (PIC32MZ EF) — buses pb1-pb5, pb7, pb8; option values 0-7 (PBDIV register)
         if (config.clock.peripheralBuses) {
-            for (let i = 1; i <= 6; i++) {
+            for (const i of [1, 2, 3, 4, 5, 7, 8]) {
                 const bus = config.clock.peripheralBuses[`pb${i}`];
                 if (!bus) { continue; }
                 const sel = document.getElementById(`pb${i}`);
@@ -166,23 +166,16 @@
         const sysclkMHz = parseFloat(document.getElementById('clockFrequency').value);
         if (!sysclkMHz || sysclkMHz === 0) { return; }
 
-        for (let i = 1; i <= 7; i++) {
+        // PIC32MZ EF buses: pb1-pb5, pb7, pb8 (no pb6)
+        for (const i of [1, 2, 3, 4, 5, 7, 8]) {
             const freqSpan = document.getElementById(`pb${i}Freq`);
             if (!freqSpan) { continue; }
-
-            let pbMHz;
-            if (i === 7) {
-                // PB7 - no divider, always SYSCLK
-                pbMHz = sysclkMHz;
-            } else {
-                // HTML option values are 1-8 (actual divisors)
-                const sel = document.getElementById(`pb${i}`);
-                if (!sel) { continue; }
-                const divisor = parseInt(sel.value);
-                if (isNaN(divisor) || divisor === 0) { continue; }
-                pbMHz = sysclkMHz / divisor;
-            }
-
+            const sel = document.getElementById(`pb${i}`);
+            if (!sel) { continue; }
+            // Option values are 0-7 (0-indexed PBDIV register): 0=÷1, 1=÷2, ...
+            const divisor = parseInt(sel.value);
+            if (isNaN(divisor)) { continue; }
+            const pbMHz = sysclkMHz / (divisor + 1);
             const fractional = !Number.isInteger(pbMHz);
             freqSpan.textContent = `${pbMHz.toFixed(0)} MHz`;
             freqSpan.className   = (fractional || pbMHz > 100) ? 'pbclk-freq invalid' : 'pbclk-freq';
@@ -247,15 +240,16 @@
             } : undefined
         };
 
-        // PBCLK for PIC32MZ — option values are 1-8 (actual divisors)
+        // PBCLK for PIC32MZ EF — buses pb1-pb5, pb7, pb8; option values 0-7 (PBDIV register)
         if (deviceName.startsWith('32MZ')) {
             config.clock.peripheralBuses = {};
-            for (let i = 1; i <= 7; i++) {
+            for (const i of [1, 2, 3, 4, 5, 7, 8]) {
                 const cbEl  = document.getElementById(`pb${i}Enable`);
                 const selEl = document.getElementById(`pb${i}`);
                 config.clock.peripheralBuses[`pb${i}`] = {
-                    enabled: (i === 1 || i === 7) ? true : (cbEl ? cbEl.checked : true),
-                    divider: (i === 7) ? 1 : (selEl ? parseInt(selEl.value) : 1)
+                    // pb1 has no ON bit (always on), all others have enable checkbox
+                    enabled: (i === 1) ? true : (cbEl ? cbEl.checked : true),
+                    divider: selEl ? parseInt(selEl.value) : 0
                 };
             }
         }

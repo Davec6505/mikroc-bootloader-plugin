@@ -39,15 +39,14 @@ export interface ProjectConfig {
     clock: {
         systemFrequency: number;
         peripheralDiv: number;  // PIC32MX only: FPBDIV (1, 2, 4, 8)
-        peripheralBuses?: {     // PIC32MZ only: 8 peripheral buses (runtime config)
-            pb1: { enabled: boolean; divider: number };  // Always enabled = true
-            pb2: { enabled: boolean; divider: number };
-            pb3: { enabled: boolean; divider: number };
-            pb4: { enabled: boolean; divider: number };
-            pb5: { enabled: boolean; divider: number };
-            pb6: { enabled: boolean; divider: number };
-            pb7: { enabled: boolean; divider: number };  // Always enabled = true, divider = 0
-
+        peripheralBuses?: {     // PIC32MZ EF: PB1-PB5, PB7, PB8 (no PB6 on EF family)
+            pb1: { enabled: boolean; divider: number };  // System Bus - always ON (no ON bit)
+            pb2: { enabled: boolean; divider: number };  // UART/SPI/I2C
+            pb3: { enabled: boolean; divider: number };  // Timers/PWM
+            pb4: { enabled: boolean; divider: number };  // GPIO Ports
+            pb5: { enabled: boolean; divider: number };  // Flash/EBI/SQI
+            pb7: { enabled: boolean; divider: number };  // ADC/Reference Clock (has ON+PBDIV)
+            pb8: { enabled: boolean; divider: number };  // USB/CAN/Ethernet
         };
         switchingEnabled: boolean;
         fcksm?: string;       // Clock Switching and Monitor Selection
@@ -262,13 +261,13 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     systemFrequency: 200000000,
                     peripheralDiv: 1,
                     peripheralBuses: {
-                        pb1: { enabled: true, divider: 1 },   // 200MHz / 2 = 100MHz (System)
-                        pb2: { enabled: true, divider: 1 },   // 100MHz (UART/SPI/I2C)
-                        pb3: { enabled: true, divider: 1 },   // 100MHz (Timers)
-                        pb4: { enabled: true, divider: 1 },   // 100MHz (Ports)
-                        pb5: { enabled: true, divider: 1 },   // 100MHz (Flash)
-                        pb6: { enabled: true, divider: 1 },   // 100MHz (Reserved)
-                        pb7: { enabled: true, divider: 0 }    // 200MHz (USB/CAN/Ethernet - no divider)
+                        pb1: { enabled: true,  divider: 1 },  // PBDIV=1 → ÷2 → 100MHz (System Bus)
+                        pb2: { enabled: true,  divider: 1 },  // PBDIV=1 → ÷2 → 100MHz (UART/SPI/I2C)
+                        pb3: { enabled: true,  divider: 1 },  // PBDIV=1 → ÷2 → 100MHz (Timers)
+                        pb4: { enabled: true,  divider: 1 },  // PBDIV=1 → ÷2 → 100MHz (Ports)
+                        pb5: { enabled: true,  divider: 1 },  // PBDIV=1 → ÷2 → 100MHz (Flash)
+                        pb7: { enabled: true,  divider: 1 },  // PBDIV=1 → ÷2 → 100MHz (ADC/Ref)
+                        pb8: { enabled: true,  divider: 0 },  // PBDIV=0 → ÷1 → 200MHz (USB/CAN)
                     },
                     switchingEnabled: false,
                     fcksm: 'CSECME',
@@ -485,18 +484,18 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
             
             <!-- Peripheral Bus Clocks (PIC32MZ only) -->
             <div id="pbclkSection" class="pbclk-section" style="display:none;">
-                <h4>Peripheral Bus Clocks (PIC32MZ Runtime Configuration)</h4>
+                <h4>Peripheral Bus Clocks (PIC32MZ EF - PB1-PB5, PB7, PB8)</h4>
                 <div class="pbclk-row">
-                    <label>PBCLK1 (System Bus)</label>
+                    <label>PBCLK1 (System Bus - always ON)</label>
                     <select id="pb1">
-                        <option value="1">÷1</option>
-                        <option value="2">÷2</option>
-                        <option value="3">÷3</option>
-                        <option value="4">÷4</option>
-                        <option value="5">÷5</option>
-                        <option value="6">÷6</option>
-                        <option value="7">÷7</option>
-                        <option value="8">÷8</option>
+                        <option value="0">÷1</option>
+                        <option value="1">÷2</option>
+                        <option value="2">÷3</option>
+                        <option value="3">÷4</option>
+                        <option value="4">÷5</option>
+                        <option value="5">÷6</option>
+                        <option value="6">÷7</option>
+                        <option value="7">÷8</option>
                     </select>
                     <span class="pbclk-freq" id="pb1Freq">100 MHz</span>
                 </div>
@@ -504,14 +503,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb2Enable" checked> PBCLK2 (UART/SPI/I2C)</label>
                     <select id="pb2">
-                        <option value="1">÷1</option>
-                        <option value="2">÷2</option>
-                        <option value="3">÷3</option>
-                        <option value="4">÷4</option>
-                        <option value="5">÷5</option>
-                        <option value="6">÷6</option>
-                        <option value="7">÷7</option>
-                        <option value="8">÷8</option>
+                        <option value="0">÷1</option>
+                        <option value="1">÷2</option>
+                        <option value="2">÷3</option>
+                        <option value="3">÷4</option>
+                        <option value="4">÷5</option>
+                        <option value="5">÷6</option>
+                        <option value="6">÷7</option>
+                        <option value="7">÷8</option>
                     </select>
                     <span class="pbclk-freq" id="pb2Freq">100 MHz</span>
                 </div>
@@ -519,14 +518,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb3Enable" checked> PBCLK3 (Timers/PWM)</label>
                     <select id="pb3">
-                        <option value="1">÷1</option>
-                        <option value="2">÷2</option>
-                        <option value="3">÷3</option>
-                        <option value="4">÷4</option>
-                        <option value="5">÷5</option>
-                        <option value="6">÷6</option>
-                        <option value="7">÷7</option>
-                        <option value="8">÷8</option>
+                        <option value="0">÷1</option>
+                        <option value="1">÷2</option>
+                        <option value="2">÷3</option>
+                        <option value="3">÷4</option>
+                        <option value="4">÷5</option>
+                        <option value="5">÷6</option>
+                        <option value="6">÷7</option>
+                        <option value="7">÷8</option>
                     </select>
                     <span class="pbclk-freq" id="pb3Freq">100 MHz</span>
                 </div>
@@ -534,14 +533,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb4Enable" checked> PBCLK4 (GPIO Ports)</label>
                     <select id="pb4">
-                        <option value="1">÷1</option>
-                        <option value="2">÷2</option>
-                        <option value="3">÷3</option>
-                        <option value="4">÷4</option>
-                        <option value="5">÷5</option>
-                        <option value="6">÷6</option>
-                        <option value="7">÷7</option>
-                        <option value="8">÷8</option>
+                        <option value="0">÷1</option>
+                        <option value="1">÷2</option>
+                        <option value="2">÷3</option>
+                        <option value="3">÷4</option>
+                        <option value="4">÷5</option>
+                        <option value="5">÷6</option>
+                        <option value="6">÷7</option>
+                        <option value="7">÷8</option>
                     </select>
                     <span class="pbclk-freq" id="pb4Freq">100 MHz</span>
                 </div>
@@ -549,37 +548,46 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="pbclk-row">
                     <label><input type="checkbox" id="pb5Enable" checked> PBCLK5 (Flash/EBI/SQI)</label>
                     <select id="pb5">
-                        <option value="1">÷1</option>
-                        <option value="2">÷2</option>
-                        <option value="3">÷3</option>
-                        <option value="4">÷4</option>
-                        <option value="5">÷5</option>
-                        <option value="6">÷6</option>
-                        <option value="7">÷7</option>
-                        <option value="8">÷8</option>
+                        <option value="0">÷1</option>
+                        <option value="1">÷2</option>
+                        <option value="2">÷3</option>
+                        <option value="3">÷4</option>
+                        <option value="4">÷5</option>
+                        <option value="5">÷6</option>
+                        <option value="6">÷7</option>
+                        <option value="7">÷8</option>
                     </select>
                     <span class="pbclk-freq" id="pb5Freq">100 MHz</span>
                 </div>
                 
                 <div class="pbclk-row">
-                    <label><input type="checkbox" id="pb6Enable" checked> PBCLK6 (Reserved)</label>
-                    <select id="pb6">
-                        <option value="1">÷1</option>
-                        <option value="2">÷2</option>
-                        <option value="3">÷3</option>
-                        <option value="4">÷4</option>
-                        <option value="5">÷5</option>
-                        <option value="6">÷6</option>
-                        <option value="7">÷7</option>
-                        <option value="8">÷8</option>
+                    <label><input type="checkbox" id="pb7Enable" checked> PBCLK7 (ADC/Reference Clock)</label>
+                    <select id="pb7">
+                        <option value="0">÷1</option>
+                        <option value="1">÷2</option>
+                        <option value="2">÷3</option>
+                        <option value="3">÷4</option>
+                        <option value="4">÷5</option>
+                        <option value="5">÷6</option>
+                        <option value="6">÷7</option>
+                        <option value="7">÷8</option>
                     </select>
-                    <span class="pbclk-freq" id="pb6Freq">100 MHz</span>
+                    <span class="pbclk-freq" id="pb7Freq">100 MHz</span>
                 </div>
                 
                 <div class="pbclk-row">
-                    <label>PBCLK7 (USB/CAN/Ethernet) - No Divider</label>
-                    <input type="text" value="No divider (SYSCLK)" readonly style="border:none;background:transparent;">
-                    <span class="pbclk-freq" id="pb7Freq">200 MHz</span>
+                    <label><input type="checkbox" id="pb8Enable" checked> PBCLK8 (USB/CAN/Ethernet)</label>
+                    <select id="pb8">
+                        <option value="0">÷1</option>
+                        <option value="1">÷2</option>
+                        <option value="2">÷3</option>
+                        <option value="3">÷4</option>
+                        <option value="4">÷5</option>
+                        <option value="5">÷6</option>
+                        <option value="6">÷7</option>
+                        <option value="7">÷8</option>
+                    </select>
+                    <span class="pbclk-freq" id="pb8Freq">200 MHz</span>
                 </div>
             </div>
             
@@ -855,7 +863,7 @@ void configure_peripheral_clocks(void) {
     SYSKEY = 0xAA996655;
     SYSKEY = 0x556699AA;
     
-    // PBCLK1 (System Bus - CPU, Flash, Interrupts, DMA) - Always ON
+    // PBCLK1 (System Bus - CPU, Flash, Interrupts, DMA) - Always ON, no ON bit
     PB1DIVbits.PBDIV = ${buses.pb1.divider};  // ${calculateFreq(buses.pb1.divider)} MHz
     while (PB1DIVbits.PBDIVRDY == 0);
     
@@ -879,13 +887,15 @@ void configure_peripheral_clocks(void) {
     PB5DIVbits.PBDIV = ${buses.pb5.divider};  // ${calculateFreq(buses.pb5.divider)} MHz
     while (PB5DIVbits.PBDIVRDY == 0);
     
-    // PBCLK6 (Reserved/Undocumented)
-    PB6DIVbits.ON = ${buses.pb6.enabled ? '1' : '0'};
-    PB6DIVbits.PBDIV = ${buses.pb6.divider};  // ${calculateFreq(buses.pb6.divider)} MHz
-    while (PB6DIVbits.PBDIVRDY == 0);
+    // PBCLK7 (ADC / Reference Clock)
+    PB7DIVbits.ON = ${buses.pb7.enabled ? '1' : '0'};
+    PB7DIVbits.PBDIV = ${buses.pb7.divider};  // ${calculateFreq(buses.pb7.divider)} MHz
+    while (PB7DIVbits.PBDIVRDY == 0);
     
-    // PBCLK7 (USB, CAN, Ethernet, ADC - Reference Clock, No Divider)
-    // Note: PBCLK7 has no control register, always enabled at SYSCLK = ${sysclk / 1000000} MHz
+    // PBCLK8 (USB, CAN, Ethernet)
+    PB8DIVbits.ON = ${buses.pb8.enabled ? '1' : '0'};
+    PB8DIVbits.PBDIV = ${buses.pb8.divider};  // ${calculateFreq(buses.pb8.divider)} MHz
+    while (PB8DIVbits.PBDIVRDY == 0);
     
     // Lock system
     SYSKEY = 0x33333333;
