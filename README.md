@@ -47,7 +47,7 @@ By **creating new PIC32 projects** or **importing existing MPLABX projects** int
 - **Device Selection**: Choose from 150+ PIC32MX/MZ devices with device-specific configuration
 - **Interactive Configuration Editor**: Visual UI for full project configuration:
   - **Oscillator & PLL**: Real-time clock calculation, device-specific PLL constraints
-  - **Peripheral Bus Clocks** (PIC32MZ EF): Independent dividers for PB1–PB5, PB7, PB8 — live MHz display per bus
+  - **Peripheral Bus Clocks** (PIC32MZ EF): Independent dividers for PB1–PB5, PB7, PB8 — live MHz display per bus with SYSCLK reference; PB1/PB8 correctly allow 200 MHz (USB/CAN timing)
   - **Watchdog, Debug, Code Protection**: All `#pragma config` settings
   - **Build Settings**: Heap Size, Stack Size, Optimization Level (-O0 to -Os), Build Type
   - Pre-validated #pragma config templates for each device family
@@ -125,7 +125,9 @@ This extension is designed for **AI-assisted embedded development**:
    - Run `XC Project Importer: Import MPLABX Project` → Choose "Create New XC32 Project"
    - Select target PIC32MX/MZ device
    - **Configure in visual editor**: Set oscillator, PLL, peripheral bus clocks, watchdog, debug settings, AND build settings
-     - See real-time clock calculation as you adjust values; each peripheral bus shows its resulting MHz
+     - Open on existing projects anytime via Command Palette: `XC Project Importer: Edit Project Configuration`
+     - See real-time clock calculation as you adjust values; SYSCLK shown at top, each peripheral bus shows its resulting MHz
+     - PB1 (System Bus) and PB8 (USB/CAN) correctly allow 200 MHz; PB2–PB5/PB7 warn if over 100 MHz
      - Set Heap Size, Stack Size, Optimization Level — written directly into your Makefile
      - Device-specific constraints prevent invalid configurations
    - Extension auto-detects XC32 compiler and DFP
@@ -592,6 +594,28 @@ Contributions welcome! Please:
 4. Follow existing code style (TypeScript + ESLint)
 
 ## Changelog
+
+### v2.5.38 (February 2026)
+- 🐛 Fixed: **PBCLK per-bus maximum MHz** corrected per DS60001320 PIC32MZ EF datasheet
+  - PB1 (System Bus) and PB8 (USB/CAN/Ethernet) now correctly show up to 200 MHz — previously flagged red incorrectly
+  - PB2–PB5, PB7 retain 100 MHz maximum (peripheral I/O speed limit)
+  - Added **SYSCLK: X MHz** reference line at top of Peripheral Bus Clock section
+  - Default confirmed: 24 MHz ÷ 3 × 50 ÷ 2 = **200 MHz** SYSCLK
+
+### v2.5.37 (February 2026)
+- ✨ Added: **Edit Project Configuration** command — open the visual config editor on any existing project
+  - Command Palette: `XC Project Importer: Edit Project Configuration (Oscillator, PLL, Build Settings)`
+  - Pre-populates editor from existing `config.json`
+  - On save: writes `config.json` + regenerates Makefile with updated build settings
+  - Warns if PLL/clock settings changed (requires `#pragma config` update in source)
+  - **Build Now** quick action offered after save
+
+### v2.5.36 (February 2026)
+- ✨ Added: **Smart Flash/Program button visibility** based on project type
+  - Bootloader projects show `$(zap) Flash`, hide `$(chip) Program`
+  - ICSP projects show `$(chip) Program`, hide `$(zap) Flash`
+  - Unknown/legacy projects show both
+  - Controlled by `usesBootloader` field in `.vscode/pic32-project.json`
 
 ### v2.5.35 (February 2026)
 - ✨ Added: **Program Device button** — ICSP programming via MPLAB IPE (`ipecmd.exe`)
