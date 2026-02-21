@@ -283,10 +283,97 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
 
 - **PATH Environment Management** (v2.5.29) - Exact string tracking to prevent duplicates
 
-**Active Branch**: `DAP-DEV` — researching custom VS Code Debug Adapter Protocol for PIC32 hardware debug
-**Next Priority**: DAP server research — Microchip MPLAB Extensions DAP analysis
+**Active Branch**: `DAP-DEV` — USB HID Debug Monitor (serial-free live debug over existing bootloader USB link)
+**Branch Strategy**: DAP-DEV holds all debug monitor work; merges to master when each milestone ships
 
-**Not Pursuing**: MCC/Harmony code generation (too complex, 1000+ .ftl templates)
+**Not Pursuing**: Hardware JTAG/DAP (Microchip already ships `mplab-core-da`); MCC/Harmony code generation
+
+---
+
+## DAP-DEV: USB HID Debug Monitor
+
+### Concept
+Keep the USB HID stack alive in the user application (runs in interrupt, zero main-loop cost).
+The existing MikroE bootloader USB channel becomes dual-purpose: firmware flashing AND live debug queries.
+No serial port, no hardware debugger, no drivers — HID is driverless on Windows.
+
+### Workspace Structure (4 projects)
+```
+workspace.code-workspace
+├── mikroc-bootloader-plugin/   ← VS Code extension (TypeScript)
+├── PIC32MZ_Bootloader/         ← MikroC USB HID bootloader source (C)
+├── PIC32MX_Bootloader/         ← MikroC USB HID bootloader source (C)
+└── mikro_hb/                   ← Host PC flash/debug tool source (C, MinGW)
+```
+
+### HID Debug Command Protocol (0xDx namespace — must not collide with bootloader commands)
+| Cmd   | Name               | Payload                  | Response                    |
+|-------|--------------------|--------------------------|-----------------------------|
+| `0xD0`| Ping / identify    | —                        | `0xD0` + firmware version   |
+| `0xD1`| Read 32-bit word   | 4-byte address           | 4-byte value                |
+| `0xD2`| Read memory block  | address + count          | up to 56 bytes              |
+| `0xD3`| Write 32-bit word  | 4-byte addr + 4-byte val | ACK                         |
+| `0xD4`| Read watch list    | —                        | up to 10× addr+value pairs  |
+| `0xD5`| Set watch list     | 10× addresses            | ACK                         |
+| `0xD6`| Reset to bootloader| —                        | (device resets via RSWRST)  |
+| `0xD7`| Read CPU status    | —                        | PC, SP, STATUS              |
+
+### PIC32 Debug Stub (shared C library, both MZ and MX)
+```c
+// Hooks into existing USB HID receive handler — dispatches 0xDx commands
+void HID_Debug_Handler(uint8_t *rxBuf, uint8_t *txBuf) {
+    switch (rxBuf[0]) {
+        case 0xD1: // Read 32-bit word (volatile pointer)
+            *(uint32_t*)&txBuf[1] = *(volatile uint32_t*)*(uint32_t*)&rxBuf[1]; break;
+        case 0xD6: // Reset to bootloader via RSWRST
+            write_bootloader_magic();
+            SYSKEY = 0xAA996655; SYSKEY = 0x556699AA;
+            RSWRSTSET = _RSWRST_SWRST_MASK; (void)RSWRST; break;
+        // ... etc
+    }
+}
+```
+- Compile-time flag `DEBUG_STUB_ENABLED` controls inclusion
+- Shipped as a template in `src/templates/debug_stub/` — auto-copied to new projects
+
+### VS Code Extension additions (DAP-DEV)
+- `node-hid` npm dependency — driverless HID on Windows, no install required
+- `hidDebugger.ts` — connect/disconnect, send commands, parse 64-byte HID reports
+- `debugPanel.ts` — WebView with:
+  - Device connected indicator + firmware version
+  - 10-slot watch list (configurable addresses, 500ms auto-poll)
+  - SFR quick-access buttons (UART1/SPI1/TMR1/PORTA etc.)
+  - Manual memory read (enter address → value)
+  - **Reset to Bootloader** one-click button
+- `pic32-ide.openDebugPanel` command registered
+- `$(debug) Debug` status bar button — appears when HID device detected
+- Watch list persisted in `config.json` between sessions
+
+### Build Setup (all C, all using bundled make.exe)
+| Project              | Compiler         | Build method                          |
+|----------------------|------------------|---------------------------------------|
+| PIC32MZ_Bootloader   | MikroC PRO PIC32 | MikroC importer → auto-Makefile       |
+| PIC32MX_Bootloader   | MikroC PRO PIC32 | MikroC importer → auto-Makefile       |
+| mikro_hb             | MinGW GCC        | tasks.json + bundled make.exe/rm.exe  |
+| mikroc-bootloader-plugin | TypeScript/npm | npm run compile (already working)  |
+
+### Phase Plan
+- **Phase 1**: All 4 projects building in VS Code
+- **Phase 2**: Bootloader USB protocol documented (VID/PID, report size, existing command bytes)
+- **Phase 3**: Debug command set finalised — confirm no collisions with bootloader commands
+- **Phase 4**: `debug_stub.c` running on MZ hardware, `0xD1` read verified over USB
+- **Phase 5**: VS Code debug panel showing live memory reads + Reset to Bootloader
+- **Phase 6**: Watch list, SFR browser, session persistence — ship as v2.6.0
+
+### Critical Rules for This Feature
+- **Never break normal flashing** — debug commands must be in a namespace the bootloader ignores
+- **Interrupt-safe only** — stub runs in USB interrupt context, no blocking, no malloc
+- **Opt-in** — `DEBUG_STUB_ENABLED` compile flag; disabled by default in release builds
+- **node-hid rebuild** — after adding node-hid, must run `electron-rebuild` for the VS Code runtime
+  ```bash
+  npm install node-hid
+  npx electron-rebuild -v <electron-version> node-hid
+  ```
 
 **Common Issues**:
 - Template path resolution after `vsce package` - use `context.extensionPath`, not `__dirname`
