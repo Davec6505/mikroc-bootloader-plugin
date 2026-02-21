@@ -615,6 +615,11 @@ Contributions welcome! Please:
   - Phase 4: VS Code Debug Panel WebView — live watch list, SFR browser, Reset to Bootloader
   - Phase 5: Watch list persistence, session save/restore, shipped as extension template
 
+### v2.5.39 (February 2026)
+- 🐛 Fixed: **MikroC importer** no longer silently replaces the current workspace
+  - Now offers **Add to Workspace** (ideal for multi-root workspaces), **Open in New Window**, or **Open Project**
+  - "Add to Workspace" uses `updateWorkspaceFolders` — perfect for adding bootloader projects alongside the extension
+
 ### v2.5.38 (February 2026)
 - 🐛 Fixed: **PBCLK per-bus maximum MHz** corrected per DS60001320 PIC32MZ EF datasheet
   - PB1 (System Bus) and PB8 (USB/CAN/Ethernet) now correctly show up to 200 MHz — previously flagged red incorrectly
