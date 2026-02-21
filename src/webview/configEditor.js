@@ -5,60 +5,41 @@
 
 (function() {
     const vscode = acquireVsCodeApi();
-    
+
     let currentConfig = null;
-    let constraints = null;
     let deviceName = '';
-    let deviceFamily = '';
-    let calculatedSystemFreqMHz = 0; // Tracks calculated SYSCLK for use in getCurrentConfig/calculatePBCLK
-    
+
     // Wait for DOM to be ready
     document.addEventListener('DOMContentLoaded', () => {
         initializeEventListeners();
         vscode.postMessage({ type: 'ready' });
     });
-    
+
     // Handle messages from extension
     window.addEventListener('message', event => {
         const message = event.data;
-        
         switch (message.type) {
-            case 'init':
-                handleInit(message);
-                break;
-            case 'loadedConfig':
-                loadConfigIntoUI(message.config);
-                break;
+            case 'init':       handleInit(message);              break;
+            case 'loadedConfig': loadConfigIntoUI(message.config); break;
         }
     });
-    
+
     function initializeEventListeners() {
-        // PLL and clock settings - recalculate on change
-        document.getElementById('fpllidiv').addEventListener('change', calculateClock);
-        document.getElementById('fpllmult').addEventListener('change', calculateClock);
-        document.getElementById('fpllodiv').addEventListener('change', calculateClock);
-        document.getElementById('crystalFreq').addEventListener('input', calculateClock);
-        document.getElementById('poscmod').addEventListener('change', calculateClock);
-        document.getElementById('fpbdiv').addEventListener('change', calculateClock);
+        // PLL and oscillator — real HTML IDs from configEditor.ts template
+        document.getElementById('pllInputDiv').addEventListener('change', calculateClock);
+        document.getElementById('pllMultiplier').addEventListener('change', calculateClock);
+        document.getElementById('pllOutputDiv').addEventListener('change', calculateClock);
+        document.getElementById('oscFrequency').addEventListener('input',  calculateClock);
+        document.getElementById('oscMode').addEventListener('change',      calculateClock);
         
-        // PBCLK dividers (PIC32MZ only) - PB1-PB7, no PB8 on PIC32MZ
-        for (let i = 1; i <= 7; i++) {
-            const divSelect = document.getElementById(`pb${i}Div`);
-            if (divSelect && i !== 7) { // PB7 has no divider
-                divSelect.addEventListener('change', calculatePBCLK);
-            }
-            
-            const enableCheckbox = document.getElementById(`pb${i}Enable`);
-            if (enableCheckbox) {
-                enableCheckbox.addEventListener('change', calculatePBCLK);
-            }
+        // PBCLK dividers PB1-PB6 (real HTML IDs are pb1..pb6, PB7 has no select)
+        for (let i = 1; i <= 6; i++) {
+            const divSelect = document.getElementById(`pb${i}`);
+            if (divSelect) { divSelect.addEventListener('change', calculatePBCLK); }
+            const cb = document.getElementById(`pb${i}Enable`);
+            if (cb) { cb.addEventListener('change', calculatePBCLK); }
         }
-        
-        // Update config preview on any change
-        document.querySelectorAll('select, input').forEach(el => {
-            el.addEventListener('change', updateConfigPreview);
-        });
-        
+
         // Buttons
         document.getElementById('ok').addEventListener('click', handleOK);
         document.getElementById('cancel').addEventListener('click', handleCancel);
@@ -68,372 +49,232 @@
     }
     
     function handleInit(message) {
-        deviceName = message.deviceName;
-        deviceFamily = message.deviceFamily;
-        constraints = message.constraints;
+        deviceName    = message.deviceName;
         currentConfig = message.config;
-        
-        // Set device name
+
         document.getElementById('deviceName').textContent = deviceName;
-        
-        // Show/hide PBCLK section based on device family
-        const isPIC32MZ = deviceName.startsWith('32MZ');
-        console.log('[ConfigEditor] Device:', deviceName, 'isPIC32MZ:', isPIC32MZ);
-        
+
         const pbclkSection = document.getElementById('pbclkSection');
-        console.log('[ConfigEditor] PBCLK section element:', pbclkSection);
-        
         if (pbclkSection) {
-            pbclkSection.style.display = isPIC32MZ ? 'block' : 'none';
-            console.log('[ConfigEditor] Set PBCLK display to:', pbclkSection.style.display);
-        } else {
-            console.error('[ConfigEditor] PBCLK section not found in DOM!');
+            pbclkSection.style.display = deviceName.startsWith('32MZ') ? 'block' : 'none';
         }
-        
-        // Populate dropdown options based on constraints
-        populateDropdown('fpllidiv', constraints.pllInputDiv, 'DIV_');
-        populateDropdown('fpllmult', constraints.pllMultiplier, 'MUL_');
-        populateDropdown('fpllodiv', constraints.pllOutputDiv, 'DIV_');
-        
-        // Load config into UI
-        loadConfigIntoUI(currentConfig);
+
+        // Populate PLL dropdowns from constraints
+        populateDropdown('pllInputDiv',  message.constraints.pllInputDiv,  'DIV_');
+        populateDropdown('pllMultiplier', message.constraints.pllMultiplier, 'MUL_');
+        populateDropdown('pllOutputDiv', message.constraints.pllOutputDiv,  'DIV_');
+
+        loadConfigIntoUI(message.config);
     }
     
-    function populateDropdown(elementId, values, prefix) {
-        const select = document.getElementById(elementId);
-        select.innerHTML = '';
-        
-        values.forEach(value => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = `${prefix}${value}`;
-            select.appendChild(option);
+    function populateDropdown(id, values, prefix) {
+        const sel = document.getElementById(id);
+        if (!sel) { return; }
+        sel.innerHTML = '';
+        values.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = `${prefix}${v}`;
+            sel.appendChild(opt);
         });
     }
     
     function loadConfigIntoUI(config) {
         currentConfig = config;
-        
-        // PLL settings
-        document.getElementById('fpllidiv').value = config.pll.inputDiv;
-        document.getElementById('fpllmult').value = config.pll.multiplier;
-        document.getElementById('fpllodiv').value = config.pll.outputDiv;
-        
-        // Oscillator settings
-        document.getElementById('fnosc').value = config.oscillator.selection || 'SPLL';
-        document.getElementById('poscmod').value = config.oscillator.primary.type;
-        document.getElementById('crystalFreq').value = config.oscillator.primary.frequency / 1000000;
-        
-        // Clock settings
-        document.getElementById('fpbdiv').value = config.clock.peripheralDiv;
-        document.getElementById('fcksm').value = config.clock.fcksm || 'CSDCMD';
-        document.getElementById('fsoscen').value = config.clock.fsoscen || 'OFF';
-        document.getElementById('ieso').value = config.clock.ieso || 'OFF';
+
+        // PLL
+        document.getElementById('pllInputDiv').value  = config.pll.inputDiv;
+        document.getElementById('pllMultiplier').value = config.pll.multiplier;
+        document.getElementById('pllOutputDiv').value  = config.pll.outputDiv;
+
+        // Oscillator
+        document.getElementById('oscSelection').value = config.oscillator.selection || 'SPLL';
+        document.getElementById('oscMode').value      = config.oscillator.primary.type;
+        document.getElementById('oscFrequency').value = config.oscillator.primary.frequency / 1000000;
+
+        // Clock
+        document.getElementById('pbDiv').value    = config.clock.peripheralDiv;
+        document.getElementById('fcksm').value    = config.clock.fcksm    || 'CSDCMD';
+        document.getElementById('fsoscen').value  = config.clock.fsoscen  || 'OFF';
+        document.getElementById('ieso').value     = config.clock.ieso     || 'OFF';
         document.getElementById('osciofnc').value = config.clock.osciofnc || 'OFF';
-        
+
         // Watchdog
-        document.getElementById('fwdten').value = config.watchdog.enabled ? 'ON' : 'OFF';
-        document.getElementById('wdtps').value = config.watchdog.postscaler;
-        document.getElementById('windis').value = config.watchdog.windis || 'OFF';
-        document.getElementById('fwdtwinsz').value = config.watchdog.fwdtwinsz || 'WINSZ_25';
-        
+        document.getElementById('wdtEnable').value    = config.watchdog.enabled ? 'ON' : 'OFF';
+        document.getElementById('wdtPostscaler').value = config.watchdog.postscaler || 'PS1048576';
+        document.getElementById('windis').value        = config.watchdog.windis    || 'OFF';
+        document.getElementById('fwdtwinsz').value     = config.watchdog.fwdtwinsz || 'WINSZ_25';
+
         // Debug
-        document.getElementById('debug').value = config.debug.enabled ? 'ON' : 'OFF';
-        document.getElementById('jtagen').value = config.debug.jtagen || 'OFF';
-        document.getElementById('icesel').value = config.debug.icesel;
-        
+        document.getElementById('debugEnable').value = config.debug.enabled ? 'ON' : 'OFF';
+        document.getElementById('jtagen').value      = config.debug.jtagen  || 'OFF';
+        document.getElementById('icesel').value      = config.debug.icesel  || 'ICS_PGx2';
+
         // Protection
-        document.getElementById('pwp').value = config.protection.pwp || 'OFF';
-        document.getElementById('bwp').value = config.protection.bwp || 'OFF';
-        document.getElementById('cp').value = config.protection.codeProtect ? 'ON' : 'OFF';
-        
-        // PBCLK settings (PIC32MZ only)
+        document.getElementById('pwp').value         = config.protection.pwp || 'OFF';
+        document.getElementById('bwp').value         = config.protection.bwp || 'OFF';
+        document.getElementById('codeProtect').value = config.protection.codeProtect ? 'ON' : 'OFF';
+
+        // PBCLK (PIC32MZ) — HTML option values are 1-8 (actual divisors)
         if (config.clock.peripheralBuses) {
-            for (let i = 1; i <= 7; i++) {
+            for (let i = 1; i <= 6; i++) {
                 const bus = config.clock.peripheralBuses[`pb${i}`];
-                if (bus) {
-                    const divSelect = document.getElementById(`pb${i}Div`);
-                    if (divSelect && i !== 7) { // PB7 has no divider
-                        divSelect.value = bus.divider;
-                    }
-                    
-                    const enableCheckbox = document.getElementById(`pb${i}Enable`);
-                    if (enableCheckbox) {
-                        enableCheckbox.checked = bus.enabled;
-                    }
-                }
+                if (!bus) { continue; }
+                const sel = document.getElementById(`pb${i}`);
+                if (sel) { sel.value = bus.divider; }
+                const cb = document.getElementById(`pb${i}Enable`);
+                if (cb) { cb.checked = bus.enabled; }
             }
         }
-        
-        // Calculate and display clock
+
         calculateClock();
-        calculatePBCLK();
     }
     
     function calculateClock() {
-        const oscFreqMHz = parseFloat(document.getElementById('crystalFreq').value);
-        const inputDiv = parseInt(document.getElementById('fpllidiv').value);
-        const multiplier = parseInt(document.getElementById('fpllmult').value);
-        const outputDiv = parseInt(document.getElementById('fpllodiv').value);
-        
-        if (isNaN(oscFreqMHz) || isNaN(inputDiv) || isNaN(multiplier) || isNaN(outputDiv)) {
-            calculatedSystemFreqMHz = 0;
-            document.getElementById('clockFrequency').textContent = '0 MHz';
+        const osc      = parseFloat(document.getElementById('oscFrequency').value);
+        const inputDiv = parseInt(document.getElementById('pllInputDiv').value);
+        const mult     = parseInt(document.getElementById('pllMultiplier').value);
+        const outDiv   = parseInt(document.getElementById('pllOutputDiv').value);
+        const freqEl   = document.getElementById('clockFrequency');
+
+        if (isNaN(osc) || isNaN(inputDiv) || isNaN(mult) || isNaN(outDiv) || outDiv === 0) {
+            freqEl.value = '0';
+            freqEl.style.color = 'red';
             return;
         }
-        
-        // PLL Calculation: (Crystal ÷ InputDiv) × Multiplier ÷ OutputDiv
-        const inputFreqMHz = oscFreqMHz / inputDiv;
-        const vcoFreqMHz = inputFreqMHz * multiplier;
-        const systemFreqMHz = vcoFreqMHz / outputDiv;
-        
-        // Check if result is a whole number (no fractional MHz)
-        const hasRemainder = !Number.isInteger(systemFreqMHz);
-        
-        // Validate against max clock
-        const isPIC32MZ = deviceName.startsWith('32MZ');
-        const maxClockMHz = isPIC32MZ ? 200 : (deviceName.match(/32MX[34]/) ? 120 : 80);
-        
-        // Store calculated value in module variable (clockFrequency is a div, not an input)
-        calculatedSystemFreqMHz = systemFreqMHz;
-        
-        // Update the display div
-        const freqDisplay = document.getElementById('clockFrequency');
-        freqDisplay.textContent = `${systemFreqMHz.toFixed(3)} MHz`;
-        
-        // Show in red if invalid (has remainder or exceeds max)
-        if (systemFreqMHz > maxClockMHz || hasRemainder) {
-            freqDisplay.style.color = 'red';
-        } else {
-            freqDisplay.style.color = '';
-        }
-        
-        // Validate PLL input frequency (4-5 MHz for MX, 5-10 MHz for MZ)
-        if (isPIC32MZ) {
-            if (inputFreqMHz < 5 || inputFreqMHz > 10) {
-                document.getElementById('clockFrequency').style.color = 'red';
-            }
-        } else {
-            if (inputFreqMHz < 4 || inputFreqMHz > 5) {
-                document.getElementById('clockFrequency').style.color = 'red';
-            }
-        }
-        
-        // Update PBCLK labels and config preview
+
+        // (Crystal / inputDiv) * multiplier / outputDiv
+        const pllIn    = osc / inputDiv;
+        const sysclkMHz = pllIn * mult / outDiv;
+
+        const isPIC32MZ  = deviceName.startsWith('32MZ');
+        const maxMHz     = isPIC32MZ ? 200 : (deviceName.match(/32MX[34]/) ? 120 : 80);
+        const fractional = !Number.isInteger(sysclkMHz);
+        const pllInOK    = isPIC32MZ ? (pllIn >= 5 && pllIn <= 10) : (pllIn >= 4 && pllIn <= 5);
+        const invalid    = fractional || sysclkMHz > maxMHz || !pllInOK;
+
+        freqEl.value      = sysclkMHz.toFixed(3);
+        freqEl.style.color = invalid ? 'red' : '';
+
         calculatePBCLK();
-        updateConfigPreview();
     }
     
     function calculatePBCLK() {
-        // Only for PIC32MZ devices
-        if (!deviceName.startsWith('32MZ')) {
-            return;
-        }
-        
-        // Use module-level variable (clockFrequency is a div, not readable via .value)
-        const systemFreqMHz = calculatedSystemFreqMHz;
-        
-        if (!systemFreqMHz || systemFreqMHz === 0) {
-            return;
-        }
-        
-        // Calculate each PBCLK frequency (PB1-PB7 only)
+        if (!deviceName.startsWith('32MZ')) { return; }
+
+        // clockFrequency is <input type="text" readonly> — .value works fine
+        const sysclkMHz = parseFloat(document.getElementById('clockFrequency').value);
+        if (!sysclkMHz || sysclkMHz === 0) { return; }
+
         for (let i = 1; i <= 7; i++) {
             const freqSpan = document.getElementById(`pb${i}Freq`);
-            if (!freqSpan) {
-                continue;
-            }
-            
-            let pbclkMHz;
-            
+            if (!freqSpan) { continue; }
+
+            let pbMHz;
             if (i === 7) {
-                // PBCLK7 has no divider - always equals SYSCLK
-                pbclkMHz = systemFreqMHz;
+                // PB7 - no divider, always SYSCLK
+                pbMHz = sysclkMHz;
             } else {
-                // Get divider value
-                const divSelect = document.getElementById(`pb${i}Div`);
-                if (!divSelect) {
-                    continue;
-                }
-                
-                const divider = parseInt(divSelect.value);
-                if (isNaN(divider)) {
-                    continue;
-                }
-                
-                // Formula: PBCLK = SYSCLK / (divider + 1)
-                pbclkMHz = systemFreqMHz / (divider + 1);
+                // HTML option values are 1-8 (actual divisors)
+                const sel = document.getElementById(`pb${i}`);
+                if (!sel) { continue; }
+                const divisor = parseInt(sel.value);
+                if (isNaN(divisor) || divisor === 0) { continue; }
+                pbMHz = sysclkMHz / divisor;
             }
-            
-            // Check if result is a whole number
-            const hasRemainder = !Number.isInteger(pbclkMHz);
-            
-            // Display frequency
-            freqSpan.textContent = `${pbclkMHz.toFixed(0)} MHz`;
-            
-            // Validate: show red if fractional or exceeds 100MHz
-            if (hasRemainder || pbclkMHz > 100) {
-                freqSpan.className = 'pbclk-freq invalid';
-            } else {
-                freqSpan.className = 'pbclk-freq';
-            }
+
+            const fractional = !Number.isInteger(pbMHz);
+            freqSpan.textContent = `${pbMHz.toFixed(0)} MHz`;
+            freqSpan.className   = (fractional || pbMHz > 100) ? 'pbclk-freq invalid' : 'pbclk-freq';
         }
     }
     
-    function updateConfigPreview() {
-        // Use module-level variable — clockFrequency is a <div>, not an input
-        const clockFreq = calculatedSystemFreqMHz;
-        
-        if (!clockFreq || clockFreq === 0) {
-            document.getElementById('configPreview').value = 'Invalid configuration';
-            return;
-        }
-        
-        // Generate preview text (simplified - actual values calculated by backend)
-        const isPIC32MZ = deviceName.startsWith('32MZ');
-        
-        let preview = 'DEVCFG3 : #1FC02FF0 : 0xC7070000\n';
-        preview += 'DEVCFG2 : #1FC02FF4 : 0x00000151\n';
-        preview += 'DEVCFG1 : #1FC02FF9 : 0x0014C503\n';
-        preview += 'DEVCFG0 : #1FC02FFC : 0x110FF00F';
-        
-        document.getElementById('configPreview').value = preview;
-    }
     
     function getCurrentConfig() {
-        const oscFreqHz = parseFloat(document.getElementById('crystalFreq').value) * 1000000;
-        // Use module-level variable — clockFrequency is a <div> so .value is undefined
-        const systemFreqHz = calculatedSystemFreqMHz * 1000000;
-        
+        const oscHz    = parseFloat(document.getElementById('oscFrequency').value) * 1e6;
+        // clockFrequency is <input type="text" readonly> so .value works
+        const sysclkHz = parseFloat(document.getElementById('clockFrequency').value) * 1e6;
+
         const config = {
-            device: deviceName,
+            device:   deviceName,
             compiler: currentConfig ? currentConfig.compiler : 'xc32',
             oscillator: {
-                selection: document.getElementById('fnosc').value,
+                selection: document.getElementById('oscSelection').value,
                 primary: {
-                    type: document.getElementById('poscmod').value,
-                    frequency: oscFreqHz
+                    type:      document.getElementById('oscMode').value,
+                    frequency: oscHz
                 },
                 secondary: {
                     enabled: document.getElementById('fsoscen').value === 'ON'
                 }
             },
             pll: {
-                inputDiv: parseInt(document.getElementById('fpllidiv').value),
-                multiplier: parseInt(document.getElementById('fpllmult').value),
-                outputDiv: parseInt(document.getElementById('fpllodiv').value),
+                inputDiv:    parseInt(document.getElementById('pllInputDiv').value),
+                multiplier:  parseInt(document.getElementById('pllMultiplier').value),
+                outputDiv:   parseInt(document.getElementById('pllOutputDiv').value),
                 usbInputDiv: 2,
-                usbEnabled: false
+                usbEnabled:  false
             },
             clock: {
-                systemFrequency: systemFreqHz,
-                peripheralDiv: parseInt(document.getElementById('fpbdiv').value),
+                systemFrequency:  sysclkHz,
+                peripheralDiv:    parseInt(document.getElementById('pbDiv').value),
                 switchingEnabled: false,
-                fcksm: document.getElementById('fcksm').value,
-                fsoscen: document.getElementById('fsoscen').value,
-                ieso: document.getElementById('ieso').value,
+                fcksm:    document.getElementById('fcksm').value,
+                fsoscen:  document.getElementById('fsoscen').value,
+                ieso:     document.getElementById('ieso').value,
                 osciofnc: document.getElementById('osciofnc').value
             },
             watchdog: {
-                enabled: document.getElementById('fwdten').value === 'ON',
-                postscaler: document.getElementById('wdtps').value,
-                windis: document.getElementById('windis').value,
-                fwdtwinsz: document.getElementById('fwdtwinsz').value
+                enabled:    document.getElementById('wdtEnable').value === 'ON',
+                postscaler: document.getElementById('wdtPostscaler').value,
+                windis:     document.getElementById('windis').value,
+                fwdtwinsz:  document.getElementById('fwdtwinsz').value
             },
             debug: {
-                enabled: document.getElementById('debug').value === 'ON',
-                jtagen: document.getElementById('jtagen').value,
-                icesel: document.getElementById('icesel').value
+                enabled: document.getElementById('debugEnable').value === 'ON',
+                jtagen:  document.getElementById('jtagen').value,
+                icesel:  document.getElementById('icesel').value
             },
             protection: {
-                codeProtect: document.getElementById('cp').value === 'ON',
+                codeProtect:  document.getElementById('codeProtect').value === 'ON',
                 writeProtect: false,
                 pwp: document.getElementById('pwp').value,
                 bwp: document.getElementById('bwp').value
             },
             interrupts: deviceName.startsWith('32MX') ? {
-                mode: 'multi',
-                shadowRegisters: true,
-                srsCount: 7,
-                vectorSpacing: 32,
-                ebase: '0x9FC01000'
+                mode: 'multi', shadowRegisters: true, srsCount: 7,
+                vectorSpacing: 32, ebase: '0x9FC01000'
             } : undefined
         };
-        
-        // Add PBCLK settings for PIC32MZ
+
+        // PBCLK for PIC32MZ — option values are 1-8 (actual divisors)
         if (deviceName.startsWith('32MZ')) {
-            config.clock.peripheralBuses = {
-                pb1: {
-                    enabled: true, // PB1 always enabled
-                    divider: parseInt(document.getElementById('pb1Div').value)
-                },
-                pb2: {
-                    enabled: document.getElementById('pb2Enable').checked,
-                    divider: parseInt(document.getElementById('pb2Div').value)
-                },
-                pb3: {
-                    enabled: document.getElementById('pb3Enable').checked,
-                    divider: parseInt(document.getElementById('pb3Div').value)
-                },
-                pb4: {
-                    enabled: document.getElementById('pb4Enable').checked,
-                    divider: parseInt(document.getElementById('pb4Div').value)
-                },
-                pb5: {
-                    enabled: document.getElementById('pb5Enable').checked,
-                    divider: parseInt(document.getElementById('pb5Div').value)
-                },
-                pb6: {
-                    enabled: document.getElementById('pb6Enable').checked,
-                    divider: parseInt(document.getElementById('pb6Div').value)
-                },
-                pb7: {
-                    enabled: true, // PB7 always enabled, no divider (always SYSCLK)
-                    divider: 0
-                }
-            };
+            config.clock.peripheralBuses = {};
+            for (let i = 1; i <= 7; i++) {
+                const cbEl  = document.getElementById(`pb${i}Enable`);
+                const selEl = document.getElementById(`pb${i}`);
+                config.clock.peripheralBuses[`pb${i}`] = {
+                    enabled: (i === 1 || i === 7) ? true : (cbEl ? cbEl.checked : true),
+                    divider: (i === 7) ? 1 : (selEl ? parseInt(selEl.value) : 1)
+                };
+            }
         }
-        
+
         return config;
     }
     
     function handleOK() {
-        console.log('[ConfigEditor] OK button clicked');
         const config = getCurrentConfig();
-        console.log('[ConfigEditor] Config object:', JSON.stringify(config, null, 2));
-        
-        // Validate before saving
         if (isNaN(config.clock.systemFrequency) || config.clock.systemFrequency === 0) {
-            console.error('[ConfigEditor] Invalid clock frequency:', config.clock.systemFrequency);
             alert('Invalid clock configuration. Please check your PLL settings.');
             return;
         }
-        
-        console.log('[ConfigEditor] Sending saveConfig message');
-        vscode.postMessage({
-            type: 'saveConfig',
-            config: config
-        });
-        console.log('[ConfigEditor] Message sent');
+        vscode.postMessage({ type: 'saveConfig', config });
     }
-    
-    function handleCancel() {
-        vscode.postMessage({ type: 'cancel' });
-    }
-    
-    function handleLoadScheme() {
-        vscode.postMessage({ type: 'loadScheme' });
-    }
-    
-    function handleSaveScheme() {
-        const config = getCurrentConfig();
-        vscode.postMessage({
-            type: 'saveScheme',
-            config: config
-        });
-    }
-    
-    function handleDefault() {
-        vscode.postMessage({ type: 'resetDefault' });
-    }
+
+    function handleCancel()    { vscode.postMessage({ type: 'cancel' }); }
+    function handleLoadScheme() { vscode.postMessage({ type: 'loadScheme' }); }
+    function handleSaveScheme() { vscode.postMessage({ type: 'saveScheme', config: getCurrentConfig() }); }
+    function handleDefault()    { vscode.postMessage({ type: 'resetDefault' }); }
+
 })();
