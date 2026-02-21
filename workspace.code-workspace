@@ -2,9 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../../../../Temp/xc32-test-create"
 		}
 	],
 	"settings": {

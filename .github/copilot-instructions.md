@@ -48,28 +48,33 @@ This VS Code extension enables AI-assisted embedded development by importing MPL
 - **[deviceLoader.ts](../src/deviceLoader.ts)**: Loads device definitions from JSON, provides device-specific clock frequencies and config options
 - **[configEditor.ts](../src/configEditor.ts)**: Webview provider for oscillator/PLL configuration (new project creation only)
 
-### PIC32MZ Peripheral Bus Clock Architecture (v2.5.31)
+### PIC32MZ EF Peripheral Bus Clock Architecture
 
-PIC32MZ devices have **7 peripheral bus clocks (PBCLK1-7)** configured at runtime, not via config bits:
+PIC32MZ EF devices have **7 peripheral bus clocks** configured at runtime (verified from DFP `p32mz1024efh064.h`):
 
-- **PBCLK1**: System Bus (CPU, Flash, Interrupts, DMA) - Always enabled, divider configurable (÷1 to ÷8)
-- **PBCLK2**: Communication (UART, SPI, I2C) - Enable/disable + divider (÷1 to ÷8)
-- **PBCLK3**: Timers/PWM (Timer2-9, Input Capture, Output Compare) - Enable/disable + divider (÷1 to ÷8)
-- **PBCLK4**: GPIO Ports - Enable/disable + divider (÷1 to ÷8)
-- **PBCLK5**: Flash Controller, EBI, SQI - Enable/disable + divider (÷1 to ÷8)
-- **PBCLK6**: Reserved/ADC - Enable/disable + divider (÷1 to ÷8)
-- **PBCLK7**: High-speed peripherals (USB, CAN, Ethernet) - Always enabled, **NO DIVIDER** (always SYSCLK)
+- **PBCLK1**: System Bus (CPU, Flash, Interrupts, DMA) - Always ON, **no ON bit**, has PBDIV (÷1 to ÷8)
+- **PBCLK2**: Communication (UART, SPI, I2C) - Enable/disable + PBDIV (÷1 to ÷8)
+- **PBCLK3**: Timers/PWM (Timer2-9, Input Capture, Output Compare) - Enable/disable + PBDIV (÷1 to ÷8)
+- **PBCLK4**: GPIO Ports - Enable/disable + PBDIV (÷1 to ÷8)
+- **PBCLK5**: Flash Controller, EBI, SQI - Enable/disable + PBDIV (÷1 to ÷8)
+- **NO PBCLK6** - `PB6DIV` register does **NOT** exist on PIC32MZ EF (attempting to use it causes compiler error)
+- **PBCLK7**: ADC / Reference Clock - Enable/disable + PBDIV (÷1 to ÷8) — **has a real divider!**
+- **PBCLK8**: USB, CAN, Ethernet - Enable/disable + PBDIV (÷1 to ÷8)
 
-**IMPORTANT**: There is **NO PBCLK8** - PIC32MZ-EF datasheet only documents 7 peripheral bus clocks.
+**PBDIV Register is 0-indexed**: `0=÷1, 1=÷2, 2=÷3 ... 7=÷8`
 
-**Formula**: `PBCLK = SYSCLK / (divider + 1)` where divider = 0-7 (÷1 to ÷8)
+**Formula**: `PBCLK = SYSCLK / (PBDIV + 1)` where PBDIV register value = 0-7
+
+**Typical defaults (200 MHz SYSCLK)**:
+- PB1-PB5, PB7: PBDIV=1 → ÷2 → 100 MHz
+- PB8: PBDIV=0 → ÷1 → 200 MHz (USB/CAN need full SYSCLK)
 
 **Configuration**:
 - Config editor UI shows PBCLK section only for devices starting with "32MZ"
+- HTML select option values are **0-7** (PBDIV register values, not actual divisors)
 - Generates `configure_peripheral_clocks()` function called early in main.c startup
-- Runtime configuration via PB1DIV-PB6DIV registers (PB7 has no control register)
-- PB2-PB6 have ON/OFF control via `PBxDIVbits.ON`
-- PB1 and PB7 always enabled (no ON bit)
+- Runtime configuration via PB1DIV, PB2DIV, PB3DIV, PB4DIV, PB5DIV, PB7DIV, PB8DIV registers
+- PB2-PB8 have ON/OFF control via `PBxDIVbits.ON`; PB1 always enabled (no ON bit)
 
 ## Critical Development Rules
 

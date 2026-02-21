@@ -1,0 +1,10 @@
+<!-- Placeholder for config-editor.png -->
+<svg width="1200" height="700" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="700" fill="#1e1e1e"/>
+  <text x="50%" y="50%" font-family="Arial" font-size="24" fill="#ffffff" text-anchor="middle">
+    Configuration Editor Screenshot
+  </text>
+  <text x="50%" y="55%" font-family="Arial" font-size="16" fill="#888888" text-anchor="middle">
+    (Capture using CAPTURE_GUIDE.md)
+  </text>
+</svg>

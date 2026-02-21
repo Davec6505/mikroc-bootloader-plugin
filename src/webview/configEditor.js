@@ -32,8 +32,8 @@
         document.getElementById('oscFrequency').addEventListener('input',  calculateClock);
         document.getElementById('oscMode').addEventListener('change',      calculateClock);
         
-        // PBCLK dividers PB1-PB6 (real HTML IDs are pb1..pb6, PB7 has no select)
-        for (let i = 1; i <= 6; i++) {
+        // PBCLK dividers: PIC32MZ EF buses pb1-pb5, pb7, pb8 (no pb6 on EF family)
+        for (const i of [1, 2, 3, 4, 5, 7, 8]) {
             const divSelect = document.getElementById(`pb${i}`);
             if (divSelect) { divSelect.addEventListener('change', calculatePBCLK); }
             const cb = document.getElementById(`pb${i}Enable`);
@@ -126,6 +126,18 @@
                 if (cb) { cb.checked = bus.enabled; }
             }
         }
+
+        // Build settings
+        const build = config.build || {};
+        const heapEl = document.getElementById('heapSize');
+        if (heapEl) { heapEl.value = build.heapSize !== undefined ? build.heapSize : 4096; }
+        const stackEl = document.getElementById('stackSize');
+        if (stackEl) { stackEl.value = build.stackSize !== undefined ? build.stackSize : 4096; }
+        const optEl = document.getElementById('optLevel');
+        if (optEl) { optEl.value = build.optLevel !== undefined ? build.optLevel : '2'; }
+        const buildTypeRadios = document.querySelectorAll('input[name="buildType"]');
+        const buildType = build.buildType || 'Release';
+        buildTypeRadios.forEach(r => { r.checked = (r.value === buildType); });
 
         calculateClock();
     }
@@ -253,6 +265,18 @@
                 };
             }
         }
+
+        // Build settings
+        const heapEl  = document.getElementById('heapSize');
+        const stackEl = document.getElementById('stackSize');
+        const optEl   = document.getElementById('optLevel');
+        const buildTypeEl = document.querySelector('input[name="buildType"]:checked');
+        config.build = {
+            heapSize:  heapEl  ? parseInt(heapEl.value)  : 4096,
+            stackSize: stackEl ? parseInt(stackEl.value) : 4096,
+            optLevel:  optEl   ? optEl.value             : '2',
+            buildType: buildTypeEl ? buildTypeEl.value   : 'Release'
+        };
 
         return config;
     }

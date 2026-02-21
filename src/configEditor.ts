@@ -78,6 +78,12 @@ export interface ProjectConfig {
         vectorSpacing: number;
         ebase: string;
     };
+    build?: {
+        heapSize: number;    // bytes
+        stackSize: number;   // bytes
+        optLevel: string;    // '0','1','2','3','s'
+        buildType: string;   // 'Release' | 'Debug'
+    };
 }
 
 export class ConfigEditorProvider implements vscode.WebviewViewProvider {
@@ -291,6 +297,12 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     writeProtect: false,
                     pwp: 'OFF',
                     bwp: 'OFF'
+                },
+                build: {
+                    heapSize: 4096,
+                    stackSize: 4096,
+                    optLevel: '2',
+                    buildType: 'Release'
                 }
             };
         } else {
@@ -342,6 +354,12 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     srsCount: 7,
                     vectorSpacing: 32,
                     ebase: '0x9FC01000'
+                },
+                build: {
+                    heapSize: 4096,
+                    stackSize: 4096,
+                    optLevel: '2',
+                    buildType: 'Release'
                 }
             };
         }
@@ -751,8 +769,30 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 <div class="build-type">
                     <label>Build Type</label>
                     <div>
-                        <input type="radio" name="buildType" value="Release" checked> Release
-                        <input type="radio" name="buildType" value="Debug"> ICD Debug
+                        <input type="radio" id="buildTypeRelease" name="buildType" value="Release" checked> Release
+                        <input type="radio" id="buildTypeDebug" name="buildType" value="Debug"> ICD Debug
+                    </div>
+                </div>
+                
+                <div class="build-settings">
+                    <h4>Build Settings</h4>
+                    <div class="device-info">
+                        <label>Heap Size (bytes)</label>
+                        <input type="number" id="heapSize" value="4096" min="0" step="256">
+                    </div>
+                    <div class="device-info">
+                        <label>Stack Size (bytes)</label>
+                        <input type="number" id="stackSize" value="4096" min="256" step="256">
+                    </div>
+                    <div class="device-info">
+                        <label>Optimization Level</label>
+                        <select id="optLevel">
+                            <option value="0">-O0 (None - best for debugging)</option>
+                            <option value="1">-O1 (Minimal)</option>
+                            <option value="2" selected>-O2 (Recommended)</option>
+                            <option value="3">-O3 (Aggressive)</option>
+                            <option value="s">-Os (Optimize for size)</option>
+                        </select>
                     </div>
                 </div>
                 

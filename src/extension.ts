@@ -1219,8 +1219,8 @@ ${deviceName.startsWith('32MZ') ? '    // Configure peripheral bus clocks (PIC32
             headerFiles: [],
             includePaths: [],
             defines: new Map<string, string>(),
-            heapSize: '4096',
-            stackSize: '4096',
+            heapSize: String(projectConfig.build?.heapSize ?? 4096),
+            stackSize: String(projectConfig.build?.stackSize ?? 4096),
             usesCrt0: !useMikroBootloader,
             cflags: [],
             ldflags: useMikroBootloader ? ['-nostartfiles'] : []
@@ -1234,7 +1234,7 @@ ${deviceName.startsWith('32MZ') ? '    // Configure peripheral bus clocks (PIC32
         await generator.generate({
             projectInfo,
             outputPath,
-            optimizationLevel: '-O2',
+            optimizationLevel: `-O${projectConfig.build?.optLevel ?? '2'}`,
             makePath,
             binPath,
             shPath
