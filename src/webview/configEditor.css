@@ -359,3 +359,38 @@ select {
     font-weight: 600;
     color: var(--vscode-foreground, #ccc);
 }
+
+/* Library selector (MikroC projects) */
+.library-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.library-category {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.library-category strong {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--vscode-descriptionForeground, #888);
+    margin-bottom: 2px;
+}
+
+.library-category label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.library-category input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}

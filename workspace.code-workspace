@@ -2,6 +2,15 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../mz_bootloader_firmware"
+		},
+		{
+			"path": "../mx_bootlopader_firmware"
+		},
+		{
+			"path": "../MikroC_bootloader"
 		}
 	],
 	"settings": {
