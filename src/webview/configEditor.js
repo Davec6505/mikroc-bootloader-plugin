@@ -178,6 +178,14 @@
         const sysclkMHz = parseFloat(document.getElementById('clockFrequency').value);
         if (!sysclkMHz || sysclkMHz === 0) { return; }
 
+        // Show SYSCLK in the PBCLK section heading
+        const sysclkLabel = document.getElementById('pbclkSysclk');
+        if (sysclkLabel) { sysclkLabel.textContent = `SYSCLK: ${sysclkMHz.toFixed(0)} MHz`; }
+
+        // Per-bus max MHz: PB1 (System Bus) and PB8 (USB/CAN/Ethernet) can run at full SYSCLK (200 MHz).
+        // PB2-PB5 and PB7 are limited to 100 MHz per DS60001320.
+        const busMaxMHz = { 1: 200, 2: 100, 3: 100, 4: 100, 5: 100, 7: 100, 8: 200 };
+
         // PIC32MZ EF buses: pb1-pb5, pb7, pb8 (no pb6)
         for (const i of [1, 2, 3, 4, 5, 7, 8]) {
             const freqSpan = document.getElementById(`pb${i}Freq`);
@@ -189,8 +197,9 @@
             if (isNaN(divisor)) { continue; }
             const pbMHz = sysclkMHz / (divisor + 1);
             const fractional = !Number.isInteger(pbMHz);
+            const maxMHz = busMaxMHz[i] || 100;
             freqSpan.textContent = `${pbMHz.toFixed(0)} MHz`;
-            freqSpan.className   = (fractional || pbMHz > 100) ? 'pbclk-freq invalid' : 'pbclk-freq';
+            freqSpan.className   = (fractional || pbMHz > maxMHz) ? 'pbclk-freq invalid' : 'pbclk-freq';
         }
     }
     

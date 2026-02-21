@@ -503,6 +503,7 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
             <!-- Peripheral Bus Clocks (PIC32MZ only) -->
             <div id="pbclkSection" class="pbclk-section" style="display:none;">
                 <h4>Peripheral Bus Clocks (PIC32MZ EF - PB1-PB5, PB7, PB8)</h4>
+                <div class="pbclk-sysclk"><span id="pbclkSysclk">SYSCLK: — MHz</span> &nbsp;|&nbsp; PB1/PB8 max 200 MHz, PB2–PB5/PB7 max 100 MHz</div>
                 <div class="pbclk-row">
                     <label>PBCLK1 (System Bus - always ON)</label>
                     <select id="pb1">
