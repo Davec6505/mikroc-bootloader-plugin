@@ -1814,16 +1814,23 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
         
         console.log('MikroC import: tasks.json generated successfully');
         
-        // Show success message
-        vscode.window.showInformationMessage(
-            `MikroC project imported successfully!\n\nMakefile generated. Build: Click Build button, press Ctrl+Shift+B, or type "make"\nRe-open ${projectInfo.projectFile} in MikroC IDE for config changes`,
-            { modal: false }
+        // Ask how to open the project
+        const openAction = await vscode.window.showInformationMessage(
+            `MikroC project "${projectInfo.projectName}" imported successfully!\n\nMakefile generated in: ${projectPath}\n\nBuild: Click Build button, press Ctrl+Shift+B, or type "make"`,
+            'Add to Workspace',
+            'Open in New Window',
+            'Open Project'
         );
-        
-        // Automatically open the project folder
-        console.log('MikroC import: Opening project folder...');
-        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath), false);
-        console.log('MikroC import: Project opened successfully');
+
+        if (openAction === 'Add to Workspace') {
+            // Add as an additional folder to the current multi-root workspace
+            const currentFolders = vscode.workspace.workspaceFolders?.length ?? 0;
+            vscode.workspace.updateWorkspaceFolders(currentFolders, 0, { uri: vscode.Uri.file(projectPath) });
+        } else if (openAction === 'Open in New Window') {
+            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath), true);
+        } else if (openAction === 'Open Project') {
+            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath), false);
+        }
         
     } catch (error) {
         vscode.window.showErrorMessage(`Failed to import MikroC project: ${error}`);
