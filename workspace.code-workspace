@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "../MikroC_bootloader"
+		},
+		{
+			"path": "../../../../Temp/mikroc-test"
 		}
 	],
 	"settings": {
