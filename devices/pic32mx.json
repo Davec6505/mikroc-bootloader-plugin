@@ -516,25 +516,25 @@
         },
         {
             "label": "32MX350F128H",
-            "description": "128KB Flash, 32KB RAM, 64-pin",
+            "description": "128KB Flash, 32KB RAM, 64-pin (USB)",
             "maxClockMHz": 120,
             "configVariant": "120mhz"
         },
         {
             "label": "32MX350F128L",
-            "description": "128KB Flash, 32KB RAM, 100-pin",
+            "description": "128KB Flash, 32KB RAM, 100-pin (USB)",
             "maxClockMHz": 120,
             "configVariant": "120mhz"
         },
         {
             "label": "32MX350F256H",
-            "description": "256KB Flash, 64KB RAM, 64-pin",
+            "description": "256KB Flash, 64KB RAM, 64-pin (USB)",
             "maxClockMHz": 120,
             "configVariant": "120mhz"
         },
         {
             "label": "32MX350F256L",
-            "description": "256KB Flash, 64KB RAM, 100-pin",
+            "description": "256KB Flash, 64KB RAM, 100-pin (USB)",
             "maxClockMHz": 120,
             "configVariant": "120mhz"
         },
@@ -552,13 +552,13 @@
         },
         {
             "label": "32MX370F512H",
-            "description": "512KB Flash, 128KB RAM, 64-pin",
+            "description": "512KB Flash, 128KB RAM, 64-pin (USB)",
             "maxClockMHz": 120,
             "configVariant": "120mhz"
         },
         {
             "label": "32MX370F512L",
-            "description": "512KB Flash, 128KB RAM, 100-pin",
+            "description": "512KB Flash, 128KB RAM, 100-pin (USB)",
             "maxClockMHz": 120,
             "configVariant": "120mhz"
         },

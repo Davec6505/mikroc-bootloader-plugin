@@ -7,6 +7,8 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
+import { exec } from 'child_process';
 import { familyMetadata, getConfigBits } from './deviceLoader';
 
 export interface ConfigEditorOptions {
@@ -85,6 +87,15 @@ export interface ProjectConfig {
         buildType: string;   // 'Release' | 'Debug'
     };
     libraries?: string[];    // MikroC only: short lib names e.g. ['Delays', 'USB']
+    peripherals?: string[];  // XC32 only: plib modules to generate e.g. ['coretimer', 'uart1']
+    peripheralConfig?: {
+        coretimer?: {
+            enableInterrupt: boolean;
+            periodicInterrupt: boolean;
+            periodMs: number;
+            stopInDebug: boolean;
+        };
+    };
 }
 
 export class ConfigEditorProvider implements vscode.WebviewViewProvider {
@@ -134,6 +145,9 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'resetDefault':
                     this._handleResetDefault();
+                    break;
+                case 'openLibraryDoc':
+                    this._openLibraryDoc(message.docPage);
                     break;
             }
         });
@@ -187,6 +201,9 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     case 'resetDefault':
                         this._handleResetDefault(panel.webview);
                         break;
+                    case 'openLibraryDoc':
+                        this._openLibraryDoc(message.docPage);
+                        break;
                 }
             });
             
@@ -205,9 +222,27 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
         // Get device constraints from JSON
         const family = familyMetadata.get(this.options.deviceFamily);
         const deviceConstraints = this._getDeviceConstraints();
+        const deviceCaps = this._getDeviceCaps();
         
         // Get default config or use existing
         const config = this.options.existingConfig || this._getDefaultConfig();
+
+        // Load library catalog from JSON (only for MikroC)
+        let libraryCategories: unknown[] = [];
+        if (this.options.compiler === 'MikroC') {
+            try {
+                const libJsonPath = path.join(this._extensionUri.fsPath, 'src', 'mikroc-libraries.json');
+                // Fallback to out/ if src/ not available (packaged extension)
+                const libJsonPathOut = path.join(this._extensionUri.fsPath, 'out', 'mikroc-libraries.json');
+                const libJsonFile = fs.existsSync(libJsonPath) ? libJsonPath : libJsonPathOut;
+                if (fs.existsSync(libJsonFile)) {
+                    const raw = fs.readFileSync(libJsonFile, 'utf8');
+                    libraryCategories = JSON.parse(raw).categories || [];
+                }
+            } catch (e) {
+                console.warn('[ConfigEditor] Failed to load library catalog:', e);
+            }
+        }
         
         target.postMessage({
             type: 'init',
@@ -215,8 +250,77 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
             deviceFamily: this.options.deviceFamily,
             compiler: this.options.compiler,
             constraints: deviceConstraints,
+            deviceCaps: deviceCaps,
+            libraryCategories: libraryCategories,
             config: config
         });
+    }
+
+    /** Compute device peripheral capabilities from device name + family metadata */
+    private _getDeviceCaps() {
+        const dn  = this.options.deviceName.toUpperCase();
+        const isMZ  = dn.startsWith('32MZ');
+        const isMX  = dn.startsWith('32MX');
+        const isEF  = dn.includes('EF');
+        const isDA  = dn.includes('DA');
+        const isMX12  = isMX && /32MX[12]/.test(dn);
+        const isMX34  = isMX && /32MX[34]/.test(dn);
+        const isMX567 = isMX && /32MX[567]/.test(dn);
+
+        // Look up device description from family metadata to determine peripherals
+        const family = familyMetadata.get(this.options.deviceFamily);
+        const device = family?.devices.find(d => d.label.toUpperCase() === dn);
+        const desc   = device?.description?.toUpperCase() || '';
+
+        const hasUSB      = desc.includes('USB')      || isMZ || (isMX && /32MX[2-7]/.test(dn) && !(/32MX3[23]0/.test(dn)));
+        const hasCAN      = desc.includes('CAN')      || (isMZ && isEF);
+        const hasEthernet = desc.includes('ETHERNET')  || (isMZ && isEF) || /32MX[67]/.test(dn);
+
+        return { isMZ, isEF, isDA, isMX, isMX12, isMX34, isMX567, hasUSB, hasCAN, hasEthernet };
+    }
+
+    /** Open CHM library documentation to a specific page */
+    private _getMikroCInstallPath(): string {
+        const setting = vscode.workspace.getConfiguration('pic32-ide').get<string>('mikroCInstallPath');
+        if (setting && fs.existsSync(setting)) { return setting; }
+        const pub = process.env['PUBLIC'] || 'C:\\Users\\Public';
+        const std = path.join(pub, 'Documents', 'Mikroelektronika', 'mikroC PRO for PIC32');
+        if (fs.existsSync(std)) { return std; }
+        for (const pf of [process.env['ProgramFiles'], process.env['ProgramFiles(x86)']]) {
+            if (!pf) { continue; }
+            const candidate = path.join(pf, 'Mikroelektronika', 'mikroC PRO for PIC32');
+            if (fs.existsSync(candidate)) { return candidate; }
+        }
+        return '';
+    }
+
+    private _openLibraryDoc(docPage: string) {
+        const installPath = this._getMikroCInstallPath();
+        if (!installPath) {
+            vscode.window.showWarningMessage(
+                'MikroC PRO for PIC32 installation not found. ' +
+                'Set the "pic32-ide.mikroCInstallPath" setting if installed in a non-standard location.'
+            );
+            return;
+        }
+        const chmPath = path.join(installPath, 'mikroC_PRO_PIC32.chm');
+        if (!fs.existsSync(chmPath)) {
+            vscode.window.showWarningMessage(`MikroC PIC32 help file not found at: ${chmPath}`);
+            return;
+        }
+        if (docPage) {
+            // Open to specific page inside CHM using hh.exe
+            const url = `ms-its:${chmPath}::/${docPage}.htm`;
+            exec(`hh.exe "${url}"`, (err) => {
+                if (err) {
+                    // Fallback: open CHM file directly
+                    exec(`start "" "${chmPath}"`);
+                }
+            });
+        } else {
+            // No specific page — open CHM at home
+            exec(`start "" "${chmPath}"`);
+        }
     }
     
     private _getDeviceConstraints() {
@@ -225,12 +329,14 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
         const isPIC32MZ = this.options.deviceName.startsWith('32MZ');
         
         if (isPIC32MZ) {
+            // EF family: up to 252 MHz; DA/EC/W1: up to 200 MHz
+            const mzMaxClock = this.options.deviceName.includes('EF') ? 252000000 : 200000000;
             return {
                 pllInputDiv: [1, 2, 3, 4, 5, 6, 7, 8],
                 pllMultiplier: Array.from({length: 86}, (_, i) => i + 1), // 1-86 for MZ
                 pllOutputDiv: [2, 4, 8, 16, 32],
                 oscillatorModes: ['EC', 'XT', 'HS'],
-                maxSystemClock: 200000000
+                maxSystemClock: mzMaxClock
             };
         } else {
             // PIC32MX
@@ -239,7 +345,10 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                 pllMultiplier: Array.from({length: 9}, (_, i) => i + 15), // 15-24 for MX
                 pllOutputDiv: [1, 2, 4, 8, 16, 32, 64, 256],
                 oscillatorModes: ['EC', 'XT', 'HS'],
-                maxSystemClock: this.options.deviceName.match(/32MX[34]/) ? 120000000 : 80000000
+                maxSystemClock: this.options.deviceName.match(/32MX[34]/)   ? 120000000
+                               : this.options.deviceName.match(/32MX[567]/)  ?  80000000
+                               : this.options.deviceName.match(/32MX[12][57]4/) ?  72000000
+                               :  50000000  // standard MX1xx/MX2xx (non-XLP)
             };
         }
     }
@@ -390,7 +499,6 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
         });
         
         if (fileUri && fileUri[0]) {
-            const fs = require('fs');
             const config = JSON.parse(fs.readFileSync(fileUri[0].fsPath, 'utf-8'));
             
             const target = webview || this._view?.webview;
@@ -411,7 +519,6 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
         });
         
         if (fileUri) {
-            const fs = require('fs');
             fs.writeFileSync(fileUri.fsPath, JSON.stringify(config, null, 2), 'utf-8');
             vscode.window.showInformationMessage('Configuration scheme saved!');
         }
@@ -805,44 +912,61 @@ export class ConfigEditorProvider implements vscode.WebviewViewProvider {
                     <textarea id="configPreview" readonly></textarea>
                 </div>
                 
-                <!-- Library Selector (MikroC compiler only) -->
-                <div id="librarySection" style="display:none;">
-                    <h4 style="margin:0 0 8px 0;">Libraries</h4>
-                    <div class="library-grid">
-                        <div class="library-category">
-                            <strong>System</strong>
-                            <label><input type="checkbox" name="lib" value="Delays" checked> Delays</label>
-                            <label><input type="checkbox" name="lib" value="CP0"> CP0</label>
-                            <label><input type="checkbox" name="lib" value="System"> System</label>
-                            <label><input type="checkbox" name="lib" value="SoftReset"> SoftReset/DMA</label>
+                <!-- Peripheral Library Selector (XC32 only — hidden for MikroC) -->
+                <div id="peripheralSection" style="display:none;">
+                    <h4 style="margin:4px 0;">Peripheral Libraries
+                        <span style="font-weight:normal; font-size:11px; color:var(--vscode-descriptionForeground);">
+                            — generates self-contained plib source files in srcs/peripheral/
+                        </span>
+                    </h4>
+                    <div class="lib-category-body" style="display:block;">
+
+                        <!-- CORE TIMER -->
+                        <label class="lib-item">
+                            <input type="checkbox" name="peripheral" id="ctEnabled" value="coretimer" checked>
+                            <span class="lib-item-name" style="font-weight:600;">CORE TIMER</span>
+                        </label>
+                        <div id="coretimerOptions" style="margin-left:20px; font-size:12px;">
+                            <!-- Enable Interrupt mode -->
+                            <div style="display:flex; align-items:center; gap:6px; margin:3px 0;">
+                                <input type="checkbox" id="ctEnableInterrupt" checked>
+                                <label for="ctEnableInterrupt">Enable Interrupt mode</label>
+                            </div>
+                            <!-- Generate Periodic interrupt (sub-option) -->
+                            <div id="ctPeriodicRow" style="margin-left:20px;">
+                                <div style="display:flex; align-items:center; gap:6px; margin:3px 0;">
+                                    <input type="checkbox" id="ctPeriodic" checked>
+                                    <label for="ctPeriodic">Generate Periodic interrupt</label>
+                                </div>
+                                <!-- Period ms input (sub-sub-option) -->
+                                <div id="ctPeriodMsRow" style="margin-left:20px; display:flex; align-items:center; gap:8px; margin:3px 0;">
+                                    <label for="ctPeriodMs" style="flex:1;">Timer interrupt period (milliseconds)</label>
+                                    <input type="number" id="ctPeriodMs" value="1" min="1" max="10000"
+                                           style="width:70px; text-align:right;">
+                                </div>
+                            </div>
+                            <!-- Stop Timer in Debug mode -->
+                            <div style="display:flex; align-items:center; gap:6px; margin:3px 0;">
+                                <input type="checkbox" id="ctStopDebug">
+                                <label for="ctStopDebug">Stop Timer in Debug mode</label>
+                            </div>
+                            <!-- Frequency info label -->
+                            <div style="margin:4px 0; font-style:italic; color:var(--vscode-descriptionForeground);">
+                                *** Core Timer Clock Frequency <span id="ctFreqHz">--</span> Hz ***
+                            </div>
                         </div>
-                        <div class="library-category">
-                            <strong>Math</strong>
-                            <label><input type="checkbox" name="lib" value="Math"> Math</label>
-                            <label><input type="checkbox" name="lib" value="MathDouble"> MathDouble</label>
-                            <label><input type="checkbox" name="lib" value="C_Math"> C_Math</label>
-                        </div>
-                        <div class="library-category">
-                            <strong>String / IO</strong>
-                            <label><input type="checkbox" name="lib" value="C_String"> C_String</label>
-                            <label><input type="checkbox" name="lib" value="C_Stdlib"> C_Stdlib</label>
-                            <label><input type="checkbox" name="lib" value="C_Type"> C_Type</label>
-                            <label><input type="checkbox" name="lib" value="Sprintf"> Sprintf</label>
-                            <label><input type="checkbox" name="lib" value="Sprinti"> Sprinti</label>
-                            <label><input type="checkbox" name="lib" value="Sprintl"> Sprintl</label>
-                            <label><input type="checkbox" name="lib" value="Conversions"> Conversions</label>
-                            <label><input type="checkbox" name="lib" value="MemManager"> MemManager</label>
-                        </div>
-                        <div class="library-category">
-                            <strong>Peripherals</strong>
-                            <label><input type="checkbox" name="lib" value="UART"> UART</label>
-                            <label><input type="checkbox" name="lib" value="SPI"> SPI</label>
-                            <label><input type="checkbox" name="lib" value="I2C"> I2C</label>
-                            <label><input type="checkbox" name="lib" value="USB"> USB</label>
-                            <label><input type="checkbox" name="lib" value="FLASH"> Flash</label>
-                            <label><input type="checkbox" name="lib" value="CAN"> CAN</label>
-                        </div>
+
                     </div>
+                </div>
+
+                <!-- Library Browser (MikroC compiler only — populated dynamically by JS) -->
+                <div id="librarySection" style="display:none;">
+                    <h4 style="margin:0 0 4px 0;">Libraries
+                        <span style="font-weight:normal; font-size:11px; color:var(--vscode-descriptionForeground);">
+                            — double-click any library to open its documentation
+                        </span>
+                    </h4>
+                    <div id="libraryBrowser"><!-- JS renders categories here --></div>
                 </div>
             </div>
             

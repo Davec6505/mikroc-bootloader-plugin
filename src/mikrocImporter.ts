@@ -550,9 +550,13 @@ export class MikroCImporter {
 
         // Base runtime libs required by MikroC linker (prepended before user libs)
         const isMZ = projectInfo.deviceName.toUpperCase().includes('MZ');
-        const baseLibs = isMZ
-            ? ['"__Lib_CP0.emcl"', '"__Lib_System_MZ_EF.emcl"']
-            : ['"__Lib_CP0.emcl"', '"__Lib_System.emcl"'];
+        const isEF = projectInfo.deviceName.toUpperCase().includes('EF');
+        const isMX12 = !isMZ && /MX[12]\d\d/i.test(projectInfo.deviceName);
+        const sysLib = (isMZ && isEF) ? '__Lib_System_MZ_EF.emcl'
+                     : isMZ           ? '__Lib_System_MZ.emcl'
+                     : isMX12         ? '__Lib_System_12.emcl'
+                     : '__Lib_System.emcl';
+        const baseLibs = ['"__Lib_CP0.emcl"', `"${sysLib}"`];
 
         // User libs — each individually quoted (deduplicate base libs)
         const baseLibNames = baseLibs.map(l => l.replace(/"/g, ''));

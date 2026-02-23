@@ -13,7 +13,7 @@
 			"path": "../MikroC_bootloader"
 		},
 		{
-			"path": "../../../../Temp/mikroc-test"
+			"path": "../../../Public/Documents/Mikroelektronika"
 		}
 	],
 	"settings": {

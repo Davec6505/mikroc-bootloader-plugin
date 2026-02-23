@@ -1,0 +1,120 @@
+{
+  "family": "PIC32MZ-DA (Graphics + DDR2)",
+  "description": "32-bit MIPS, 200MHz, integrated 2D GPU + DDR2, LCD controller",
+  "configBits": {
+    "default": [
+      "// DEVCFG3 - Device Configuration Register 3",
+      "#pragma config USERID = 0xFFFF          // User ID bits (default = 0xFFFF)",
+      "#pragma config FMIIEN = OFF             // Ethernet RMII/MII Enable (OFF = RMII mode)",
+      "#pragma config FETHIO = OFF             // Ethernet I/O pins (OFF = Default/alternate Ethernet I/O)",
+      "#pragma config PGL1WAY = OFF            // Permission Group Lock (OFF = Allow multiple reconfigurations)",
+      "#pragma config PMDL1WAY = OFF           // Peripheral Module Disable (OFF = Allow multiple reconfigurations)",
+      "#pragma config IOL1WAY = OFF            // Peripheral Pin Select (OFF = Allow multiple reconfigurations)",
+      "#pragma config FUSBIDIO = OFF           // USB USBID pin (OFF = Controlled by port I/O)",
+      "",
+      "// DEVCFG2 - System PLL Configuration (24MHz crystal → 200MHz system clock)",
+      "#pragma config FPLLICLK = PLL_POSC      // PLL Input Clock (POSC = Primary Oscillator 24MHz)",
+      "#pragma config FPLLIDIV = DIV_3         // PLL Input Divider (24MHz ÷ 3 = 8MHz to PLL)",
+      "#pragma config FPLLRNG = RANGE_5_10_MHZ // PLL Input Range (5-10 MHz range for 8MHz input)",
+      "#pragma config FPLLMULT = MUL_50        // PLL Multiplier (8MHz × 50 = 400MHz VCO)",
+      "#pragma config FPLLODIV = DIV_2         // PLL Output Divider (400MHz ÷ 2 = 200MHz system clock)",
+      "",
+      "// DEVCFG1 - Clock Configuration and Watchdog Timer",
+      "#pragma config FNOSC = SPLL             // Oscillator Selection (SPLL = System PLL for 200MHz operation)",
+      "#pragma config POSCMOD = EC             // Primary Oscillator (EC = External clock/oscillator mode)",
+      "#pragma config FCKSM = CSECME           // Clock Switching (CSECME = Clock switch enabled, monitor enabled)",
+      "#pragma config FWDTEN = OFF             // Watchdog Timer (OFF = Disabled)",
+      "#pragma config FDMTEN = OFF             // Deadman Timer (OFF = Disabled)",
+      "#pragma config DMTINTV = WIN_127_128    // Deadman Timer Window (127/128)",
+      "#pragma config WDTSPGM = STOP           // Watchdog during programming (STOP = Stops during programming)",
+      "#pragma config WINDIS = NORMAL          // Watchdog Window Mode (NORMAL = Normal watchdog mode)",
+      "#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Window Size (25%)",
+      "#pragma config DMTCNT = DMT31           // Deadman Timer Count (DMT31)",
+      "#pragma config OSCIOFNC = OFF           // CLKO Output (OFF = Disabled on OSCO pin)",
+      "",
+      "// DEVCFG0 - Debug and Boot Configuration",
+      "#pragma config DEBUG = ON               // Debugger Enable (ON = Debugging enabled for MPLAB/ICD)",
+      "#pragma config JTAGEN = OFF             // JTAG Port (OFF = JTAG disabled)",
+      "#pragma config ICESEL = ICS_PGx2        // ICD/ICE Pins (ICS_PGx2 = Communicate on PGEC2/PGED2)",
+      "#pragma config TRCEN = OFF              // Trace Enable (OFF = Trace port disabled)",
+      "#pragma config BOOTISA = MIPS32         // Boot ISA (MIPS32 = Boot in MIPS32 mode)",
+      "#pragma config FECCCON = OFF_UNLOCKED   // ECC Control (OFF_UNLOCKED = Flash ECC disabled)",
+      "#pragma config FSLEEP = OFF             // Flash Sleep Mode (OFF = Flash powered during Sleep mode)",
+      "#pragma config DBGPER = PG_ALL          // Debug Access (PG_ALL = Allow debug access to all regions)",
+      "#pragma config SMCLR = MCLR_NORM        // Soft Master Clear (MCLR_NORM = Normal MCLR functionality)",
+      "#pragma config SOSCGAIN = GAIN_2X       // Secondary Oscillator Gain (GAIN_2X = 2x gain mode)",
+      "#pragma config SOSCBOOST = ON           // Secondary Oscillator Boost (ON = Boost enabled)",
+      "#pragma config POSCGAIN = GAIN_2X       // Primary Oscillator Gain (GAIN_2X = 2x gain mode)",
+      "#pragma config POSCBOOST = ON           // Primary Oscillator Boost (ON = Boost enabled for faster startup)",
+      "#pragma config EJTAGBEN = NORMAL        // EJTAG Boot (NORMAL = Normal EJTAG functionality)",
+      "#pragma config CP = OFF                 // Code Protect (OFF = Code protection disabled)"
+    ]
+  },
+  "devices": [
+    {
+      "label": "32MZ2064DAA169",
+      "description": "2MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, no CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ2064DAB169",
+      "description": "2MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ2064DAH169",
+      "description": "2MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, USB, CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ2064DAK169",
+      "description": "2MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, CAN, Crypto)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ2064DAL169",
+      "description": "2MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, USB, CAN, Crypto)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ2064DAR176",
+      "description": "2MB Flash, 512KB RAM + 32MB DDR2, 176-pin (GPU, Ethernet, USB, CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ2064DAS169",
+      "description": "2MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, Ethernet, CAN, Crypto)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ1025DAA169",
+      "description": "1MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, no CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ1025DAB169",
+      "description": "1MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ1025DAG169",
+      "description": "1MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, Ethernet, CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ1025DAH169",
+      "description": "1MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, USB, CAN)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ1025DAK169",
+      "description": "1MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, CAN, Crypto)",
+      "maxClockMHz": 200
+    },
+    {
+      "label": "32MZ1025DAL169",
+      "description": "1MB Flash, 512KB RAM + 32MB DDR2, 169-pin (GPU, LCD, USB, CAN, Crypto)",
+      "maxClockMHz": 200
+    }
+  ]
+}

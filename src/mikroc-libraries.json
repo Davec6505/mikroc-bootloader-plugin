@@ -1,0 +1,618 @@
+{
+  "_comment": "MikroC PRO for PIC32 Library Catalog — controls the library browser UI in the config editor.",
+  "_docFormat": "CHM page names from mikroC_PRO_PIC32.chm (lowercase_underscore). Double-click a library to open its docs.",
+  "_requires": "usb=has USB | can_internal=has on-chip CAN | ethernet_internal=has on-chip Ethernet | mz=PIC32MZ only | mz_ef=MZ EF only | mx=PIC32MX only | mx12=MX1xx/2xx only",
+
+  "categories": [
+
+    {
+      "id": "system",
+      "name": "System",
+      "libraries": [
+        {
+          "id": "Delays",
+          "displayName": "Delays",
+          "description": "Software delay routines: Delay_ms(), Delay_us(), Delay_ns()",
+          "docPage": "delays_library",
+          "defaultSelected": true,
+          "requires": []
+        },
+        {
+          "id": "SoftReset",
+          "displayName": "Soft Reset",
+          "description": "Software CPU reset via RSWRST register (DMA-safe variant). Useful for bootloader exit.",
+          "docPage": "",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "MemManager",
+          "displayName": "Memory Manager",
+          "description": "Dynamic heap allocation: MM_Malloc(), MM_Free() — alternative to stdlib malloc.",
+          "docPage": "memory_manager_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Time",
+          "displayName": "Time",
+          "description": "ANSI time.h compatible functions: time(), mktime(), localtime(), gmtime().",
+          "docPage": "time_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "uart",
+      "name": "UART",
+      "libraries": [
+        {
+          "id": "UART",
+          "displayName": "UART (Hardware)",
+          "description": "Hardware UART modules — UART1_Init(), UART1_Write_Text() etc. Variant auto-selected by device (UART_12 / 1234 / 12345 / 123456_MZ).",
+          "docPage": "uart_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SoftUART",
+          "displayName": "Software UART",
+          "description": "Bit-banged UART on any two GPIO pins. Useful when hardware UART is unavailable.",
+          "docPage": "software_uart_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "RS485",
+          "displayName": "RS-485",
+          "description": "RS-485 master/slave library built on top of UART. Requires UART library.",
+          "docPage": "rs485_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "spi",
+      "name": "SPI",
+      "libraries": [
+        {
+          "id": "SPI",
+          "displayName": "SPI (Hardware)",
+          "description": "Hardware SPI modules — SPI1_Init(), SPI1_Read(), SPI1_Write(). Variant auto-selected by device (SPI_12 / 1234 / 123456).",
+          "docPage": "spi_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SoftSPI",
+          "displayName": "Software SPI",
+          "description": "Bit-banged SPI on any GPIO pins. Full duplex, configurable CPOL/CPHA.",
+          "docPage": "software_spi_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "i2c",
+      "name": "I²C",
+      "libraries": [
+        {
+          "id": "I2C",
+          "displayName": "I²C (Hardware)",
+          "description": "Hardware I2C modules — I2C1_Init(), I2C1_Start(), I2C1_Rd() etc. Variant auto-selected by device (I2C_12 / 12345 / 12345_MZ).",
+          "docPage": "i2c_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SoftI2C",
+          "displayName": "Software I²C",
+          "description": "Bit-banged I2C on any two GPIO pins (open-drain). Master only, 100kHz typical.",
+          "docPage": "software_i2c_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "connectivity",
+      "name": "Connectivity",
+      "libraries": [
+        {
+          "id": "USB",
+          "displayName": "USB HID (On-Chip)",
+          "description": "On-chip USB full-speed (MX) or high-speed (MZ) — HID device class. MZ uses USB_MZ_HS variant automatically.",
+          "docPage": "usb_hid_library",
+          "defaultSelected": false,
+          "requires": ["usb"]
+        },
+        {
+          "id": "CAN",
+          "displayName": "CAN (On-Chip)",
+          "description": "On-chip CAN 2.0B controller — CAN1_Init(), CAN1_Write() etc. CAN_12 used for devices with two CAN modules.",
+          "docPage": "can_library",
+          "defaultSelected": false,
+          "requires": ["can_internal"]
+        },
+        {
+          "id": "CANSPI",
+          "displayName": "CAN via SPI (MCP2515)",
+          "description": "External CAN controller (Microchip MCP2515) connected via SPI. Works on ANY device. Requires SPI library.",
+          "docPage": "canspi_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Ethernet",
+          "displayName": "Ethernet (On-Chip MAC)",
+          "description": "On-chip Ethernet MAC + PHY interface for MX6/7xx and MZ EF. Requires external PHY chip (e.g. DP83848).",
+          "docPage": "ethernet_library",
+          "defaultSelected": false,
+          "requires": ["ethernet_internal"]
+        },
+        {
+          "id": "SPI_Ethernet",
+          "displayName": "Ethernet via SPI (ENC28J60)",
+          "description": "External ENC28J60 Ethernet controller via SPI. Works on ANY device. Includes full TCP/IP stack.",
+          "docPage": "spi_ethernet_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SPI_Ethernet_24j600",
+          "displayName": "Ethernet via SPI (ENC24J600)",
+          "description": "External ENC24J600 10/100 Ethernet controller via SPI. Hardware checksum offload. Works on ANY device.",
+          "docPage": "spi_ethernet_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "analog",
+      "name": "Analog",
+      "libraries": [
+        {
+          "id": "ADC",
+          "displayName": "ADC",
+          "description": "Analog-to-Digital Converter — ADC_Init(), ADC_Get_Sample(). Variant auto-selected by device channel count.",
+          "docPage": "adc_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "PWM",
+          "displayName": "PWM",
+          "description": "Pulse-Width Modulation via Output Compare modules — PWM_Init(), PWM1_Set_Duty(). MZ uses PWM_MZ variant.",
+          "docPage": "pwm_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Sound",
+          "displayName": "Sound",
+          "description": "Square-wave tone generation via GPIO pin — Sound_Init(), Sound_Play(). For buzzers and simple audio.",
+          "docPage": "sound_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "flash",
+      "name": "Flash Memory",
+      "libraries": [
+        {
+          "id": "FLASH",
+          "displayName": "Flash Memory",
+          "description": "In-application programming — read/erase/write internal flash pages. MZ uses FLASH_MZ variant.",
+          "docPage": "flash_memory_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "storage",
+      "name": "Storage (SD / CF)",
+      "libraries": [
+        {
+          "id": "MMC",
+          "displayName": "MMC / SD Card",
+          "description": "Low-level MMC/SD card driver via SPI. Byte-level read/write. Use MmcFat16 for file system.",
+          "docPage": "mmc_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "MmcFat16",
+          "displayName": "SD Card FAT16",
+          "description": "FAT16 file system on MMC/SD card. Mmc_Fat16_Init(), Mmc_Fat16_Fopen() etc. Requires MMC library.",
+          "docPage": "mmc_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "CF",
+          "displayName": "CompactFlash",
+          "description": "CompactFlash card low-level driver (parallel interface). Byte-level access.",
+          "docPage": "compact_flash_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "CFFat16",
+          "displayName": "CompactFlash FAT16",
+          "description": "FAT16 file system on CompactFlash. CF_Fat16_Init(), CF_Fat16_Fopen() etc. Requires CF library.",
+          "docPage": "compact_flash_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "display",
+      "name": "Display",
+      "libraries": [
+        {
+          "id": "LCD",
+          "displayName": "LCD (Parallel 4-bit)",
+          "description": "HD44780 compatible character LCD via 4-bit parallel interface. Lcd_Init(), Lcd_Out() etc.",
+          "docPage": "lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SPILcd",
+          "displayName": "LCD via SPI Port Expander",
+          "description": "Character LCD via MCP23S17 SPI port expander. Saves GPIO pins. Requires PortExpander + SPI.",
+          "docPage": "spi_lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SPILcd8",
+          "displayName": "LCD via SPI (8-bit)",
+          "description": "Character LCD via MCP23S17 in 8-bit mode for faster updates. Requires PortExpander + SPI.",
+          "docPage": "spi_lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "GLCD",
+          "displayName": "GLCD (Parallel)",
+          "description": "128×64 KS0108 graphic LCD via parallel interface. GLCD_Init(), GLCD_Dot(), GLCD_Write_Text().",
+          "docPage": "graphic_lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SPIGlcd",
+          "displayName": "GLCD via SPI Port Expander",
+          "description": "Graphic LCD via MCP23S17 SPI port expander. Requires PortExpander + SPI libraries.",
+          "docPage": "spi_graphic_lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "GlcdFonts",
+          "displayName": "GLCD Fonts",
+          "description": "Font table constants for graphic LCD text rendering. Required by GLCD and SPIGlcd libraries.",
+          "docPage": "graphic_lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "TFT",
+          "displayName": "TFT Display",
+          "description": "Color TFT display (ILI9341 / ST7789 style) — TFT_Init(), TFT_Fill_Screen(), TFT_Write_Text().",
+          "docPage": "tft_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "T6963C",
+          "displayName": "T6963C GLCD (Parallel)",
+          "description": "Toshiba T6963C dot-matrix LCD controller — parallel interface, 240×64 or 240×128.",
+          "docPage": "graphic_lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "SPIT6963C",
+          "displayName": "T6963C GLCD via SPI",
+          "description": "T6963C controller via SPI port expander. Requires PortExpander + SPI libraries.",
+          "docPage": "graphic_lcd_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "touch",
+      "name": "Touchscreen",
+      "libraries": [
+        {
+          "id": "TouchPanel",
+          "displayName": "Touch Panel (4-wire)",
+          "description": "Resistive 4-wire touch panel controller. TP_Init(), TP_Get_Coordinates(). Returns raw X/Y.",
+          "docPage": "touch_panel_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "TouchPanel_TFT",
+          "displayName": "Touch Panel for TFT",
+          "description": "Touch panel calibrated to TFT screen coordinates. TP_TFT_Init(), calibration routines.",
+          "docPage": "tft_touch_panel_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "STMPE610",
+          "displayName": "STMPE610 Touch Controller",
+          "description": "ST STMPE610 I2C/SPI capacitive touch controller — STMPE610_Init(), STMPE610_Touched().",
+          "docPage": "",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "input",
+      "name": "Input",
+      "libraries": [
+        {
+          "id": "Button",
+          "displayName": "Button",
+          "description": "Hardware button debounce — Button(&PORTB, 0, 1, 1) returns debounced state. No globals needed.",
+          "docPage": "button_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Keypad4x4",
+          "displayName": "Keypad 4×4",
+          "description": "4×4 matrix keypad scanner — Keypad_Init(), Keypad_Key_Click(), Keypad_Key_Press().",
+          "docPage": "keypad_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "PS2",
+          "displayName": "PS/2 Keyboard",
+          "description": "PS/2 keyboard interface — PS2_Config(), PS2_Key_Read() for ASCII key codes.",
+          "docPage": "ps2_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "PortExpander",
+          "displayName": "Port Expander (MCP23S17)",
+          "description": "16-bit SPI GPIO expander — Expander_Init(), Expander_Set_DirectionPortA(). Required by SPILcd, SPIGlcd.",
+          "docPage": "port_expander_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "protocols",
+      "name": "Protocols",
+      "libraries": [
+        {
+          "id": "OneWire",
+          "displayName": "1-Wire",
+          "description": "Dallas/Maxim 1-Wire bus — Ow_Reset(), Ow_Read(), Ow_Write(). Use with DS18B20, DS1820 temperature sensors.",
+          "docPage": "onewire_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Manchester",
+          "displayName": "Manchester Code",
+          "description": "Manchester encoding/decoding for RF data links — Man_Receive_Init(), Man_Send() etc.",
+          "docPage": "manchester_code_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "math",
+      "name": "Math & DSP",
+      "libraries": [
+        {
+          "id": "Math",
+          "displayName": "Math (Integer/Float)",
+          "description": "Basic math functions — sqrt(), pow(), abs() etc. for float and integer types.",
+          "docPage": "ansi_math_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "MathDouble",
+          "displayName": "Math (Double Precision)",
+          "description": "64-bit double precision math. MZ EF uses optimised MathDouble_MZ_EF variant automatically.",
+          "docPage": "ansi_math_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "C_Math",
+          "displayName": "Complex Math",
+          "description": "Complex number math — C_Math_Add(), C_Math_Mul(), C_Math_Div() for DSP applications.",
+          "docPage": "",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Trigonometry",
+          "displayName": "Trigonometry",
+          "description": "Fixed-point trig: sin(), cos(), atan2(), asin() — results in Q15 format for DSP pipelines.",
+          "docPage": "trigonometry_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Q15",
+          "displayName": "Q15 Fixed-Point",
+          "description": "Q15 (1.15) fixed-point arithmetic — Q15_Add(), Q15_Mul(), Q15_Div(). MZ EF uses Q15_EF variant.",
+          "docPage": "dsp_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Q31",
+          "displayName": "Q31 Fixed-Point",
+          "description": "Q31 (1.31) fixed-point arithmetic — higher precision for audio DSP. MZ EF uses Q31_EF variant.",
+          "docPage": "dsp_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "FFT",
+          "displayName": "FFT (Fast Fourier Transform)",
+          "description": "Radix-2 decimation-in-time FFT — FFT_Radix2(), IFFT_Radix2(). Requires Q15, TwiddleFactors, BitReverseComplex.",
+          "docPage": "fft_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "FirRadix",
+          "displayName": "FIR Filter",
+          "description": "Radix-2 FIR digital filter — FIR_Radix() using Q15 taps. Real-time audio/DSP processing.",
+          "docPage": "fir_filter_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "IirRadix",
+          "displayName": "IIR Filter",
+          "description": "Radix-2 IIR (biquad) digital filter — IIR_Radix(). For audio EQ and signal conditioning.",
+          "docPage": "iir_filter_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Matrices",
+          "displayName": "Matrix Math",
+          "description": "Matrix operations — Matrix_Add(), Matrix_Multiply(), Matrix_Transpose(). For control systems / robotics.",
+          "docPage": "matrix_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Vectors",
+          "displayName": "Vector Math",
+          "description": "Vector dot product, cross product, magnitude. Optimised for Q15 fixed-point.",
+          "docPage": "vectors_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "clib",
+      "name": "C Standard Library",
+      "libraries": [
+        {
+          "id": "C_String",
+          "displayName": "String (string.h)",
+          "description": "ANSI string.h — strlen(), strcpy(), strcat(), strcmp(), strstr(), memcpy() etc.",
+          "docPage": "ansi_string_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "C_Stdlib",
+          "displayName": "Stdlib (stdlib.h)",
+          "description": "ANSI stdlib.h — atoi(), itoa(), atof(), rand(), abs() etc. MZ EF uses CStdlib_EF variant.",
+          "docPage": "ansi_stdlib_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "C_Type",
+          "displayName": "C Type (ctype.h)",
+          "description": "ANSI ctype.h — isalpha(), isdigit(), toupper(), tolower() character classification.",
+          "docPage": "ansi_ctype_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Conversions",
+          "displayName": "Conversions",
+          "description": "ByteToStr(), IntToStr(), LongToStr(), FloatToStr() — convert numeric types to strings.",
+          "docPage": "conversions_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Sprintf",
+          "displayName": "Sprintf",
+          "description": "sprintf() for %d, %f, %s, %x etc. MZ EF uses optimised Sprintf_EF. Requires C_String.",
+          "docPage": "sprint_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Sprinti",
+          "displayName": "Sprinti (integers only)",
+          "description": "Lightweight sprintf() for integer formats only (%d, %i, %u, %x, %o). Smaller code than full Sprintf.",
+          "docPage": "sprint_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "Sprintl",
+          "displayName": "Sprintl (long integers)",
+          "description": "sprintf() supporting long/long long integer formats (%ld, %lld, %lu). Smaller than full Sprintf.",
+          "docPage": "sprint_library",
+          "defaultSelected": false,
+          "requires": []
+        },
+        {
+          "id": "PrintOut",
+          "displayName": "PrintOut",
+          "description": "PrintOut() — printf-style formatted output to UART or other output stream. MZ EF uses PrintOut_EF.",
+          "docPage": "printout_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    },
+
+    {
+      "id": "pps",
+      "name": "Pin Select (PPS)",
+      "libraries": [
+        {
+          "id": "PPS",
+          "displayName": "Peripheral Pin Select",
+          "description": "Lock/unlock PPS and remap peripheral I/O to alternate pins. Variant auto-selected from device number + package suffix.",
+          "docPage": "peripheral_pin_select_library",
+          "defaultSelected": false,
+          "requires": []
+        }
+      ]
+    }
+
+  ]
+}

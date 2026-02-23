@@ -16,6 +16,26 @@ import { BundledToolsManager } from './bundledTools';
 import { loadDeviceDefinitions, getAllDevicesFlat, DeviceDefinition, detectDeviceFamily, getConfigBits, getDeviceClockFrequency } from './deviceLoader';
 import { ConfigEditorProvider, generateXC32Config, generatePBCLKStartup } from './configEditor';
 
+/**
+ * Returns the MikroC PRO for PIC32 installation root.
+ * Priority: VS Code setting → %PUBLIC%\Documents\Mikroelektronika\... → Program Files fallbacks.
+ */
+function getMikroCInstallPath(): string {
+    const setting = vscode.workspace.getConfiguration('pic32-ide').get<string>('mikroCInstallPath');
+    if (setting && fs.existsSync(setting)) { return setting; }
+
+    const pub = process.env['PUBLIC'] || 'C:\\Users\\Public';
+    const std = path.join(pub, 'Documents', 'Mikroelektronika', 'mikroC PRO for PIC32');
+    if (fs.existsSync(std)) { return std; }
+
+    for (const pf of [process.env['ProgramFiles'], process.env['ProgramFiles(x86)']]) {
+        if (!pf) { continue; }
+        const candidate = path.join(pf, 'Mikroelektronika', 'mikroC PRO for PIC32');
+        if (fs.existsSync(candidate)) { return candidate; }
+    }
+    return ''; // not found — caller must handle
+}
+
 // Device definitions loaded from JSON files at runtime
 let SUPPORTED_DEVICES: Record<string, DeviceDefinition[]> = {
     'PIC32MZ-EF (High Performance)': [
@@ -1214,6 +1234,14 @@ async function createXC32Project(context: vscode.ExtensionContext) {
             const pbclkStartup = deviceName.startsWith('32MZ') 
                 ? generatePBCLKStartup(projectConfig) 
                 : '';
+
+            // Peripheral libraries selected in config editor
+            const useCoretimer = projectConfig.peripherals?.includes('coretimer') ?? true;
+
+            // Delay helper — use plib if coretimer selected, inline otherwise
+            const delayHelper = useCoretimer
+                ? `#include "peripheral/plib_coretimer.h"\n#define delay_ms(ms)  CORETIMER_DelayMs(ms)`
+                : `void delay_ms(uint32_t ms) {\n    uint32_t ticks = (SYS_CLK_FREQ / 2000) * ms;\n    _CP0_SET_COUNT(0);\n    while (_CP0_GET_COUNT() < ticks);\n}`;
         
         // Generate main.c template with device-specific configuration
         const mainTemplate = `/**
@@ -1230,14 +1258,10 @@ ${configBits}
 
 #define SYS_CLK_FREQ ${sysClockFreq}   // System clock frequency (Hz) - ${projectConfig.clock.systemFrequency / 1000000}MHz
 ${pbclkStartup}
-void delay_ms(uint32_t ms) {
-    uint32_t ticks = (SYS_CLK_FREQ / 2000) * ms;
-    _CP0_SET_COUNT(0);
-    while (_CP0_GET_COUNT() < ticks);
-}
+${delayHelper}
 
 int main(void) {
-${deviceName.startsWith('32MZ') ? '    // Configure peripheral bus clocks (PIC32MZ)\n    configure_peripheral_clocks();\n    \n' : ''}    // Initialize LED (example: RB9)
+${deviceName.startsWith('32MZ') ? '    // Configure peripheral bus clocks (PIC32MZ)\n    configure_peripheral_clocks();\n    \n' : ''}${useCoretimer ? '    CORETIMER_Initialize();\n    \n' : ''}    // Initialize LED (example: RB9)
     ANSELB &= ~(1 << 9);   // Digital mode
     TRISB &= ~(1 << 9);    // Output
     LATB = 0;              // Initial state
@@ -1252,6 +1276,32 @@ ${deviceName.startsWith('32MZ') ? '    // Configure peripheral bus clocks (PIC32
 `;
 
         fs.writeFileSync(path.join(srcsDir, 'main.c'), mainTemplate, 'utf-8');
+
+        // Generate peripheral plib source files
+        if (useCoretimer) {
+            const plibDir  = path.join(srcsDir, 'peripheral');
+            const tmplDir  = path.join(__dirname, 'templates', 'xc32', 'peripheral', 'coretimer');
+            fs.mkdirSync(plibDir, { recursive: true });
+            const sysclkHz  = projectConfig.clock.systemFrequency.toString();
+            const ctConfig  = (projectConfig as any).peripheralConfig?.coretimer ?? {};
+            const periodMs  = (ctConfig.periodMs  ?? 1).toString();
+            const enableInt = ctConfig.enableInterrupt   !== false;
+            for (const fname of ['plib_coretimer.c', 'plib_coretimer.h']) {
+                const src = fs.readFileSync(path.join(tmplDir, fname), 'utf-8')
+                    .replace(/\{\{SYSCLK_HZ\}\}/g, sysclkHz)
+                    .replace(/\{\{DEVICE\}\}/g, deviceName)
+                    .replace(/\{\{CT_PERIOD_MS\}\}/g, periodMs);
+                fs.writeFileSync(path.join(plibDir, fname), src, 'utf-8');
+            }
+            // interrupts.c sits alongside main.c in srcs/ (include path: "peripheral/plib_coretimer.h")
+            if (enableInt) {
+                const interruptsSrc = fs.readFileSync(path.join(tmplDir, 'interrupts.c'), 'utf-8')
+                    .replace(/\{\{SYSCLK_HZ\}\}/g, sysclkHz)
+                    .replace(/\{\{DEVICE\}\}/g, deviceName)
+                    .replace(/\{\{CT_PERIOD_MS\}\}/g, periodMs);
+                fs.writeFileSync(path.join(srcsDir, 'interrupts.c'), interruptsSrc, 'utf-8');
+            }
+        }
 
         // Save config.json to project root for future editing
         fs.writeFileSync(
@@ -1439,30 +1489,145 @@ Generated: ${new Date().toLocaleString()}
  * Convert MikroC library short name to device-aware .emcl filename
  */
 function libraryShortNameToEmcl(shortName: string, deviceName: string): string {
-    const isMZ = deviceName.toUpperCase().includes('MZ');
-    const isEF = deviceName.toUpperCase().includes('EF');
+    const dn   = deviceName.toUpperCase();
+    const isMZ = dn.includes('MZ');
+    const isEF = dn.includes('EF');
+    const isMX12  = !isMZ && /32MX[12]/.test(dn);
+    const isMX34  = !isMZ && /32MX[34]/.test(dn);
+    const isMX567 = !isMZ && /32MX[567]/.test(dn);
+
+    // PPS variant — depends on device subfamily AND package suffix (last char = pin count)
+    const ppsSuffix = deviceName.slice(-1).toUpperCase(); // B=28-pin, D=44-pin, H=64-pin, L=100-pin
+    function getPPSEmcl(): string {
+        if (/32MX1/.test(dn)) { return ppsSuffix === 'D' ? '__Lib_PPS_P32MX1xxFxxxD.emcl' : '__Lib_PPS_P32MX1xxFxxxB.emcl'; }
+        if (/32MX2/.test(dn)) { return ppsSuffix === 'D' ? '__Lib_PPS_P32MX2xxFxxxD.emcl' : '__Lib_PPS_P32MX2xxFxxxB.emcl'; }
+        if (/32MX3/.test(dn)) { return ppsSuffix === 'L' ? '__Lib_PPS_P32MX_3xx_100GPD.emcl' : '__Lib_PPS_P32MX_3xx_64GPD.emcl'; }
+        if (/32MX4/.test(dn)) { return ppsSuffix === 'L' ? '__Lib_PPS_P32MX_4xx_100USB.emcl' : '__Lib_PPS_P32MX_4xx_64USB.emcl'; }
+        if (/32MX[567]/.test(dn)) {
+            // USB variants for 5/6/7:  MX5: 530L has Eth; most MX6/7 have Ethernet too
+            const hasUSB = /MX(2|34[0-9]|35[0-9]|36[0-9]|37[0-9]|4[2-7]|53[04]|55[0-9]|56[0-9]|57[0-9]|6[6-9]|7[6-9])/.test(dn);
+            if (ppsSuffix === 'L') { return hasUSB ? '__Lib_PPS_P32MX_100USB.emcl' : '__Lib_PPS_P32MX_100GPD.emcl'; }
+            return hasUSB ? '__Lib_PPS_P32MX_64USB.emcl' : '__Lib_PPS_P32MX_64GPD.emcl';
+        }
+        if (isMZ) {
+            // MZ: determine pin count from device number suffix (169 or 176 = ~100-pin BGA, 64/100-pin TQFP)
+            const hasCAN = /MZE(C|F).*CAN|MZ2064DA[BHKL]|MZ1025DA[BHKL]/i.test(dn);
+            const is100pin = ppsSuffix === 'L' || /176|169/.test(dn);
+            const is124pin = ppsSuffix === '4' ; // 124-pin package
+            if (is124pin) { return hasCAN ? '__Lib_PPS_P32MZ_124_144CAN.emcl' : '__Lib_PPS_P32MZ_124_144.emcl'; }
+            if (is100pin) { return hasCAN ? '__Lib_PPS_P32MZ_100CAN.emcl' : '__Lib_PPS_P32MZ_100.emcl'; }
+            return hasCAN ? '__Lib_PPS_P32MZ_64CAN.emcl' : '__Lib_PPS_P32MZ_64.emcl';
+        }
+        return '__Lib_PPS_P32MX_64GPD.emcl'; // safe default
+    }
+
     const map: Record<string, string> = {
+        // ── System ──────────────────────────────────────────────────────────────────
         'Delays':      '__Lib_Delays.emcl',
         'CP0':         '__Lib_CP0.emcl',
-        'System':      (isMZ && isEF) ? '__Lib_System_MZ_EF.emcl'    : '__Lib_System.emcl',
+        'System':      (isMZ && isEF) ? '__Lib_System_MZ_EF.emcl'
+                     : isMZ           ? '__Lib_System_MZ.emcl'
+                     : isMX12         ? '__Lib_System_12.emcl'
+                     :                  '__Lib_System.emcl',
         'SoftReset':   '__Lib_SoftResetDma.emcl',
-        'Math':        '__Lib_Math.emcl',
-        'MathDouble':  (isMZ && isEF) ? '__Lib_MathDouble_MZ_EF.emcl' : '__Lib_MathDouble.emcl',
+        'MemManager':  '__Lib_MemManager.emcl',
+        'Time':        '__Lib_Time.emcl',
+
+        // ── UART / Serial ────────────────────────────────────────────────────────────
+        'UART':        isMZ              ? '__Lib_UART_123456_MZ.emcl'
+                     : isMX567          ? '__Lib_UART_12345.emcl'
+                     : isMX34           ? '__Lib_UART_1234.emcl'
+                     :                    '__Lib_UART_12.emcl',        // MX1/2
+        'SoftUART':    '__Lib_SoftUART.emcl',
+        'RS485':       '__Lib_RS485.emcl',
+
+        // ── SPI ─────────────────────────────────────────────────────────────────────
+        'SPI':         (isMZ || isMX567) ? '__Lib_SPI_123456.emcl'
+                     : isMX34            ? '__Lib_SPI_1234.emcl'
+                     :                     '__Lib_SPI_12.emcl',        // MX1/2
+        'SoftSPI':     '__Lib_SoftSPI.emcl',
+
+        // ── I²C ─────────────────────────────────────────────────────────────────────
+        'I2C':         isMZ              ? '__Lib_I2C_12345_MZ.emcl'
+                     : isMX12           ? '__Lib_I2C_12.emcl'
+                     :                    '__Lib_I2C_12345.emcl',       // MX3/4/5/6/7
+        'SoftI2C':     '__Lib_SoftI2C.emcl',
+
+        // ── Connectivity ─────────────────────────────────────────────────────────────
+        'USB':                 isMZ ? '__Lib_USB_MZ_HS.emcl' : '__Lib_USB.emcl',
+        'CAN':                 '__Lib_CAN_12.emcl',   // covers both single- and dual-CAN devices
+        'CANSPI':              '__Lib_CANSPI.emcl',
+        'Ethernet':            '__Lib_Ethernet.emcl',
+        'SPI_Ethernet':        '__Lib_EthEnc28j60.emcl',
+        'SPI_Ethernet_24j600': '__Lib_EthEnc24j600.emcl',
+
+        // ── Analog ──────────────────────────────────────────────────────────────────
+        'ADC':  isMZ              ? '__Lib_ADC_48ch_MZ.emcl'
+              : (isMX567 || isMX34) ? '__Lib_ADC_28ch.emcl'
+              :                       '__Lib_ADC_1.emcl',              // MX1/2
+        'PWM':  isMZ ? '__Lib_PWM_MZ.emcl' : '__Lib_PWM.emcl',
+        'Sound': '__Lib_Sound.emcl',
+
+        // ── Flash ────────────────────────────────────────────────────────────────────
+        'FLASH': isMZ ? '__Lib_FLASH_MZ.emcl' : '__Lib_FLASH.emcl',
+
+        // ── Storage ──────────────────────────────────────────────────────────────────
+        'MMC':       '__Lib_Mmc.emcl',
+        'MmcFat16':  '__Lib_MmcFat16.emcl',
+        'CF':        '__Lib_CF.emcl',
+        'CFFat16':   '__Lib_CFFat16.emcl',
+
+        // ── Display ──────────────────────────────────────────────────────────────────
+        'LCD':        '__Lib_Lcd.emcl',
+        'SPILcd':     '__Lib_SPILcd.emcl',
+        'SPILcd8':    '__Lib_SPILcd8.emcl',
+        'GLCD':       isMZ ? '__Lib_Glcd_MZ.emcl' : '__Lib_Glcd.emcl',
+        'GlcdFonts':  '__Lib_GlcdFonts.emcl',
+        'SPIGlcd':    '__Lib_SPIGlcd.emcl',
+        'TFT':        '__Lib_TFT.emcl',
+        'T6963C':     '__Lib_T6963C.emcl',
+        'SPIT6963C':  '__Lib_SPIT6963C.emcl',
+
+        // ── Touch ────────────────────────────────────────────────────────────────────
+        'TouchPanel':     '__Lib_TouchPanel.emcl',
+        'TouchPanel_TFT': '__Lib_TouchPanel_TFT.emcl',
+        'STMPE610':       '__Lib_STMPE610.emcl',
+
+        // ── Input ────────────────────────────────────────────────────────────────────
+        'Button':       '__Lib_Button.emcl',
+        'Keypad4x4':    '__Lib_Keypad4x4.emcl',
+        'PS2':          '__Lib_PS2.emcl',
+        'PortExpander': '__Lib_PortExpander.emcl',
+
+        // ── Protocols ────────────────────────────────────────────────────────────────
+        'OneWire':   '__Lib_OneWire.emcl',
+        'Manchester': '__Lib_Manchester.emcl',
+
+        // ── Math & DSP ───────────────────────────────────────────────────────────────
+        'Math':       '__Lib_Math.emcl',
+        'MathDouble': (isMZ && isEF) ? '__Lib_MathDouble_MZ_EF.emcl' : '__Lib_MathDouble.emcl',
+        'C_Math':     (isMZ && isEF) ? '__Lib_CMath_EF.emcl'         : '__Lib_CMath.emcl',
+        'Trigonometry': '__Lib_Trigonometry.emcl',
+        'Q15':        (isMZ && isEF) ? '__Lib_Q15_EF.emcl'           : '__Lib_Q15.emcl',
+        'Q31':        (isMZ && isEF) ? '__Lib_Q31_EF.emcl'           : '__Lib_Q31.emcl',
+        'FFT':        '__Lib_Fft.emcl',
+        'FirRadix':   '__Lib_FirRadix.emcl',
+        'IirRadix':   '__Lib_IirRadix.emcl',
+        'Matrices':   '__Lib_Matrices.emcl',
+        'Vectors':    '__Lib_Vectors.emcl',
+
+        // ── C Standard Library ───────────────────────────────────────────────────────
         'C_String':    '__Lib_CString.emcl',
-        'C_Stdlib':    (isMZ && isEF) ? '__Lib_CStdlib_EF.emcl'      : '__Lib_CStdlib.emcl',
+        'C_Stdlib':    (isMZ && isEF) ? '__Lib_CStdlib_EF.emcl'    : '__Lib_CStdlib.emcl',
         'C_Type':      '__Lib_CType.emcl',
-        'C_Math':      (isMZ && isEF) ? '__Lib_CMath_EF.emcl'        : '__Lib_CMath.emcl',
-        'Sprintf':     (isMZ && isEF) ? '__Lib_Sprintf_EF.emcl'      : '__Lib_Sprintf.emcl',
+        'Conversions': (isMZ && isEF) ? '__Lib_Conversions_EF.emcl' : '__Lib_Conversions.emcl',
+        'Sprintf':     (isMZ && isEF) ? '__Lib_Sprintf_EF.emcl'     : '__Lib_Sprintf.emcl',
         'Sprinti':     '__Lib_Sprinti.emcl',
         'Sprintl':     '__Lib_Sprintl.emcl',
-        'Conversions': (isMZ && isEF) ? '__Lib_Conversions_EF.emcl'  : '__Lib_Conversions.emcl',
-        'MemManager':  '__Lib_MemManager.emcl',
-        'UART':        isMZ ? '__Lib_UART_123456_MZ.emcl' : '__Lib_UART.emcl',
-        'SPI':         '__Lib_SPI.emcl',
-        'I2C':         '__Lib_I2C.emcl',
-        'USB':         '__Lib_USB.emcl',
-        'FLASH':       '__Lib_FLASH.emcl',
-        'CAN':         '__Lib_CAN.emcl',
+        'PrintOut':    (isMZ && isEF) ? '__Lib_PrintOut_EF.emcl'    : '__Lib_PrintOut.emcl',
+
+        // ── PPS ─────────────────────────────────────────────────────────────────────
+        'PPS': getPPSEmcl(),
     };
     return map[shortName] || `__Lib_${shortName}.emcl`;
 }
@@ -1546,9 +1711,13 @@ function generateMikroCMakefileContent(
 
     // Always prepend base runtime libs required by MikroC linker
     const isMZ = config.device.toUpperCase().includes('MZ');
-    const baseLibs = isMZ
-        ? ['"__Lib_CP0.emcl"', '"__Lib_System_MZ_EF.emcl"']
-        : ['"__Lib_CP0.emcl"', '"__Lib_System.emcl"'];
+    const isEF = config.device.toUpperCase().includes('EF');
+    const isMX12 = !isMZ && /MX[12]\d\d/i.test(config.device);
+    const sysLib = (isMZ && isEF) ? '__Lib_System_MZ_EF.emcl'
+                 : isMZ           ? '__Lib_System_MZ.emcl'
+                 : isMX12         ? '__Lib_System_12.emcl'
+                 : '__Lib_System.emcl';
+    const baseLibs = ['"__Lib_CP0.emcl"', `"${sysLib}"`];
     const userLibs = emclLibs.map(l => `"${l}"`);
     const allLibs  = [...baseLibs, ...userLibs].join(' ');
 
@@ -1681,7 +1850,9 @@ async function createMikroCProject(context: vscode.ExtensionContext) {
                 compilerPaths = await importer.validateCompilerPath(picked[0].fsPath, 'PIC32');
             }
         } else if (choice === 'Use Template Paths') {
-            const tmpl = 'C:\\Users\\Public\\Documents\\Mikroelektronika\\mikroC PRO for PIC32';
+            const tmpl = getMikroCInstallPath() ||
+                path.join(process.env['PUBLIC'] || 'C:\\Users\\Public',
+                    'Documents', 'Mikroelektronika', 'mikroC PRO for PIC32');
             compilerPaths = {
                 compilerExe: `${tmpl}\\mikroCPIC32.exe`,
                 installPath: tmpl,
@@ -1908,12 +2079,15 @@ async function importMikroCProject(context: vscode.ExtensionContext) {
                     compilerPaths = await importer.validateCompilerPath(selectedPath[0].fsPath, projectInfo.compilerType);
                 }
             } else if (choice === 'Generate Template') {
-                // Generate template with placeholder paths
+                // Generate template with placeholder paths — try auto-detect first
+                const detected = getMikroCInstallPath();
+                const tmpl = detected ||
+                    `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}`;
                 compilerPaths = {
-                    compilerExe: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}\\mikroC${projectInfo.compilerType}.exe`,
-                    installPath: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}`,
-                    defsPath: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}\\Defs`,
-                    usesPath: `C:\\Program Files\\Mikroelektronika\\mikroC PRO for ${projectInfo.compilerType}\\Uses`
+                    compilerExe: `${tmpl}\\mikroC${projectInfo.compilerType}.exe`,
+                    installPath: tmpl,
+                    defsPath: `${tmpl}\\Defs`,
+                    usesPath: `${tmpl}\\Uses`
                 };
                 console.log('MikroC import: Using template compiler paths');
                 vscode.window.showInformationMessage('Template Makefile will be generated. Edit paths in Makefile after creation.');

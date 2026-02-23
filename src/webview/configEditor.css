@@ -360,37 +360,86 @@ select {
     color: var(--vscode-foreground, #ccc);
 }
 
-/* Library selector (MikroC projects) */
-.library-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 4px;
+/* Library Browser (MikroC projects) — dynamic rendering */
+.lib-category {
+    margin-bottom: 6px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow: hidden;
 }
 
-.library-category {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.library-category strong {
-    font-size: 11px;
-    text-transform: uppercase;
-    color: var(--vscode-descriptionForeground, #888);
-    margin-bottom: 2px;
-}
-
-.library-category label {
+.lib-category-header {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
-    font-weight: normal;
+    padding: 5px 8px;
+    background: #e8e8e8;
     cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    font-weight: 600;
 }
 
-.library-category input[type="checkbox"] {
-    width: auto;
-    margin: 0;
+.lib-category-header:hover { background: #d8d8d8; }
+
+.lib-category-arrow {
+    font-size: 9px;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+
+.lib-category-arrow.expanded { transform: rotate(90deg); }
+
+.lib-category-body {
+    display: none;
+    padding: 4px 6px;
+    background: white;
+    column-count: 2;
+    column-gap: 10px;
+}
+
+.lib-category-body.expanded { display: block; }
+
+.lib-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 3px 2px;
+    border-radius: 2px;
+    cursor: pointer;
+    break-inside: avoid;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.lib-item:hover { background: rgba(0,120,212,0.08); }
+
+.lib-item input[type="checkbox"] { width: auto; margin: 1px 0 0 0; flex-shrink: 0; }
+
+.lib-item-name { flex: 1; line-height: 1.3; }
+
+.lib-item-desc {
+    font-size: 10px;
+    color: #888;
+    margin-top: 1px;
+    display: none;
+    line-height: 1.3;
+}
+
+.lib-item:hover .lib-item-desc { display: block; }
+
+.lib-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 8px;
+    background: #0078d4;
+    color: white;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Items not applicable to the device are dimmed */
+.lib-item.not-applicable {
+    opacity: 0.35;
+    pointer-events: none;
 }

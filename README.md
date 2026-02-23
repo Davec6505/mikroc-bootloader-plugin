@@ -4,6 +4,8 @@
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/DavidCoetzee.xc-project-importer)](https://marketplace.visualstudio.com/items?itemName=DavidCoetzee.xc-project-importer)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/DavidCoetzee.xc-project-importer)](https://marketplace.visualstudio.com/items?itemName=DavidCoetzee.xc-project-importer)
 
+> **Disclaimer**: This extension is an independent community tool and is not affiliated with, endorsed by, or supported by Mikroelektronika or Microchip Technology Inc. MikroC PRO for PIC32 is commercial software — a valid license is required. MPLAB X, XC32, and MikroC are trademarks of their respective owners.
+
 **Create new PIC32 projects OR import existing MPLABX projects** - Full XC32 compiler support for PIC32MX/MZ with visual configuration editor, AI-assisted development (GitHub Copilot), and native build/flash from VS Code.
 
 ## Why This Extension?

@@ -2,7 +2,7 @@
   "name": "xc-project-importer",
   "displayName": "XC PIC32MX/MZ Project Importer & Creator for VS Code",
   "description": "Create new XC32 projects OR import existing MPLABX projects for PIC32MX/MZ. AI-assisted embedded development with GitHub Copilot. Visual config editor, MCC Harmony 3 compatible, build & flash from VS Code.",
-  "version": "2.5.46",
+  "version": "2.5.50",
   "publisher": "DavidCoetzee",
   "icon": "images/icon.png",
   "author": {
@@ -30,8 +30,6 @@
     "ai",
     "pic",
     "pic32",
-    "avr",
-    "arm",
     "mikroc",
     "bootloader",
     "microcontroller",
@@ -99,6 +97,11 @@
           "default": "",
           "description": "Path to GNU Make executable (leave empty to use bundled)"
         },
+        "pic32-ide.mikroCInstallPath": {
+          "type": "string",
+          "default": "",
+          "description": "Root folder of your mikroC PRO for PIC32 installation (e.g. C:\\Users\\Public\\Documents\\Mikroelektronika\\mikroC PRO for PIC32). Leave empty to auto-detect."
+        },
         "pic32m-dev.hexFilePattern": {
           "type": "string",
           "default": "**/*.hex",
@@ -114,9 +117,10 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./ && npm run copy-templates && npm run copy-webview",
+    "compile": "tsc -p ./ && npm run copy-templates && npm run copy-webview && npm run copy-libraries",
     "copy-templates": "node -e \"require('fs').cpSync('src/templates', 'out/templates', {recursive: true})\"",
     "copy-webview": "node -e \"require('fs').cpSync('src/webview', 'out/webview', {recursive: true})\"",
+    "copy-libraries": "node -e \"require('fs').copyFileSync('src/mikroc-libraries.json', 'out/mikroc-libraries.json')\"",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",

@@ -259,78 +259,70 @@ See [devices/pic32mx.json](../devices/pic32mx.json) and [devices/pic32mz-ef.json
 
 ## Roadmap & Known Issues
 
-**Current Status** (Feb 21, 2026): Active development — MikroC create + import flows building successfully; v2.5.46 published
+**Current Status** (Feb 22, 2026): Active development — MikroC create + import flows building successfully; v2.5.49 published
 
-**Recently Completed** (v2.5.39-v2.5.46):
+**Recently Completed** (v2.5.47-v2.5.49):
 
-- **MikroC bins/ output, flat structure** (v2.5.46)
-  - Both Makefile generators (create + import) move `.hex` to `bins\<project>.hex` after build
-  - `clean` also removes `bins\*.hex`
-  - `bins/` folder pre-created by extension on project creation and import
-  - No `incs/` folder for MikroC — all files stay flat in project root (MikroC compiler requirement)
+- **Portable MikroC installation paths** (v2.5.49)
+  - `getMikroCInstallPath()` helper in `extension.ts`: checks VS Code setting → `%PUBLIC%\Documents\Mikroelektronika\...` → Program Files fallbacks
+  - `_getMikroCInstallPath()` private method in `configEditor.ts` (same logic for CHM doc opening)
+  - `pic32-ide.mikroCInstallPath` VS Code setting added for manual override
+  - All 3 hardcoded `C:\Users\Public\...` / `C:\Program Files\Mikroelektronika\...` paths eliminated
 
-- **MikroC Makefile template literal escaping fixed** (v2.5.45)
-  - Both `extension.ts` (`generateMikroCMakefileContent`) and `mikrocImporter.ts` (`generateMakefile`) use correct escaping
-  - `$(…)` used directly for Make vars (not `$$(…)` — that was the bug)
-  - `\\` for single backslash, `\\"`  for trailing backslash-quote in `-SP` paths
+- **MikroC Library Browser** (v2.5.48)
+  - Dynamic collapsible library browser in config editor — shows applicable libraries per device
+  - `src/mikroc-libraries.json`: 13 categories, 50+ libraries with `requires[]` capability flags
+  - Libraries dimmed/disabled if device lacks required hardware (`usb`, `can_internal`, `ethernet_internal`, `mz_ef`, etc.)
+  - Double-click any library → opens CHM doc to exact page via `hh.exe "ms-its:..."` protocol
+  - `libraryShortNameToEmcl()` fully rewritten with device-subfamily-aware `.emcl` selection
 
-- **MikroC Makefile generator rewritten to PowerShell pattern** (v2.5.44)
-  - `SHELL := powershell.exe` + `.SHELLFLAGS := -NoProfile -Command`
-  - Recipe: `& "$(COMPILER)" $(CFLAGS) …` (PowerShell call operator)
-  - Source files auto-discovered via `$(wildcard *.c)` + individually quoted via `$(foreach …)`
-  - Base runtime libs always prepended: `__Lib_CP0.emcl` + `__Lib_System_MZ_EF.emcl` (MZ) or `__Lib_System.emcl` (MX)
-  - Build success checked by `Test-Path` on `.hex` (compiler always exits 0)
+- **CORETIMER Peripheral Library** (v2.5.49) — **first XC32 plib, start of the plib framework**
+  - `src/templates/xc32/peripheral/coretimer/plib_coretimer.c/.h`: self-contained MIPS CP0 implementation
+  - `CORETIMER_DelayMs()`, `CORETIMER_DelayUs()`, `CORETIMER_CountGet()`, `CORETIMER_TicksToMs()`
+  - SYSCLK/2 formula correct for all PIC32 (MX and MZ) — no device branching needed
+  - Tokens: `{{SYSCLK_HZ}}` (substituted from config.json), `{{DEVICE}}` (device name)
+  - Config editor shows **Peripherals panel** (XC32 only; hidden for MikroC) with CORETIMER checkbox (checked by default)
+  - When selected: `srcs/peripheral/plib_coretimer.c/h` generated with tokens substituted
+  - `main.c` gains `#include "peripheral/plib_coretimer.h"` + `#define delay_ms(ms) CORETIMER_DelayMs(ms)` instead of inline delay
+  - Peripheral sources auto-discovered by `SrcsMakefile.template` wildcard — **no Makefile changes needed**
+  - `ProjectConfig.peripherals?: string[]` field added
 
-- **MikroC project creator wired to config editor** (v2.5.42)
-  - Create flow opens config editor webview, generates `.mcp32` + Makefile from config
-  - Device-aware: MZ generates `configure_peripheral_clocks()` in main.c, MX does not
+**XC32 Peripheral Library (plib) Framework — Architecture**
 
-- **PBCLK Max MHz Per Bus Corrected** (v2.5.38) - Datasheet-verified per-bus speed limits
-  - PB1 (System Bus) and PB8 (USB/CAN/Ethernet) correctly allow up to 200 MHz — no longer flagged red
-  - PB2–PB5, PB7 remain max 100 MHz (peripheral I/O speed limit)
-  - Added **"SYSCLK: X MHz"** info line at top of PBCLK section for reference
-  - Confirmed: 24 MHz ÷ 3 × 50 ÷ 2 = 200 MHz SYSCLK default from DS60001320
+This is the foundation for a MikroC-equivalent plib system using self-contained XC32 templates:
 
-- **Edit Project Config Command** (v2.5.37) - Open config editor on any existing project
-  - Command palette: `XC Project Importer: Edit Project Configuration (Oscillator, PLL, Build Settings)`
-  - Reads `.vscode/pic32-project.json` for device + toolchain, pre-populates editor with `config.json`
-  - On OK: writes `config.json` + regenerates Makefile with updated heap/stack/optLevel
-  - Detects PLL/clock changes and warns about needing `#pragma config` update in source
-  - Registered as `pic32-ide.editConfig`
+```
+src/templates/xc32/peripheral/
+├── coretimer/              ✅ DONE
+│   ├── plib_coretimer.c    — CORETIMER_DelayMs/Us, CountGet, TicksToMs
+│   └── plib_coretimer.h    — CORE_TIMER_FREQUENCY macro, inline CountGet/TicksToMs
+├── uart/                   🔜 NEXT
+│   ├── plib_uart1.c        — UART1_Initialize(sysclk, baud), UART1_Write/Read/Puts/Printf
+│   ├── plib_uart1.h
+│   └── plib_uartN.c.tpl    — cloned for uart2..6 at generation time
+├── spi/                    📋 PLANNED
+├── i2c/                    📋 PLANNED
+├── adc/                    📋 PLANNED
+└── gpio/                   📋 PLANNED (PPS helpers)
+```
 
-- **Smart Flash/Program Button Visibility** (v2.5.36) - Buttons shown/hidden per project type
-  - `usesBootloader: true` in metadata → show Flash (`$(zap)`), hide Program (`$(chip)`)
-  - `usesBootloader: false` → hide Flash, show Program
-  - No metadata file → show both (unknown project / fresh workspace)
-  - MPLABX import sets `usesBootloader: !usesCrt0`; XC32 create sets from user selection
+**Key Design Rules for plibFramework:**
+- Each plib is **self-contained** — no `definitions.h`, no Harmony dependency, just `<xc.h>`
+- Token substitution at generation time: `{{SYSCLK_HZ}}`, `{{DEVICE}}`, `{{BAUDx}}` etc.
+- `SrcsMakefile.template` uses `$(wildcard srcs/**/*.c)` — new peripheral `.c` files picked up automatically
+- Include path for `plib_coretimer.h` in main.c: `#include "peripheral/plib_coretimer.h"` (relative to `srcs/`)
+- `SrcsMakefile.template` `INC_DIRS_SRC` autodiscovers `srcs/peripheral/` as an include dir
+- Config editor Peripherals panel is XC32-only; selector is `input[name="peripheral"]` checkboxes
+- `ProjectConfig.peripherals?: string[]` stores selected module IDs (e.g. `['coretimer', 'uart1']`)
+- Default: CORETIMER is checked by default for new projects
 
-- **Program Device Button via ICSP** (v2.5.35) - New `$(chip) Program` status bar button for direct hardware programming
-  - Detects `ipecmd.exe` from any MPLAB X IDE installation automatically (latest version wins)
-  - Programmer quick-pick: PICkit 4, PICkit 5, ICD 4, ICD 5, SNAP
-  - Device auto-read from `.vscode/pic32-project.json`; manual input fallback
-  - ipecmd flags: `-E` (erase) + `-M` (program) via PowerShell `&` call operator
-  - Branch **DAP-DEV** created for future custom Debug Adapter Protocol research
+**UART plib — next steps when resuming:**
+- MX vs MZ difference: `U1MODE2` register exists on MZ only (enhanced FIFO) — guard with `#ifdef __PIC32MZ__`
+- PPS is NOT part of the UART plib — user configures PPS at top of main.c (same as Harmony pattern)
+- Add baud rate selector to Peripherals panel (dropdown: 9600, 115200, 230400, custom text input)
+- Cloned for each selected UART instance (uart1, uart2 ...) with instance number substituted
 
-- **Build Settings Panel in Config Editor** (v2.5.34) - Right panel now includes editable build parameters
-  - Heap Size (bytes, default 4096) — feeds `{{HEAP_SIZE}}` Makefile token
-  - Stack Size (bytes, default 4096) — feeds `{{STACK_SIZE}}` Makefile token
-  - Optimization Level select (-O0/-O1/-O2/-O3/-Os) — feeds `{{OPT_LEVEL}}` token
-  - Build Type radio (Release / ICD Debug) — stored in config.json
-  - All values saved in `config.json` under `build:` key and read back by `extension.ts`
 
-- **PIC32MZ EF PBCLK Architecture Corrections** (v2.5.34) - Verified from DFP headers
-  - Removed PB6 (register does not exist on EF family — causes compiler error)
-  - Added PB8 (USB/CAN/Ethernet, PBDIV=0 → ÷1 → 200 MHz default)
-  - PBDIV option labels changed to show raw register values `0 (÷1)` through `7 (÷8)`
-  - PBCLK event listeners in `configEditor.js` fixed: loop `[1,2,3,4,5,7,8]` (was wrong `1..6`)
-  - Real-time MHz display per bus, red if fractional or >100 MHz for PB2-PB5/PB7
-
-- **Config Editor JS Complete Rewrite** (v2.5.33) - Correct HTML element IDs
-  - All element IDs sourced from the real TypeScript template string in `configEditor.ts`
-  - Previous `configEditor.html` was a dead file — all HTML lives in `_getHtmlForWebview()`
-  - OK button now correctly builds and posts full config including PBCLK and build sections
-
-- **PATH Environment Management** (v2.5.29) - Exact string tracking to prevent duplicates
 
 **Active Branch**: `DAP-DEV` — USB HID Debug Monitor (serial-free live debug over existing bootloader USB link)
 **Branch Strategy**: DAP-DEV holds all debug monitor work; merges to master when each milestone ships

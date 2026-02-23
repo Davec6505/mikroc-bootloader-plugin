@@ -9,6 +9,9 @@
     let currentConfig = null;
     let deviceName = '';
     let currentCompiler = 'XC32';
+    let deviceMaxMHz = 200; // overridden from constraints on init
+    let deviceCaps = {};   // peripheral capabilities from backend
+    let libraryCategories = []; // library catalog from mikroc-libraries.json
 
     // Wait for DOM to be ready
     document.addEventListener('DOMContentLoaded', () => {
@@ -41,6 +44,14 @@
             if (cb) { cb.addEventListener('change', calculatePBCLK); }
         }
 
+        // CORETIMER peripheral sub-options show/hide
+        const ctEnabled  = document.getElementById('ctEnabled');
+        const ctInterrupt = document.getElementById('ctEnableInterrupt');
+        const ctPeriodic  = document.getElementById('ctPeriodic');
+        if (ctEnabled)   { ctEnabled.addEventListener('change',   updateCoretimerUI); }
+        if (ctInterrupt) { ctInterrupt.addEventListener('change', updateCoretimerUI); }
+        if (ctPeriodic)  { ctPeriodic.addEventListener('change',  updateCoretimerUI); }
+
         // Buttons
         document.getElementById('ok').addEventListener('click', handleOK);
         document.getElementById('cancel').addEventListener('click', handleCancel);
@@ -54,6 +65,9 @@
         currentConfig   = message.config;
         currentCompiler = message.compiler || 'XC32';
 
+        deviceCaps = message.deviceCaps || {};
+        libraryCategories = message.libraryCategories || [];
+
         document.getElementById('deviceName').textContent = deviceName;
 
         const pbclkSection = document.getElementById('pbclkSection');
@@ -61,15 +75,25 @@
             pbclkSection.style.display = deviceName.startsWith('32MZ') ? 'block' : 'none';
         }
 
-        // Show library section for MikroC; show config registers for XC32
-        const libSection = document.getElementById('librarySection');
-        const cfgRegs    = document.getElementById('configRegistersSection');
+        // Show library section for MikroC; show config registers + peripherals for XC32
+        const libSection        = document.getElementById('librarySection');
+        const peripheralSection = document.getElementById('peripheralSection');
+        const cfgRegs           = document.getElementById('configRegistersSection');
         if (currentCompiler === 'MikroC') {
-            if (libSection) { libSection.style.display = 'block'; }
-            if (cfgRegs)    { cfgRegs.style.display    = 'none';  }
+            if (libSection)        { libSection.style.display        = 'block'; }
+            if (peripheralSection) { peripheralSection.style.display = 'none';  }
+            if (cfgRegs)           { cfgRegs.style.display           = 'none';  }
+            // Render dynamic library browser once caps + catalog are set
+            renderLibraryBrowser();
         } else {
-            if (libSection) { libSection.style.display = 'none';  }
-            if (cfgRegs)    { cfgRegs.style.display    = 'block'; }
+            if (libSection)        { libSection.style.display        = 'none';  }
+            if (peripheralSection) { peripheralSection.style.display = 'block'; }
+            if (cfgRegs)           { cfgRegs.style.display           = 'block'; }
+        }
+
+        // Store max clock from constraints (single source of truth from configEditor.ts)
+        if (message.constraints.maxSystemClock) {
+            deviceMaxMHz = message.constraints.maxSystemClock / 1e6;
         }
 
         // Populate PLL dropdowns from constraints
@@ -158,7 +182,35 @@
             cb.checked = selectedLibs.includes(cb.value);
         });
 
+        // Coretimer peripheral sub-options
+        const ct = (config.peripheralConfig || {}).coretimer || {};
+        const ctEnabledEl   = document.getElementById('ctEnabled');
+        const ctIntEl       = document.getElementById('ctEnableInterrupt');
+        const ctPeriodicEl  = document.getElementById('ctPeriodic');
+        const ctPeriodMsEl  = document.getElementById('ctPeriodMs');
+        const ctStopDebugEl = document.getElementById('ctStopDebug');
+        if (ctEnabledEl)   { ctEnabledEl.checked   = (config.peripherals || []).includes('coretimer'); }
+        if (ctIntEl)       { ctIntEl.checked        = ct.enableInterrupt   ?? true; }
+        if (ctPeriodicEl)  { ctPeriodicEl.checked   = ct.periodicInterrupt ?? true; }
+        if (ctPeriodMsEl)  { ctPeriodMsEl.value     = ct.periodMs          ?? 1; }
+        if (ctStopDebugEl) { ctStopDebugEl.checked  = ct.stopInDebug       ?? false; }
+        updateCoretimerUI();
+
         calculateClock();
+    }
+
+    function updateCoretimerUI() {
+        const ctEnabled  = document.getElementById('ctEnabled')?.checked;
+        const optDiv     = document.getElementById('coretimerOptions');
+        if (optDiv) { optDiv.style.display = ctEnabled ? 'block' : 'none'; }
+
+        const intEnabled  = document.getElementById('ctEnableInterrupt')?.checked;
+        const periodicRow = document.getElementById('ctPeriodicRow');
+        if (periodicRow) { periodicRow.style.display = intEnabled ? 'block' : 'none'; }
+
+        const periodic    = document.getElementById('ctPeriodic')?.checked;
+        const periodMsRow = document.getElementById('ctPeriodMsRow');
+        if (periodMsRow) { periodMsRow.style.display = periodic ? 'flex' : 'none'; }
     }
     
     function calculateClock() {
@@ -179,7 +231,8 @@
         const sysclkMHz = pllIn * mult / outDiv;
 
         const isPIC32MZ  = deviceName.startsWith('32MZ');
-        const maxMHz     = isPIC32MZ ? 200 : (deviceName.match(/32MX[34]/) ? 120 : 80);
+        // maxMHz comes from constraints sent by configEditor.ts (single source of truth)
+        const maxMHz     = deviceMaxMHz;
         const fractional = !Number.isInteger(sysclkMHz);
         const pllInOK    = isPIC32MZ ? (pllIn >= 5 && pllIn <= 10) : (pllIn >= 4 && pllIn <= 5);
         const invalid    = fractional || sysclkMHz > maxMHz || !pllInOK;
@@ -188,6 +241,15 @@
         freqEl.style.color = invalid ? 'red' : '';
 
         calculatePBCLK();
+        calculateCoretimerFreq();
+    }
+
+    function calculateCoretimerFreq() {
+        const sysclkMHz = parseFloat(document.getElementById('clockFrequency').value);
+        const ctFreqEl  = document.getElementById('ctFreqHz');
+        if (!ctFreqEl) { return; }
+        if (!sysclkMHz || sysclkMHz === 0) { ctFreqEl.textContent = '--'; return; }
+        ctFreqEl.textContent = Math.round(sysclkMHz * 1e6 / 2).toLocaleString();
     }
     
     function calculatePBCLK() {
@@ -312,6 +374,22 @@
             config.libraries.push(cb.value);
         });
 
+        // Peripherals (XC32 only — collected regardless, backend ignores for MikroC)
+        config.peripherals = [];
+        document.querySelectorAll('input[name="peripheral"]:checked').forEach(cb => {
+            config.peripherals.push(cb.value);
+        });
+
+        // Coretimer peripheral config
+        config.peripheralConfig = {
+            coretimer: {
+                enableInterrupt:   document.getElementById('ctEnableInterrupt')?.checked  ?? true,
+                periodicInterrupt: document.getElementById('ctPeriodic')?.checked         ?? true,
+                periodMs:          parseInt(document.getElementById('ctPeriodMs')?.value) || 1,
+                stopInDebug:       document.getElementById('ctStopDebug')?.checked        ?? false
+            }
+        };
+
         return config;
     }
     
@@ -328,5 +406,94 @@
     function handleLoadScheme() { vscode.postMessage({ type: 'loadScheme' }); }
     function handleSaveScheme() { vscode.postMessage({ type: 'saveScheme', config: getCurrentConfig() }); }
     function handleDefault()    { vscode.postMessage({ type: 'resetDefault' }); }
+
+    // ─── Dynamic Library Browser ────────────────────────────────────────────────
+
+    /** Determine if a library's requirements are met by the current device */
+    function libMatchesDevice(lib) {
+        return lib.requires.every(req => {
+            switch (req) {
+                case 'usb':               return !!deviceCaps.hasUSB;
+                case 'can_internal':      return !!deviceCaps.hasCAN;
+                case 'ethernet_internal': return !!deviceCaps.hasEthernet;
+                case 'mz':               return !!deviceCaps.isMZ;
+                case 'mz_ef':            return !!deviceCaps.isMZ && !!deviceCaps.isEF;
+                case 'mx':               return !!deviceCaps.isMX;
+                case 'mx12':             return !!deviceCaps.isMX12;
+                default:                 return true;
+            }
+        });
+    }
+
+    /** Render the library catalog into #libraryBrowser */
+    function renderLibraryBrowser() {
+        const container = document.getElementById('libraryBrowser');
+        if (!container || !libraryCategories.length) { return; }
+        container.innerHTML = '';
+
+        libraryCategories.forEach(cat => {
+            const catEl = document.createElement('div');
+            catEl.className = 'lib-category';
+
+            // Count how many libraries in this category are applicable
+            const applicable = cat.libraries.filter(l => libMatchesDevice(l));
+            const total      = cat.libraries.length;
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'lib-category-header';
+            header.innerHTML =
+                `<span class="lib-category-arrow">▶</span>` +
+                `<span>${cat.name}</span>` +
+                (applicable.length < total
+                    ? `<span class="lib-badge">${applicable.length}/${total}</span>`
+                    : `<span class="lib-badge" style="background:#4caf50">${total}</span>`);
+
+            const body = document.createElement('div');
+            body.className = 'lib-category-body';
+
+            // Toggle expand/collapse
+            header.addEventListener('click', () => {
+                const expanded = body.classList.toggle('expanded');
+                header.querySelector('.lib-category-arrow').classList.toggle('expanded', expanded);
+            });
+
+            // Library items
+            cat.libraries.forEach(lib => {
+                const matches = libMatchesDevice(lib);
+                const item = document.createElement('div');
+                item.className = 'lib-item' + (matches ? '' : ' not-applicable');
+                item.title = matches ? lib.description : `Not available on this device (requires: ${lib.requires.join(', ')})`;
+
+                const cb = document.createElement('input');
+                cb.type  = 'checkbox';
+                cb.name  = 'lib';
+                cb.value = lib.id;
+                if (lib.defaultSelected && matches) { cb.checked = true; }
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'lib-item-name';
+                nameSpan.textContent = lib.displayName;
+
+                item.appendChild(cb);
+                item.appendChild(nameSpan);
+
+                // Double-click to open docs
+                if (lib.docPage) {
+                    item.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        vscode.postMessage({ type: 'openLibraryDoc', docPage: lib.docPage });
+                    });
+                    item.title += '\nDouble-click to open documentation';
+                }
+
+                body.appendChild(item);
+            });
+
+            catEl.appendChild(header);
+            catEl.appendChild(body);
+            container.appendChild(catEl);
+        });
+    }
 
 })();
