@@ -62,6 +62,7 @@ By **creating new PIC32 projects** or **importing existing MPLABX projects** int
 - **Build System**: Generates GNU Makefiles compatible with Windows, WSL, and Git Bash
 
 ### 📦 MikroC Project Import
+- **Clean builds**: Regenerated MikroC Makefiles remove source-generated intermediates and project outputs (including the project HEX in the root or `bins`) while preserving supplied libraries and source/configuration files. Cleanup failures are reported.
 - **In-Place Import**: Import MikroC PRO projects directly (no file copying)
 - **PIC32 Support**: Works with MikroC PRO for PIC32 compiler
 - **Auto-Detection**: Finds any `.mcp32` file

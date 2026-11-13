@@ -11,6 +11,7 @@ import { MPLABXImporter, saveMetadata, ProjectMetadata, ProjectInfo } from './pr
 const packageJson = require('../package.json');
 import { MakefileGenerator } from './makefileGenerator';
 import { MikroCImporter } from './mikrocImporter';
+import { mikroCCleanTarget } from './mikrocClean';
 import { BootloaderUpdater } from './bootloaderUpdater';
 import { BundledToolsManager } from './bundledTools';
 import { loadDeviceDefinitions, getAllDevicesFlat, DeviceDefinition, detectDeviceFamily, getConfigBits, getDeviceClockFrequency } from './deviceLoader';
@@ -1755,17 +1756,17 @@ CFLAGS := ${cflags}
 
 .PHONY: all rebuild clean
 
+# Keep the Uses -IP path free of a trailing backslash; otherwise mcpp can hang.
+
 all:
-\t& "$(COMPILER)" $(CFLAGS) -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
+\t& "$(COMPILER)" $(CFLAGS) -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
 \tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
 rebuild:
-\t& "$(COMPILER)" $(CFLAGS) -RA -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)\\" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
+\t& "$(COMPILER)" $(CFLAGS) -RA -N"$(SRC_DIR)\\$(MODULE).mcp32" -SP"$(DEFS_DIR)\\" -SP"$(USES_DIR)\\" -SP"$(SRC_DIR)\\" -IP"$(USES_DIR)" -IP"$(SRC_DIR)" $(SOURCES) $(LIBS)
 \tif (Test-Path "$(MODULE).hex") { Write-Host "Build complete! Output: $(MODULE).hex" } else { Write-Error "Build FAILED - no hex file generated"; exit 1 }
 
-clean:
-\tGet-ChildItem . -Include *.emcl,*.asm,*.lst,*.log,*.mcl,*.user.dic -ErrorAction SilentlyContinue | Remove-Item -Force
-\tWrite-Host "Clean complete."
+${mikroCCleanTarget}
 `;
 }
 
